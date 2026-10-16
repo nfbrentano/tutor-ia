@@ -9,6 +9,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="stylesheet" href="./src/styles/base.css" />
   <link rel="stylesheet" href="./src/styles/tutor.css" />
+  <link rel="stylesheet" href="./src/styles/lousa.css" />
 </head>
 <body>
   <header>
@@ -50,119 +51,141 @@
   <main class="tutor-layout">
     <!-- Seção Central do Avatar -->
     <section class="avatar-section" aria-label="Área do Avatar Interativo">
-      <div id="avatar-module" class="state-idle">
-        <div class="avatar-halo"></div>
-        <div class="avatar-halo-secondary"></div>
+      <div class="avatar-stage">
+        <div id="avatar-module" class="state-idle">
+          <div class="avatar-halo"></div>
+          <div class="avatar-halo-secondary"></div>
 
-        <svg class="avatar-svg" viewBox="0 0 240 280" role="img" aria-label="Avatar Articulado do Tutor">
-          <defs>
-            <linearGradient id="headGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#1e293b"/>
-              <stop offset="100%" stop-color="#0f172a"/>
-            </linearGradient>
-            <linearGradient id="torsoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#1e293b"/>
-              <stop offset="100%" stop-color="#090d16"/>
-            </linearGradient>
-            <filter id="eyeGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="2" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-            <filter id="coreGlow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </defs>
+          <svg class="avatar-svg" viewBox="0 0 240 280" role="img" aria-label="Avatar Articulado do Tutor">
+            <defs>
+              <linearGradient id="headGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#1e293b"/>
+                <stop offset="100%" stop-color="#0f172a"/>
+              </linearGradient>
+              <linearGradient id="torsoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#1e293b"/>
+                <stop offset="100%" stop-color="#090d16"/>
+              </linearGradient>
+              <filter id="eyeGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="2" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+              <filter id="coreGlow" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+            </defs>
 
-          <!-- ================= TRONCO E PEITORAL (RESPIRAÇÃO) ================= -->
-          <g id="avatar-torso" class="avatar-torso">
-            <!-- Base dos Ombros / Clavícula -->
-            <rect x="75" y="145" width="90" height="22" rx="10" fill="url(#torsoGrad)" stroke="#38bdf8" stroke-width="1.8" />
-            
-            <!-- Placa Peitoral -->
-            <path d="M 80 155 L 160 155 L 152 230 L 88 230 Z" fill="url(#torsoGrad)" stroke="#334155" stroke-width="2" />
-            
-            <!-- Frisos Neon do Peitoral -->
-            <path d="M 94 165 L 110 185 L 130 185 L 146 165" fill="none" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1.5" />
-            
-            <!-- Núcleo de Energia (Core) -->
-            <circle id="avatar-chest-core" cx="120" cy="188" r="8" fill="#38bdf8" filter="url(#coreGlow)" />
-            <circle cx="120" cy="188" r="4" fill="#ffffff" />
-          </g>
-
-          <!-- ================= PESCOÇO ================= -->
-          <g id="avatar-neck" class="avatar-neck">
-            <rect x="110" y="125" width="20" height="25" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
-            <line x1="112" y1="133" x2="128" y2="133" stroke="#38bdf8" stroke-width="1" />
-            <line x1="112" y1="139" x2="128" y2="139" stroke="#38bdf8" stroke-width="1" />
-          </g>
-
-          <!-- ================= CABEÇA E EXPRESSÃO (BALANÇO) ================= -->
-          <g id="avatar-head-group" class="avatar-head-group">
-            <!-- Antena Superior -->
-            <line x1="120" y1="36" x2="120" y2="48" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
-            <circle cx="120" cy="32" r="4" fill="#38bdf8" />
-
-            <!-- Fones Laterais -->
-            <rect x="76" y="65" width="8" height="24" rx="4" fill="#38bdf8" />
-            <rect x="156" y="65" width="8" height="24" rx="4" fill="#38bdf8" />
-
-            <!-- Casca da Cabeça -->
-            <rect class="avatar-head" x="84" y="48" width="72" height="70" rx="20" fill="url(#headGrad)" stroke="#38bdf8" stroke-width="2.5" />
-
-            <!-- Visor Escuro -->
-            <rect class="avatar-visor" x="92" y="58" width="56" height="50" rx="12" fill="#080d1a" stroke="#1e293b" stroke-width="1.5" />
-
-            <!-- Sobrancelhas Articuladas -->
-            <g id="avatar-eyebrows" class="avatar-eyebrows">
-              <line class="eyebrow eyebrow-left" x1="99" y1="68" x2="111" y2="68" stroke-width="2" stroke-linecap="round" />
-              <line class="eyebrow eyebrow-right" x1="129" y1="68" x2="141" y2="68" stroke-width="2" stroke-linecap="round" />
+            <!-- ================= TRONCO E PEITORAL (RESPIRAÇÃO) ================= -->
+            <g id="avatar-torso" class="avatar-torso">
+              <!-- Base dos Ombros / Clavícula -->
+              <rect x="75" y="145" width="90" height="22" rx="10" fill="url(#torsoGrad)" stroke="#38bdf8" stroke-width="1.8" />
+              
+              <!-- Placa Peitoral -->
+              <path d="M 80 155 L 160 155 L 152 230 L 88 230 Z" fill="url(#torsoGrad)" stroke="#334155" stroke-width="2" />
+              
+              <!-- Frisos Neon do Peitoral -->
+              <path d="M 94 165 L 110 185 L 130 185 L 146 165" fill="none" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1.5" />
+              
+              <!-- Núcleo de Energia (Core) -->
+              <circle id="avatar-chest-core" cx="120" cy="188" r="8" fill="#38bdf8" filter="url(#coreGlow)" />
+              <circle cx="120" cy="188" r="4" fill="#ffffff" />
             </g>
 
-            <!-- Olhos Expressivos (com Piscada e Movimento de Olhar) -->
-            <g id="avatar-eyes" class="avatar-eyes">
-              <ellipse class="avatar-eye eye-left" cx="105" cy="76" rx="5.5" ry="5.5" filter="url(#eyeGlow)" />
-              <ellipse class="avatar-eye eye-right" cx="135" cy="76" rx="5.5" ry="5.5" filter="url(#eyeGlow)" />
+            <!-- ================= PESCOÇO ================= -->
+            <g id="avatar-neck" class="avatar-neck">
+              <rect x="110" y="125" width="20" height="25" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
+              <line x1="112" y1="133" x2="128" y2="133" stroke="#38bdf8" stroke-width="1" />
+              <line x1="112" y1="139" x2="128" y2="139" stroke="#38bdf8" stroke-width="1" />
             </g>
 
-            <!-- Boca Articulada e Sincronizada -->
-            <g id="avatar-mouth" class="avatar-mouth">
-              <rect class="mouth-shape" x="108" y="96" width="24" height="6" rx="3" />
-            </g>
-          </g>
+            <!-- ================= CABEÇA E EXPRESSÃO (BALANÇO) ================= -->
+            <g id="avatar-head-group" class="avatar-head-group">
+              <!-- Antena Superior -->
+              <line x1="120" y1="36" x2="120" y2="48" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
+              <circle cx="120" cy="32" r="4" fill="#38bdf8" />
 
-          <!-- ================= BRAÇO ESQUERDO (ARTICULADO) ================= -->
-          <g id="arm-left-group" class="avatar-arm arm-left">
-            <!-- Ombro Esquerdo -->
-            <circle cx="75" cy="155" r="9" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
-            <!-- Braço Superior -->
-            <path d="M 75 155 L 60 195" stroke="#334155" stroke-width="8" stroke-linecap="round" />
-            
-            <!-- Antebraço e Mão Esquerda -->
-            <g id="forearm-left-group" class="avatar-forearm forearm-left">
-              <circle cx="60" cy="195" r="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2" />
-              <path d="M 60 195 L 54 235" stroke="#334155" stroke-width="7" stroke-linecap="round" />
-              <!-- Mão Esquerda -->
-              <ellipse cx="53" cy="242" rx="7" ry="9" fill="#38bdf8" />
-            </g>
-          </g>
+              <!-- Fones Laterais -->
+              <rect x="76" y="65" width="8" height="24" rx="4" fill="#38bdf8" />
+              <rect x="156" y="65" width="8" height="24" rx="4" fill="#38bdf8" />
 
-          <!-- ================= BRAÇO DIREITO (ARTICULADO & GESTOS) ================= -->
-          <g id="arm-right-group" class="avatar-arm arm-right">
-            <!-- Ombro Direito -->
-            <circle cx="165" cy="155" r="9" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
-            <!-- Braço Superior -->
-            <path d="M 165 155 L 180 195" stroke="#334155" stroke-width="8" stroke-linecap="round" />
-            
-            <!-- Antebraço e Mão Direita -->
-            <g id="forearm-right-group" class="avatar-forearm forearm-right">
-              <circle cx="180" cy="195" r="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2" />
-              <path d="M 180 195 L 186 235" stroke="#334155" stroke-width="7" stroke-linecap="round" />
-              <!-- Mão Direita (Aponta e Gesticula) -->
-              <ellipse cx="187" cy="242" rx="7" ry="9" fill="#38bdf8" />
+              <!-- Casca da Cabeça -->
+              <rect class="avatar-head" x="84" y="48" width="72" height="70" rx="20" fill="url(#headGrad)" stroke="#38bdf8" stroke-width="2.5" />
+
+              <!-- Visor Escuro -->
+              <rect class="avatar-visor" x="92" y="58" width="56" height="50" rx="12" fill="#080d1a" stroke="#1e293b" stroke-width="1.5" />
+
+              <!-- Sobrancelhas Articuladas -->
+              <g id="avatar-eyebrows" class="avatar-eyebrows">
+                <line class="eyebrow eyebrow-left" x1="99" y1="68" x2="111" y2="68" stroke-width="2" stroke-linecap="round" />
+                <line class="eyebrow eyebrow-right" x1="129" y1="68" x2="141" y2="68" stroke-width="2" stroke-linecap="round" />
+              </g>
+
+              <!-- Olhos Expressivos (com Piscada e Movimento de Olhar) -->
+              <g id="avatar-eyes" class="avatar-eyes">
+                <ellipse class="avatar-eye eye-left" cx="105" cy="76" rx="5.5" ry="5.5" filter="url(#eyeGlow)" />
+                <ellipse class="avatar-eye eye-right" cx="135" cy="76" rx="5.5" ry="5.5" filter="url(#eyeGlow)" />
+              </g>
+
+              <!-- Boca Articulada e Sincronizada -->
+              <g id="avatar-mouth" class="avatar-mouth">
+                <rect class="mouth-shape" x="108" y="96" width="24" height="6" rx="3" />
+              </g>
             </g>
-          </g>
-        </svg>
+
+            <!-- ================= BRAÇO ESQUERDO (ARTICULADO) ================= -->
+            <g id="arm-left-group" class="avatar-arm arm-left">
+              <!-- Ombro Esquerdo -->
+              <circle cx="75" cy="155" r="9" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+              <!-- Braço Superior -->
+              <path d="M 75 155 L 60 195" stroke="#334155" stroke-width="8" stroke-linecap="round" />
+              
+              <!-- Antebraço e Mão Esquerda -->
+              <g id="forearm-left-group" class="avatar-forearm forearm-left">
+                <circle cx="60" cy="195" r="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2" />
+                <path d="M 60 195 L 54 235" stroke="#334155" stroke-width="7" stroke-linecap="round" />
+                <!-- Mão Esquerda -->
+                <ellipse cx="53" cy="242" rx="7" ry="9" fill="#38bdf8" />
+              </g>
+            </g>
+
+            <!-- ================= BRAÇO DIREITO (ARTICULADO & GESTOS) ================= -->
+            <g id="arm-right-group" class="avatar-arm arm-right">
+              <!-- Ombro Direito -->
+              <circle cx="165" cy="155" r="9" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+              <!-- Braço Superior -->
+              <path d="M 165 155 L 180 195" stroke="#334155" stroke-width="8" stroke-linecap="round" />
+              
+              <!-- Antebraço e Mão Direita -->
+              <g id="forearm-right-group" class="avatar-forearm forearm-right">
+                <circle cx="180" cy="195" r="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2" />
+                <path d="M 180 195 L 186 235" stroke="#334155" stroke-width="7" stroke-linecap="round" />
+                <!-- Mão Direita (Aponta e Gesticula) -->
+                <ellipse cx="187" cy="242" rx="7" ry="9" fill="#38bdf8" />
+              </g>
+            </g>
+          </svg>
+        </div>
+
+        <!-- Painel da Lousa Escolar Didática (RF01, RNF04) -->
+        <div id="lousa-board" class="lousa-panel" role="region" aria-label="Lousa de Apoio Visual" aria-hidden="true">
+          <div class="lousa-header">
+            <div class="lousa-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+                <line x1="8" y1="8" x2="16" y2="8"></line>
+                <line x1="8" y1="16" x2="13" y2="16"></line>
+              </svg>
+              <span>Lousa do Tutor</span>
+            </div>
+            <span class="lousa-badge" id="lousa-counter">Apoio Visual</span>
+            <button class="lousa-close-btn" id="btn-close-lousa" title="Fechar Lousa" aria-label="Fechar Lousa">✕</button>
+          </div>
+          <div class="lousa-body" id="lousa-body" aria-live="polite">
+            <!-- Itens didáticos sincronizados com as etapas da fala -->
+          </div>
+        </div>
       </div>
 
       <!-- Badge de Estado Atual -->
@@ -222,26 +245,6 @@
     </aside>
   </main>
 
-  <!-- Pop-up Didático de Imagem -->
-  <div class="media-popup" id="media-popup" role="dialog" aria-label="Ilustração Didática">
-    <div class="media-popup-header">
-      <div class="media-popup-title">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-          <circle cx="8.5" cy="8.5" r="1.5"></circle>
-          <polyline points="21 15 16 10 5 21"></polyline>
-        </svg>
-        Ilustração Didática
-      </div>
-      <button class="media-popup-close" id="btn-close-popup" title="Fechar visualização">✕</button>
-    </div>
-    <div class="media-popup-body">
-      <div class="media-popup-img-wrap">
-        <img src="" alt="Ilustração didática" class="media-popup-img" id="media-popup-img" title="Clique para ampliar em tela cheia" />
-      </div>
-      <div class="media-popup-caption" id="media-popup-caption">Material visual complementar para enriquecer seu aprendizado.</div>
-    </div>
-  </div>
 
   <!-- Lightbox para Imagem em Tela Cheia -->
   <div class="lightbox-overlay" id="lightbox-overlay" role="dialog" aria-label="Imagem ampliada">
