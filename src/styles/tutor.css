@@ -1,5 +1,5 @@
 /* ==========================================================================
-   TUTORIA - TUTOR INTERFACE STYLES (AVATAR, CHAT, CONTROLS, MEDIA POPUP)
+   TUTORIA - TUTOR INTERFACE STYLES (AVATAR ARTICULADO, CHAT, CONTROLES, POPUP)
    ========================================================================== */
 
 main.tutor-layout {
@@ -23,7 +23,7 @@ main.tutor-layout {
 }
 
 /* ==========================================================================
-   SEÇÃO DO AVATAR
+   SEÇÃO DO AVATAR MODULAR ARTICULADO
    ========================================================================== */
 .avatar-section {
   display: flex;
@@ -34,187 +34,328 @@ main.tutor-layout {
   background: radial-gradient(circle at center, rgba(30, 41, 59, 0.4) 0%, rgba(18, 18, 18, 0.8) 75%);
   border: 1px solid rgba(51, 65, 85, 0.5);
   border-radius: var(--radius-lg);
-  padding: 3rem 2rem;
-  min-height: 480px;
+  padding: 2.5rem 1.5rem;
+  min-height: 520px;
+  overflow: hidden;
 }
 
 #avatar-module {
   position: relative;
-  width: 270px;
-  height: 270px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #1e293b 0%, #090d16 100%);
-  border: 3.5px solid var(--border-color);
+  width: 300px;
+  height: 330px;
+  max-width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: var(--transition-smooth);
-  box-shadow: 0 0 35px rgba(0, 0, 0, 0.7);
 }
 
+/* Halos de Energia */
 .avatar-halo {
   position: absolute;
-  inset: -12px;
+  width: 250px;
+  height: 250px;
   border-radius: 50%;
   border: 2px dashed var(--primary);
   opacity: 0.35;
   pointer-events: none;
   animation: rotateHalo 25s linear infinite;
   transition: var(--transition-smooth);
+  top: 30px;
 }
 
 .avatar-halo-secondary {
   position: absolute;
-  inset: -24px;
+  width: 280px;
+  height: 280px;
   border-radius: 50%;
   border: 1.5px solid transparent;
   opacity: 0;
   pointer-events: none;
   transition: var(--transition-smooth);
+  top: 15px;
 }
 
 .avatar-svg {
-  width: 190px;
-  height: 190px;
+  width: 100%;
+  height: 100%;
   overflow: visible;
-  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.5));
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.6));
 }
 
-.avatar-head {
-  transition: transform 0.4s ease-out;
-  transform-origin: center;
+/* ==========================================================================
+   ANIMAÇÕES DE RESPIRAÇÃO E BALANÇO NATURAL (RF02)
+   ========================================================================== */
+@keyframes avatarBreathe {
+  0%, 100% {
+    transform: translateY(0px) scaleY(1);
+  }
+  50% {
+    transform: translateY(-4px) scaleY(1.02);
+  }
 }
 
+.avatar-torso {
+  animation: avatarBreathe 4s ease-in-out infinite;
+  transform-origin: 120px 240px;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes headSway {
+  0%, 100% {
+    transform: rotate(0deg) translateY(0px);
+  }
+  33% {
+    transform: rotate(1.2deg) translateY(-1px);
+  }
+  66% {
+    transform: rotate(-1deg) translateY(-0.5px);
+  }
+}
+
+.avatar-head-group {
+  animation: headSway 6s ease-in-out infinite;
+  transform-origin: 120px 135px;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.avatar-arm {
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.arm-left {
+  transform-origin: 75px 155px;
+}
+
+.arm-right {
+  transform-origin: 165px 155px;
+}
+
+.avatar-forearm {
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.forearm-left {
+  transform-origin: 60px 195px;
+}
+
+.forearm-right {
+  transform-origin: 180px 195px;
+}
+
+/* ==========================================================================
+   PISCADA NATURAL (RF03)
+   ========================================================================== */
 .avatar-eye {
   fill: #38bdf8;
   transform-origin: center;
-  transition: fill 0.3s ease;
+  transition: transform 0.08s ease, fill 0.3s ease;
 }
 
+#avatar-module.blinking .avatar-eye {
+  transform: scaleY(0.08);
+}
+
+.avatar-eyebrows {
+  transition: transform 0.3s ease;
+}
+
+.eyebrow {
+  stroke: #38bdf8;
+  transition: transform 0.3s ease, stroke 0.3s ease;
+}
+
+/* ==========================================================================
+   BOCA ARTICULADA E SINCRONIZADA (RF04)
+   ========================================================================== */
 .avatar-mouth {
+  transform-origin: 120px 99px;
+  transition: transform 0.08s ease-out;
+}
+
+.mouth-shape {
   fill: #38bdf8;
   transition: fill 0.3s ease;
 }
 
-.mouth-bar {
-  transform-origin: bottom;
-  transition: height 0.08s ease;
-}
-
-/* Animações e Estados do Avatar */
+/* ==========================================================================
+   ESTADOS VISUAIS DO AVATAR (RF05)
+   ========================================================================== */
 @keyframes rotateHalo {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
-@keyframes pulseHalo {
-  0% { transform: scale(1); opacity: 0.4; }
-  50% { transform: scale(1.08); opacity: 0.8; }
-  100% { transform: scale(1); opacity: 0.4; }
-}
-
-@keyframes blinkEyes {
-  0%, 96%, 100% { transform: scaleY(1); }
-  98% { transform: scaleY(0.1); }
-}
-
 @keyframes listeningGlow {
   0%, 100% {
-    box-shadow: 0 0 25px var(--accent-listening-glow), inset 0 0 20px var(--accent-listening-glow);
-    border-color: var(--accent-listening);
+    box-shadow: 0 0 25px var(--accent-listening-glow);
   }
   50% {
-    box-shadow: 0 0 55px var(--accent-listening-glow), inset 0 0 35px var(--accent-listening-glow);
-    border-color: #f87171;
+    box-shadow: 0 0 50px var(--accent-listening-glow);
   }
-}
-
-@keyframes thinkingSpin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }
 
 @keyframes speakingPulse {
   0%, 100% {
-    box-shadow: 0 0 30px var(--accent-speaking-glow), inset 0 0 20px var(--accent-speaking-glow);
-    border-color: var(--accent-speaking);
+    box-shadow: 0 0 25px var(--accent-speaking-glow);
   }
   50% {
-    box-shadow: 0 0 60px var(--accent-speaking-glow), inset 0 0 40px var(--accent-speaking-glow);
-    border-color: #34d399;
+    box-shadow: 0 0 55px var(--accent-speaking-glow);
   }
 }
 
-/* Estado: IDLE (Repouso) */
-#avatar-module.state-idle .avatar-eye {
-  animation: blinkEyes 4.5s infinite;
-}
-
-/* Estado: LISTENING (Ouvindo Aluno) */
-#avatar-module.state-listening {
-  animation: listeningGlow 1.8s infinite ease-in-out;
-}
+/* Estado: LISTENING (Ouvindo) */
 #avatar-module.state-listening .avatar-halo {
   border-color: var(--accent-listening);
   opacity: 0.8;
   animation: rotateHalo 8s linear infinite;
 }
-#avatar-module.state-listening .avatar-eye {
-  fill: var(--accent-listening);
-  transform: scale(1.15);
+#avatar-module.state-listening .avatar-head-group {
+  transform: rotate(-3.5deg) translateY(-2px);
 }
-#avatar-module.state-listening .avatar-mouth {
+#avatar-module.state-listening .eyebrow {
+  transform: translateY(-2.5px);
+  stroke: var(--accent-listening);
+}
+#avatar-module.state-listening .avatar-eye,
+#avatar-module.state-listening #avatar-chest-core,
+#avatar-module.state-listening .mouth-shape {
   fill: var(--accent-listening);
 }
 
-/* Estado: THINKING (Consultando Gemini) */
-#avatar-module.state-thinking {
-  border-color: var(--accent-thinking);
-  box-shadow: 0 0 35px var(--accent-thinking-glow);
-}
+/* Estado: THINKING (Pensando - mão no queixo) */
 #avatar-module.state-thinking .avatar-halo {
   border-color: var(--accent-thinking);
-  opacity: 0.9;
-  animation: rotateHalo 3s linear infinite reverse;
+  opacity: 0.85;
+  animation: rotateHalo 4s linear infinite reverse;
 }
-#avatar-module.state-thinking .avatar-eye {
-  fill: var(--accent-thinking);
-  animation: blinkEyes 1s infinite;
+#avatar-module.state-thinking .avatar-head-group {
+  transform: rotate(3.5deg) translateY(-1px);
 }
-#avatar-module.state-thinking .avatar-mouth {
+#avatar-module.state-thinking .avatar-eyes {
+  transform: translate(3px, -3px);
+}
+#avatar-module.state-thinking .eyebrow-left {
+  transform: rotate(-6deg) translateY(-1px);
+  stroke: var(--accent-thinking);
+}
+#avatar-module.state-thinking .eyebrow-right {
+  transform: rotate(8deg) translateY(-3px);
+  stroke: var(--accent-thinking);
+}
+#avatar-module.state-thinking .arm-right {
+  transform: rotate(-55deg) translate(-10px, 8px);
+}
+#avatar-module.state-thinking .forearm-right {
+  transform: rotate(-75deg);
+}
+#avatar-module.state-thinking .avatar-eye,
+#avatar-module.state-thinking #avatar-chest-core,
+#avatar-module.state-thinking .mouth-shape {
   fill: var(--accent-thinking);
 }
 
 /* Estado: SPEAKING (Falando) */
-#avatar-module.state-speaking {
-  animation: speakingPulse 1.4s infinite ease-in-out;
-}
 #avatar-module.state-speaking .avatar-halo {
   border-color: var(--accent-speaking);
   opacity: 0.85;
   animation: rotateHalo 12s linear infinite;
 }
-#avatar-module.state-speaking .avatar-eye {
+#avatar-module.state-speaking .avatar-eye,
+#avatar-module.state-speaking #avatar-chest-core,
+#avatar-module.state-speaking .mouth-shape {
   fill: var(--accent-speaking);
 }
-#avatar-module.state-speaking .avatar-mouth {
-  fill: var(--accent-speaking);
+#avatar-module.state-speaking .eyebrow {
+  stroke: var(--accent-speaking);
 }
 
-/* Animações da Boca no Estado Falando */
-#avatar-module.state-speaking .mouth-bar-1 { animation: equalizeBar1 0.28s infinite alternate ease-in-out; }
-#avatar-module.state-speaking .mouth-bar-2 { animation: equalizeBar2 0.22s infinite alternate ease-in-out 0.05s; }
-#avatar-module.state-speaking .mouth-bar-3 { animation: equalizeBar3 0.32s infinite alternate ease-in-out 0.1s; }
-#avatar-module.state-speaking .mouth-bar-4 { animation: equalizeBar2 0.25s infinite alternate ease-in-out 0.03s; }
-#avatar-module.state-speaking .mouth-bar-5 { animation: equalizeBar1 0.3s infinite alternate ease-in-out 0.08s; }
+/* ==========================================================================
+   REPERTÓRIO DE GESTOS (RF06)
+   ========================================================================== */
+/* Gesto 1: Palmas Abertas */
+#avatar-module.gesto-palmas-abertas .arm-left {
+  transform: rotate(26deg);
+}
+#avatar-module.gesto-palmas-abertas .forearm-left {
+  transform: rotate(-30deg);
+}
+#avatar-module.gesto-palmas-abertas .arm-right {
+  transform: rotate(-26deg);
+}
+#avatar-module.gesto-palmas-abertas .forearm-right {
+  transform: rotate(30deg);
+}
 
-@keyframes equalizeBar1 { from { height: 4px; y: 72px; } to { height: 10px; y: 69px; } }
-@keyframes equalizeBar2 { from { height: 4px; y: 72px; } to { height: 16px; y: 66px; } }
-@keyframes equalizeBar3 { from { height: 4px; y: 72px; } to { height: 20px; y: 64px; } }
+/* Gesto 2: Enfatizar */
+#avatar-module.gesto-enfatizar .arm-right {
+  transform: rotate(-45deg);
+}
+#avatar-module.gesto-enfatizar .forearm-right {
+  transform: rotate(-35deg);
+}
+#avatar-module.gesto-enfatizar .arm-left {
+  transform: rotate(10deg);
+}
 
-/* Badge de Estado */
+/* Gesto 3: Contar Dedos */
+#avatar-module.gesto-contar-dedos .arm-left {
+  transform: rotate(35deg);
+}
+#avatar-module.gesto-contar-dedos .forearm-left {
+  transform: rotate(-50deg);
+}
+#avatar-module.gesto-contar-dedos .arm-right {
+  transform: rotate(-12deg);
+}
+
+/* Gesto 4: Mão no Peito */
+#avatar-module.gesto-mao-no-peito .arm-right {
+  transform: rotate(-48deg);
+}
+#avatar-module.gesto-mao-no-peito .forearm-right {
+  transform: rotate(-85deg);
+}
+#avatar-module.gesto-mao-no-peito .arm-left {
+  transform: rotate(6deg);
+}
+
+/* ==========================================================================
+   APONTAR PARA A LOUSA / APOIO VISUAL (RF07)
+   ========================================================================== */
+#avatar-module.pose-apontando .avatar-head-group {
+  transform: rotate(7deg) translateX(4px);
+}
+#avatar-module.pose-apontando .avatar-eyes {
+  transform: translate(4px, 1px);
+}
+#avatar-module.pose-apontando .arm-right {
+  transform: rotate(-76deg) translate(5px, -10px);
+}
+#avatar-module.pose-apontando .forearm-right {
+  transform: rotate(10deg);
+}
+
+/* ==========================================================================
+   ACESSIBILIDADE: PREFERS-REDUCED-MOTION (RNF03, CA11)
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .avatar-torso,
+  .avatar-head-group,
+  .avatar-arm,
+  .avatar-forearm,
+  .avatar-halo {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* ==========================================================================
+   BADGE DE STATUS E CONTROLES
+   ========================================================================== */
 .status-badge {
-  margin-top: 2rem;
+  margin-top: 1.5rem;
   padding: 0.5rem 1.25rem;
   border-radius: 30px;
   background: var(--bg-surface);
@@ -250,9 +391,8 @@ main.tutor-layout {
   box-shadow: 0 0 10px var(--accent-speaking);
 }
 
-/* Dock de Ação de Voz */
 .action-dock {
-  margin-top: 2rem;
+  margin-top: 1.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -439,7 +579,7 @@ main.tutor-layout {
 }
 
 /* ==========================================================================
-   POP-UP DE MÍDIA / ILUSTRAÇÃO DIDÁTICA
+   POP-UP DE MÍDIA / ILUSTRAÇÃO DIDÁTICA E LIGHTBOX
    ========================================================================== */
 .media-popup {
   position: fixed;
@@ -526,7 +666,6 @@ main.tutor-layout {
   line-height: 1.35;
 }
 
-/* Lightbox */
 .lightbox-overlay {
   position: fixed;
   inset: 0;

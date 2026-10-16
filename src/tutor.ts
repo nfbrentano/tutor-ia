@@ -119,9 +119,13 @@ document.addEventListener('DOMContentLoaded', () => {
       // 4. Exibe resposta
       chat.adicionarMensagem('tutor', resposta.texto, resposta.imagem_url);
 
-      // 5. Mídia didática
+      // 5. Mídia didática / Lousa de apoio
       if (resposta.imagem_url) {
         showMediaPopup(resposta.imagem_url, `Ilustração sobre: "${textoLimpo}"`);
+        // Avatar aponta para o material visual de apoio (RF07 / CA08)
+        setTimeout(() => {
+          avatar.apontarParaLousa(1800);
+        }, 500);
       } else {
         hideMediaPopup();
       }
@@ -134,10 +138,18 @@ document.addEventListener('DOMContentLoaded', () => {
       await servicoVoz.falar(
         resposta.texto,
         {
+          onStart: () => {
+            avatar.definirEstado('speaking');
+          },
+          onBoundary: () => {
+            avatar.notificarPalavraFalada();
+          },
           onEnd: () => {
+            avatar.pararFala();
             avatar.definirEstado('idle');
           },
           onError: () => {
+            avatar.pararFala();
             avatar.definirEstado('idle');
           }
         },
@@ -151,8 +163,15 @@ document.addEventListener('DOMContentLoaded', () => {
       avatar.definirEstado('idle', 'Ocorreu um erro.');
 
       await servicoVoz.falar(mensagemErro, {
-        onEnd: () => avatar.definirEstado('idle'),
-        onError: () => avatar.definirEstado('idle')
+        onBoundary: () => avatar.notificarPalavraFalada(),
+        onEnd: () => {
+          avatar.pararFala();
+          avatar.definirEstado('idle');
+        },
+        onError: () => {
+          avatar.pararFala();
+          avatar.definirEstado('idle');
+        }
       });
     }
   }
@@ -167,6 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (servicoVoz.estaFalando()) {
         await servicoVoz.pararDeFalar();
+        avatar.pararFala();
         avatar.definirEstado('idle');
         return;
       }
