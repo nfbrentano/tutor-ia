@@ -6,6 +6,8 @@ export type AvatarEstado = 'idle' | 'listening' | 'thinking' | 'speaking';
 
 export type GestoTipo = 'palmas-abertas' | 'enfatizar' | 'contar-dedos' | 'mao-no-peito';
 
+export type GestoEsperaTipo = 'olhar-cima' | 'pensativo' | 'postura-atenta';
+
 export interface AvatarElementos {
   moduloElemento: HTMLElement | null;
   statusTextoElemento: HTMLElement | null;

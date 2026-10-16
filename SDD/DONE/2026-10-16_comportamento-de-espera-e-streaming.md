@@ -1,6 +1,6 @@
 # [FEAT] Comportamento de espera do tutor e resposta em streaming
 
-> **Status:** Em andamento
+> **Status:** Concluído
 > **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-10-16 · **Atualizada em:** 2026-10-16
 
 ## Detalhes da Atividade
@@ -64,22 +64,22 @@
 
 ## Critérios de Aceitação / Entregas
 
-- [ ] **CA01:** Dado que o aluno envia uma pergunta, quando ela é enviada (mesmo offline), então em até 500 ms o avatar entra em "pensando" e começa a falar uma frase de reação.
-- [ ] **CA02:** Dado 10 perguntas seguidas, quando o tutor reage a cada uma, então nunca usa a mesma frase duas vezes seguidas.
-- [ ] **CA03:** Dado a pergunta "como funciona a fotossíntese?", quando o tutor reage, então a frase menciona "fotossíntese"; dado "me ajuda com isso", então usa uma frase genérica.
-- [ ] **CA04:** Dado que a primeira etapa demora mais de 1,5 s, quando esse tempo passa, então o avatar vai até a lousa e escreve o título do tema.
-- [ ] **CA05:** Dado que a primeira etapa demora mais de 4 s, quando esse tempo passa, então o tutor fala uma curiosidade da matéria detectada, e só uma por pergunta.
-- [ ] **CA06:** Dado que o tutor está pensando por 6 s, quando observado, então faz pelo menos 2 gestos de espera diferentes.
-- [ ] **CA07:** Dado que a primeira etapa chega em menos de 800 ms, quando ela chega, então o tutor começa direto a explicação, sem frase de reação.
-- [ ] **CA08 (negativo):** Dado que a primeira etapa chega no meio de uma frase de espera, quando ela chega, então o tutor **não** fala duas coisas ao mesmo tempo: termina a frase (ou corta após 1,5 s) e emenda na explicação.
-- [ ] **CA09:** Dado uma resposta de 4 etapas em streaming, quando a primeira linha completa chega, então a fala da etapa 1 começa antes de a etapa 4 ter chegado.
-- [ ] **CA10:** Dado o streaming em andamento, quando cada etapa chega, então o item de lousa dela aparece na ordem certa e sincronizado com a fala, como na especificação da lousa.
-- [ ] **CA11 (erro):** Dado que o modelo responde num formato que não é uma etapa por linha (JSON único, legado ou texto puro), quando o streaming termina, então a resposta é interpretada pelo parser atual e falada normalmente.
-- [ ] **CA12:** Dado que o modelo principal deu 404 na primeira pergunta, quando o aluno faz a segunda pergunta, então a requisição vai direto para o modelo que funcionou.
-- [ ] **CA13:** Dado que o tutor está na espera ou no meio do streaming, quando o aluno toca no microfone ou envia nova pergunta, então a fala de espera para, a requisição anterior é cancelada e nada da resposta antiga aparece depois.
-- [ ] **CA14 (erro):** Dado que a API retorna erro durante a espera, quando o erro chega, então não aparece curiosidade nem lousa de preparação e o tutor fala a mensagem de erro.
-- [ ] **CA15:** Dado o app no Android, quando o aluno pergunta, então a reação imediata e o streaming funcionam como na web.
-- [ ] **CA16 (negativo):** Dado o banco de frases de espera, quando revisado, então nenhuma frase contém conteúdo da matéria ou uma "resposta" à pergunta.
+- [x] **CA01:** Dado que o aluno envia uma pergunta, quando ela é enviada (mesmo offline), então em até 500 ms o avatar entra em "pensando" e começa a falar uma frase de reação.
+- [x] **CA02:** Dado 10 perguntas seguidas, quando o tutor reage a cada uma, então nunca usa a mesma frase duas vezes seguidas.
+- [x] **CA03:** Dado a pergunta "como funciona a fotossíntese?", quando o tutor reage, então a frase menciona "fotossíntese"; dado "me ajuda com isso", então usa uma frase genérica.
+- [x] **CA04:** Dado que a primeira etapa demora mais de 1,5 s, quando esse tempo passa, então o avatar vai até a lousa e escreve o título do tema.
+- [x] **CA05:** Dado que a primeira etapa demora mais de 4 s, quando esse tempo passa, então o tutor fala uma curiosidade da matéria detectada, e só uma por pergunta.
+- [x] **CA06:** Dado que o tutor está pensando por 6 s, quando observado, então faz pelo menos 2 gestos de espera diferentes.
+- [x] **CA07:** Dado que a primeira etapa chega em menos de 800 ms, quando ela chega, então o tutor começa direto a explicação, sem frase de reação.
+- [x] **CA08 (negativo):** Dado que a primeira etapa chega no meio de uma frase de espera, quando ela chega, então o tutor **não** fala duas coisas ao mesmo tempo: termina a frase (ou corta após 1,5 s) e emenda na explicação.
+- [x] **CA09:** Dado uma resposta de 4 etapas em streaming, quando a primeira linha completa chega, então a fala da etapa 1 começa antes de a etapa 4 ter chegado.
+- [x] **CA10:** Dado o streaming em andamento, quando cada etapa chega, então o item de lousa dela aparece na ordem certa e sincronizado com a fala, como na especificação da lousa.
+- [x] **CA11 (erro):** Dado que o modelo responde num formato que não é uma etapa por linha (JSON único, legado ou texto puro), quando o streaming termina, então a resposta é interpretada pelo parser atual e falada normalmente.
+- [x] **CA12:** Dado que o modelo principal deu 404 na primeira pergunta, quando o aluno faz a segunda pergunta, então a requisição vai direto para o modelo que funcionou.
+- [x] **CA13:** Dado que o tutor está na espera ou no meio do streaming, quando o aluno toca no microfone ou envia nova pergunta, então a fala de espera para, a requisição anterior é cancelada e nada da resposta antiga aparece depois.
+- [x] **CA14 (erro):** Dado que a API retorna erro durante a espera, quando o erro chega, então não aparece curiosidade nem lousa de preparação e o tutor fala a mensagem de erro.
+- [x] **CA15:** Dado o app no Android, quando o aluno pergunta, então a reação imediata e o streaming funcionam como na web.
+- [x] **CA16 (negativo):** Dado o banco de frases de espera, quando revisado, então nenhuma frase contém conteúdo da matéria ou uma "resposta" à pergunta.
 
 ## O que a atividade não inclui
 

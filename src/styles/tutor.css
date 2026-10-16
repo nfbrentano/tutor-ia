@@ -321,6 +321,48 @@ main.tutor-layout {
 }
 
 /* ==========================================================================
+   GESTOS DE ESPERA ATIVA (RF05, CA06)
+   ========================================================================== */
+#avatar-module.gesto-olhar-cima .avatar-head-group {
+  transform: translateY(-4px) rotate(-2deg);
+}
+#avatar-module.gesto-olhar-cima .avatar-eyes {
+  transform: translateY(-3px);
+}
+#avatar-module.gesto-olhar-cima .arm-right {
+  transform: rotate(-10deg);
+}
+#avatar-module.gesto-olhar-cima .arm-left {
+  transform: rotate(10deg);
+}
+
+#avatar-module.gesto-pensativo .avatar-head-group {
+  transform: rotate(4deg) translateY(-1px);
+}
+#avatar-module.gesto-pensativo .arm-right {
+  transform: rotate(-40deg);
+}
+#avatar-module.gesto-pensativo .forearm-right {
+  transform: rotate(-70deg);
+}
+#avatar-module.gesto-pensativo .arm-left {
+  transform: rotate(12deg);
+}
+
+#avatar-module.gesto-postura-atenta .avatar-torso {
+  transform: scaleY(1.03) translateY(-2px);
+}
+#avatar-module.gesto-postura-atenta .avatar-head-group {
+  transform: translateY(-2px);
+}
+#avatar-module.gesto-postura-atenta .arm-right {
+  transform: rotate(-16deg);
+}
+#avatar-module.gesto-postura-atenta .arm-left {
+  transform: rotate(16deg);
+}
+
+/* ==========================================================================
    APONTAR PARA A LOUSA / APOIO VISUAL (RF07)
    ========================================================================== */
 #avatar-module.pose-apontando .avatar-head-group {

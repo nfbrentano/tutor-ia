@@ -1,12 +1,13 @@
 /**
  * TUTORIA - Script da Página do Tutor (tutor.html)
- * Orquestra Avatar, Voz, Lousa Didática, Chat, Chamada ao Gemini e Lightbox.
+ * Orquestra Avatar, Voz, Lousa Didática, Chat, Espera Ativa, Chamada ao Gemini com Streaming e Lightbox.
  */
 
 import { getStoredApiKey, getStoredSpeechRate, getStoredVoiceUri, hasApiKey } from './armazenamento';
 import { AvatarControlador } from './avatar';
 import { ChatGerenciador } from './chat';
-import { callGeminiApi } from './gemini';
+import { ControladorEspera } from './espera';
+import { callGeminiApi, EtapaExplicacao } from './gemini';
 import { LousaControlador } from './lousa';
 import { obterServicoVoz } from './voz';
 
@@ -32,8 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const lightboxOverlay = document.getElementById('lightbox-overlay');
   const lightboxImg = document.getElementById('lightbox-img') as HTMLImageElement | null;
 
-  // Controle de Sequência de Fala (para cancelamento/interrupção)
+  // Controle de Sequência e Cancelamento (RF11, CA13)
   let speechSequenceId = 0;
+  let activeAbortController: AbortController | null = null;
 
   // Inicializa Avatar
   const avatar = new AvatarControlador({
@@ -64,6 +66,17 @@ document.addEventListener('DOMContentLoaded', () => {
       abrirLightbox(url, legenda);
     }
   );
+
+  // Inicializa Controlador de Espera Ativa (RF01 - RF07, CA01 - CA08, CA13, CA14)
+  const controladorEspera = new ControladorEspera({
+    avatar,
+    lousa,
+    servicoVoz,
+    obterConfigVoz: () => ({
+      voiceUri: getStoredVoiceUri(),
+      rate: getStoredSpeechRate()
+    })
+  });
 
   // Inicializa Chat com suporte ao botão "Ver na Lousa" (RF08, CA12)
   const chat = new ChatGerenciador(
@@ -113,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   atualizarStatusChave();
 
-  // Fluxo principal de processamento de dúvidas
+  // Fluxo principal de processamento de dúvidas com Espera Ativa e Streaming
   async function processarPergunta(pergunta: string): Promise<void> {
     const textoLimpo = pergunta.trim();
     if (!textoLimpo) return;
@@ -124,8 +137,15 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Interrompe qualquer fala ou sequência anterior
+    // Interrompe qualquer espera, fala ou requisição anterior (RF11, CA13)
     const currentSequence = ++speechSequenceId;
+    if (activeAbortController) {
+      activeAbortController.abort();
+    }
+    activeAbortController = new AbortController();
+    const currentSignal = activeAbortController.signal;
+
+    controladorEspera.cancelarEspera();
     if (servicoVoz.estaFalando()) {
       await servicoVoz.pararDeFalar();
     }
@@ -137,45 +157,45 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Adiciona a mensagem do aluno no chat
     chat.adicionarMensagem('student', textoLimpo);
 
-    // 2. Avatar entra no estado "pensando"
-    avatar.definirEstado('thinking');
+    // 2. Inicia comportamento de espera ativa imediata (RF01 - RF05, CA01 - CA06)
+    // Funciona inclusive offline (RNF01)
+    controladorEspera.iniciarEspera(textoLimpo);
 
-    try {
-      // 3. Chamada ao Gemini com suporte a etapas didáticas
-      const resposta = await callGeminiApi(textoLimpo, apiKey);
+    // 3. Fila de etapas para streaming e reprodução sequencial sem travamentos (RF04, RF08, CA09, CA10)
+    const filaEtapas: EtapaExplicacao[] = [];
+    let primeiraEtapaIniciada = false;
+    let processandoFila = false;
+    let bolhaChatCriada = false;
 
-      if (speechSequenceId !== currentSequence) return;
+    async function consumirFilaEtapas(): Promise<void> {
+      if (processandoFila) return;
+      processandoFila = true;
 
-      // 4. Exibe resposta completa no balão de chat (RF02, CA03, CA12)
-      chat.adicionarMensagem(
-        'tutor',
-        resposta.textoCompleto,
-        resposta.itensLousa.length > 0 ? resposta.itensLousa : null,
-        resposta.imagem_url
-      );
+      while (filaEtapas.length > 0) {
+        if (speechSequenceId !== currentSequence || currentSignal.aborted) break;
+        const etapa = filaEtapas.shift()!;
 
-      // 5. Se não houver itens de lousa, garante que a lousa permaneça fechada (CA02)
-      if (resposta.itensLousa.length === 0) {
-        lousa.fechar();
-      }
+        // Passagem de vez da espera para a explicação (RF06, RF07, CA07, CA08)
+        if (!primeiraEtapaIniciada) {
+          primeiraEtapaIniciada = true;
+          await controladorEspera.notificarPrimeiraEtapaChegou();
+        }
 
-      // 6. Fala vocalizada sequencial por etapas com sincronização da lousa (RF04, CA03, CA05)
-      const voiceUri = getStoredVoiceUri();
-      const rate = getStoredSpeechRate();
+        if (speechSequenceId !== currentSequence || currentSignal.aborted) break;
 
-      for (let i = 0; i < resposta.etapas.length; i++) {
-        if (speechSequenceId !== currentSequence) break;
-        const etapa = resposta.etapas[i];
-
-        // Se a etapa possui item de lousa, exibe no onstart da etapa (RF04, CA05)
+        // Se a etapa tiver lousa, exibe no início da etapa (RF04, CA05, CA10)
         if (etapa.lousa) {
           await lousa.adicionarItem(etapa.lousa);
         }
 
-        if (speechSequenceId !== currentSequence) break;
+        if (speechSequenceId !== currentSequence || currentSignal.aborted) break;
 
+        // Fala vocalizada da etapa
         if (etapa.fala && etapa.fala.trim()) {
           avatar.definirEstado('speaking');
+
+          const voiceUri = getStoredVoiceUri();
+          const rate = getStoredSpeechRate();
 
           await servicoVoz.falar(
             etapa.fala,
@@ -191,14 +211,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
               },
               onEnd: () => {
-                // Última etapa concluída
-                if (i === resposta.etapas.length - 1 && speechSequenceId === currentSequence) {
+                if (filaEtapas.length === 0 && speechSequenceId === currentSequence) {
                   avatar.pararFala();
                   avatar.definirEstado('idle');
                 }
               },
               onError: () => {
-                if (i === resposta.etapas.length - 1 && speechSequenceId === currentSequence) {
+                if (filaEtapas.length === 0 && speechSequenceId === currentSequence) {
                   avatar.pararFala();
                   avatar.definirEstado('idle');
                 }
@@ -209,12 +228,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      if (speechSequenceId === currentSequence) {
-        avatar.pararFala();
-        avatar.definirEstado('idle');
+      processandoFila = false;
+    }
+
+    try {
+      // 4. Chamada à API com Streaming SSE e fallback incremental (RF08, RF09, RF10, CA09 - CA12)
+      const resposta = await callGeminiApi(textoLimpo, apiKey, {
+        signal: currentSignal,
+        onEtapaRecebida: (novaEtapa) => {
+          if (speechSequenceId !== currentSequence || currentSignal.aborted) return;
+          filaEtapas.push(novaEtapa);
+          consumirFilaEtapas();
+        }
+      });
+
+      if (speechSequenceId !== currentSequence || currentSignal.aborted) return;
+
+      // Se nenhuma etapa foi emitida via stream (fallback de formato único RF09 / CA11)
+      if (!primeiraEtapaIniciada) {
+        resposta.etapas.forEach(e => filaEtapas.push(e));
+        consumirFilaEtapas();
+      }
+
+      // 5. Exibe a resposta completa no chat (RF02, CA03, CA12)
+      if (!bolhaChatCriada) {
+        bolhaChatCriada = true;
+        chat.adicionarMensagem(
+          'tutor',
+          resposta.textoCompleto,
+          resposta.itensLousa.length > 0 ? resposta.itensLousa : null,
+          resposta.imagem_url
+        );
+      }
+
+      // Se a resposta final não contiver itens de lousa e nada estiver aberto, fecha
+      if (resposta.itensLousa.length === 0 && lousa.obterItensAtuais().length === 0) {
+        lousa.fechar();
       }
     } catch (erro: any) {
-      if (speechSequenceId !== currentSequence) return;
+      if (speechSequenceId !== currentSequence || currentSignal.aborted) return;
+
+      controladorEspera.notificarErro();
 
       console.error('Erro ao processar dúvida escolar:', erro);
       const mensagemErro =
@@ -236,7 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Interação do Microfone (voz)
+  // Interrupção e Controle do Microfone (voz) (RF11, CA13)
   if (btnMic) {
     btnMic.addEventListener('click', async () => {
       if (!hasApiKey()) {
@@ -244,8 +298,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      if (servicoVoz.estaFalando()) {
+      // Se estiver falando ou esperando, cancela imediatamente (RF11, CA13)
+      if (servicoVoz.estaFalando() || controladorEspera.estaAtiva()) {
         speechSequenceId++;
+        if (activeAbortController) {
+          activeAbortController.abort();
+          activeAbortController = null;
+        }
+        controladorEspera.cancelarEspera();
         await servicoVoz.pararDeFalar();
         avatar.pararFala();
         avatar.definirEstado('idle');
