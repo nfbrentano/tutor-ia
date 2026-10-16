@@ -1,15 +1,13 @@
 /**
  * TUTORIA - Módulo de Integração com o Google Gemini
- * Suporta fallback inteligente entre modelos e tratamento didático estruturado.
+ * Suporta resposta estruturada por etapas didáticas e recursos visuais de lousa (RF02).
  */
 
 import { CONFIG } from './armazenamento';
+import { EtapaExplicacao, ItemLousa, RespostaDidatica } from './lousa/tipos';
 
-export interface GeminiResponse {
-  texto: string;
-  imagem_url: string | null;
-  modeloUsado?: string;
-}
+export * from './lousa/tipos';
+export type GeminiResponse = RespostaDidatica;
 
 /**
  * Remove formatações markdown e referências textuais antes da síntese de voz.
@@ -27,17 +25,28 @@ export function cleanTextForSpeech(text: string): string {
 }
 
 /**
- * Faz o parser e sanitização segura da resposta do Gemini.
+ * Faz o parser e sanitização da resposta do Gemini, aceitando o novo formato de etapas
+ * ou o formato legado { texto, imagem_url } ou texto puro (RF02, CA03, CA09, CT03).
  */
-export function parseGeminiResponse(rawText: string): GeminiResponse {
+export function parseGeminiResponse(rawText: string): RespostaDidatica {
+  const respostaPadraoVazia: RespostaDidatica = {
+    etapas: [
+      {
+        fala: 'Não consegui formular uma resposta clara para essa dúvida.',
+        lousa: null
+      }
+    ],
+    textoCompleto: 'Não consegui formular uma resposta clara para essa dúvida.',
+    itensLousa: [],
+    texto: 'Não consegui formular uma resposta clara para essa dúvida.',
+    imagem_url: null
+  };
+
   if (!rawText || !rawText.trim()) {
-    return {
-      texto: 'Não consegui formular uma resposta clara para essa dúvida.',
-      imagem_url: null
-    };
+    return respostaPadraoVazia;
   }
 
-  // Remove marcações de código markdown (```json ... ```) se o modelo adicionar
+  // Remove blocos de código ```json ... ``` se existirem
   const cleaned = rawText
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/```\s*$/i, '')
@@ -45,19 +54,82 @@ export function parseGeminiResponse(rawText: string): GeminiResponse {
 
   try {
     const parsed = JSON.parse(cleaned);
-    const texto = typeof parsed.texto === 'string' && parsed.texto.trim()
-      ? parsed.texto.trim()
-      : 'Não consegui formular uma resposta clara para essa dúvida.';
-    
-    let imagem_url: string | null = null;
-    if (typeof parsed.imagem_url === 'string' && parsed.imagem_url.trim().startsWith('http')) {
-      imagem_url = parsed.imagem_url.trim();
+
+    // 1. Novo formato: etapas (RF02)
+    if (Array.isArray(parsed.etapas) && parsed.etapas.length > 0) {
+      // Limita a no máximo 8 etapas para manter a lousa sucinta (RNF06)
+      const etapasLimitadas = parsed.etapas.slice(0, 8);
+
+      const etapas: EtapaExplicacao[] = etapasLimitadas.map((e: any) => {
+        const fala = typeof e.fala === 'string' && e.fala.trim() ? e.fala.trim() : '';
+        let lousa: ItemLousa | null = null;
+
+        if (e.lousa && typeof e.lousa === 'object' && e.lousa.tipo) {
+          lousa = {
+            tipo: e.lousa.tipo,
+            conteudo: e.lousa.conteudo,
+            legenda: e.lousa.legenda
+          };
+        }
+
+        return { fala, lousa };
+      });
+
+      const falasValidas = etapas.map(e => e.fala).filter(Boolean);
+      const textoCompleto = falasValidas.length > 0
+        ? falasValidas.join(' ')
+        : 'Explicação didática da lousa.';
+
+      const itensLousa = etapas.map(e => e.lousa).filter((it): it is ItemLousa => it !== null);
+
+      return {
+        etapas,
+        textoCompleto,
+        itensLousa,
+        texto: textoCompleto,
+        imagem_url: null
+      };
     }
 
-    return { texto, imagem_url };
-  } catch {
-    // Se o modelo devolver texto puro em vez de JSON estruturado
+    // 2. Formato legado: { texto, imagem_url } (CA09)
+    if (typeof parsed.texto === 'string') {
+      const fala = parsed.texto.trim();
+      let lousa: ItemLousa | null = null;
+
+      if (typeof parsed.imagem_url === 'string' && parsed.imagem_url.trim().startsWith('http')) {
+        lousa = {
+          tipo: 'imagem',
+          conteudo: {
+            termo: fala.slice(0, 30),
+            urlReal: parsed.imagem_url.trim(),
+            legenda: 'Material visual didático'
+          }
+        };
+      }
+
+      return {
+        etapas: [{ fala, lousa }],
+        textoCompleto: fala,
+        itensLousa: lousa ? [lousa] : [],
+        texto: fala,
+        imagem_url: lousa ? (lousa.conteudo as any).urlReal : null
+      };
+    }
+
+    // Se o JSON não tiver etapas nem texto
     return {
+      etapas: [{ fala: cleaned, lousa: null }],
+      textoCompleto: cleaned,
+      itensLousa: [],
+      texto: cleaned,
+      imagem_url: null
+    };
+  } catch {
+    // 3. Texto puro não-JSON (CA09)
+    return {
+      etapas: [{ fala: cleaned, lousa: null }],
+      textoCompleto: cleaned,
+      itensLousa: [],
       texto: cleaned,
       imagem_url: null
     };
@@ -71,7 +143,7 @@ export async function callGeminiApi(
   questionText: string,
   apiKey: string,
   customModels?: string[]
-): Promise<GeminiResponse> {
+): Promise<RespostaDidatica> {
   const trimmedKey = (apiKey || '').trim();
   if (!trimmedKey) {
     throw new Error('API Key do Gemini ausente ou inválida.');
@@ -94,7 +166,7 @@ export async function callGeminiApi(
       parts: [{ text: CONFIG.SYSTEM_PROMPT }]
     },
     generationConfig: {
-      temperature: 0.6,
+      temperature: 0.5,
       topP: 0.95,
       responseMimeType: 'application/json'
     }
@@ -122,7 +194,6 @@ export async function callGeminiApi(
 
         lastError = new Error(errorMessage);
 
-        // Se o modelo não estiver disponível ou for 404/503, tenta o próximo no fallback
         if (response.status === 404 || response.status === 503) {
           console.warn(`Modelo ${model} indisponível (${response.status}), tentando fallback...`);
           continue;
@@ -145,7 +216,6 @@ export async function callGeminiApi(
       };
     } catch (err: any) {
       lastError = err instanceof Error ? err : new Error(String(err));
-      // Se for erro de permissão ou chave inválida, não adianta tentar outro modelo
       if (
         lastError.message.includes('API key') ||
         lastError.message.includes('permission') ||

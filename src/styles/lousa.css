@@ -1,0 +1,336 @@
+/* ==========================================================================
+   TUTORIA - ESTILOS DA LOUSA DE APOIO VISUAL (RF01, RF03, RF04, RNF04, RNF05)
+   ========================================================================== */
+
+/* Layout do Palco do Avatar e Lousa */
+.avatar-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  width: 100%;
+  transition: var(--transition-smooth);
+}
+
+@media (max-width: 980px) {
+  .avatar-stage {
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+}
+
+/* Painel da Lousa Escolar */
+.lousa-panel {
+  display: none;
+  flex-direction: column;
+  width: 380px;
+  max-width: 100%;
+  height: 480px;
+  background: radial-gradient(circle at top left, #1e293b 0%, #090d16 100%);
+  border: 1.8px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7), 0 0 20px rgba(56, 189, 248, 0.15);
+  overflow: hidden;
+  animation: lousaOpen 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 10;
+}
+
+.lousa-panel.visible {
+  display: flex;
+}
+
+@keyframes lousaOpen {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateX(15px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateX(0);
+  }
+}
+
+@media (max-width: 980px) {
+  .lousa-panel {
+    width: 100%;
+    height: 420px;
+  }
+}
+
+/* Cabeçalho da Lousa */
+.lousa-header {
+  padding: 0.85rem 1.2rem;
+  background: rgba(15, 23, 42, 0.95);
+  border-bottom: 1.5px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lousa-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  letter-spacing: 0.3px;
+}
+
+.lousa-badge {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  color: var(--text-medium);
+}
+
+.lousa-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: var(--transition-smooth);
+}
+
+.lousa-close-btn:hover {
+  background: var(--bg-surface-elevated);
+  color: var(--text-high);
+}
+
+/* Corpo e Fluxo de Itens da Lousa */
+.lousa-body {
+  flex: 1;
+  padding: 1.2rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  scroll-behavior: smooth;
+}
+
+/* Efeito de Escrita Progressiva (RF04) */
+@keyframes chalkWrite {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.lousa-item {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  color: var(--text-high);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.lousa-item.lousa-item-aparecendo {
+  animation: chalkWrite 0.45s ease-out;
+}
+
+/* Tipo: Texto / Destaque */
+.lousa-conteudo-texto {
+  font-weight: 600;
+  color: #f1f5f9;
+  border-left: 3px solid var(--primary);
+  padding-left: 0.75rem;
+}
+
+/* Tipo: Fórmula Matemática */
+.lousa-item-formula {
+  background: #0b1120;
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.1);
+  text-align: center;
+}
+
+.lousa-conteudo-formula {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: #38bdf8;
+  padding: 0.4rem 0.5rem;
+}
+
+.lousa-conteudo-formula sup {
+  font-size: 0.75em;
+  color: #7dd3fc;
+  vertical-align: super;
+}
+
+.lousa-conteudo-formula sub {
+  font-size: 0.75em;
+  color: #7dd3fc;
+  vertical-align: sub;
+}
+
+/* Tipo: Passos Numerados */
+.lousa-conteudo-passos {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.lousa-conteudo-passos li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.passo-numero {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #0f172a;
+  font-size: 0.75rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.passo-corpo {
+  flex: 1;
+  color: var(--text-high);
+}
+
+/* Tipo: Lista de Tópicos */
+.lousa-conteudo-lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lousa-conteudo-lista li {
+  position: relative;
+  padding-left: 1.25rem;
+  color: var(--text-medium);
+}
+
+.lousa-conteudo-lista li::before {
+  content: '●';
+  position: absolute;
+  left: 0;
+  color: var(--primary);
+  font-size: 0.75rem;
+  top: 1px;
+}
+
+/* Tipo: Tabela Responsiva (RNF05 / CA10) */
+.lousa-tabela-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.lousa-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.lousa-tabela th {
+  background: #1e293b;
+  color: var(--primary);
+  padding: 0.6rem 0.75rem;
+  font-weight: 700;
+  border-bottom: 1.5px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.lousa-tabela td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+  color: var(--text-high);
+}
+
+.lousa-tabela tr:last-child td {
+  border-bottom: none;
+}
+
+.lousa-tabela tr:nth-child(even) td {
+  background: rgba(30, 41, 59, 0.3);
+}
+
+/* Tipo: Imagem Wikimedia */
+.lousa-imagem-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lousa-img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: #000;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.lousa-img:hover {
+  transform: scale(1.02);
+  filter: brightness(1.08);
+}
+
+.lousa-img-legenda {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-high);
+  line-height: 1.35;
+}
+
+.lousa-img-credito {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+/* Tipo: Desenho SVG */
+.lousa-desenho-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #020617;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  overflow: hidden;
+}
+
+.lousa-desenho-svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.lousa-desenho-legenda {
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: center;
+}

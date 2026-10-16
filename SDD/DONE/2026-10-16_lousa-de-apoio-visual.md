@@ -1,6 +1,6 @@
 # [FEAT] Lousa de apoio visual ao lado do tutor
 
-> **Status:** Em andamento
+> **Status:** Concluído
 > **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-10-16 · **Atualizada em:** 2026-10-16
 
 ## Detalhes da Atividade
@@ -61,21 +61,21 @@
 
 ## Critérios de Aceitação / Entregas
 
-- [ ] **CA01:** Dado que o aluno pergunta "como resolver 2x + 3 = 7?", quando a resposta chega, então a lousa abre ao lado do avatar.
-- [ ] **CA02:** Dado que a resposta não tem nenhum item de lousa (ex.: "obrigado!"), quando ela chega, então a lousa continua fechada.
-- [ ] **CA03:** Dado que o modelo responde no novo formato de etapas, quando a resposta é processada, então cada etapa é falada em ordem e o texto completo aparece no balão do chat.
-- [ ] **CA04:** Dado uma resposta com itens dos tipos `texto`, `formula`, `passos`, `lista`, `tabela` e `imagem`, quando eles são exibidos, então cada um aparece com o visual próprio do seu tipo (ex.: `x^2` aparece com o 2 sobrescrito).
-- [ ] **CA05:** Dado uma resposta com 3 etapas, cada uma com item de lousa, quando o tutor começa a falar cada etapa, então o item correspondente aparece com efeito de escrita, os itens anteriores continuam visíveis e nada aparece antes da hora.
-- [ ] **CA06:** Dado um item `imagem` com termo "célula animal", quando a busca encontra resultado, então a lousa mostra a imagem com legenda e crédito/licença.
-- [ ] **CA07:** Dado um item `imagem` sem resultado, ou cuja busca passa de 4 s, quando a etapa é exibida, então o item é omitido sem ícone de imagem quebrada e a fala segue normalmente.
-- [ ] **CA08 (negativo):** Dado que o modelo retorna um `desenho` contendo `<script>` ou `onload="..."`, quando o item é exibido, então o código não é executado e só as formas permitidas são desenhadas.
-- [ ] **CA09:** Dado que o modelo retorna o formato antigo `{texto, imagem_url}` ou texto não-JSON, quando a resposta é processada, então o tutor fala o texto normalmente e a lousa não quebra a aplicação.
-- [ ] **CA10:** Dado uma tela de 375 px, quando a lousa abre, então ela fica abaixo do avatar e sem rolagem horizontal da página.
-- [ ] **CA11:** Dado uma imagem na lousa, quando o aluno clica nela, então ela abre em tela cheia no lightbox.
-- [ ] **CA12:** Dado que o aluno já fez duas perguntas, quando clica em "Ver na lousa" no balão da primeira, então a lousa mostra os itens da primeira resposta.
-- [ ] **CA13:** Dado que um item é exibido na lousa, quando ele aparece, então o evento `lousa:item-exibido` é disparado com o elemento correspondente.
-- [ ] **CA14:** Dado que a lousa tem itens de uma resposta anterior, quando o aluno faz uma nova pergunta, então a lousa é apagada antes dos novos itens aparecerem.
-- [ ] **CA15:** Dado que o aluno fechou a lousa, quando chega uma nova resposta com conteúdo visual, então a lousa abre de novo.
+- [x] **CA01:** Dado que o aluno pergunta "como resolver 2x + 3 = 7?", quando a resposta chega, então a lousa abre ao lado do avatar.
+- [x] **CA02:** Dado que a resposta não tem nenhum item de lousa (ex.: "obrigado!"), quando ela chega, então a lousa continua fechada.
+- [x] **CA03:** Dado que o modelo responde no novo formato de etapas, quando a resposta é processada, então cada etapa é falada em ordem e o texto completo aparece no balão do chat.
+- [x] **CA04:** Dado uma resposta com itens dos tipos `texto`, `formula`, `passos`, `lista`, `tabela` e `imagem`, quando eles são exibidos, então cada um aparece com o visual próprio do seu tipo (ex.: `x^2` aparece com o 2 sobrescrito).
+- [x] **CA05:** Dado uma resposta com 3 etapas, cada uma com item de lousa, quando o tutor começa a falar cada etapa, então o item correspondente aparece com efeito de escrita, os itens anteriores continuam visíveis e nada aparece antes da hora.
+- [x] **CA06:** Dado um item `imagem` com termo "célula animal", quando a busca encontra resultado, então a lousa mostra a imagem com legenda e crédito/licença.
+- [x] **CA07:** Dado um item `imagem` sem resultado, ou cuja busca passa de 4 s, quando a etapa é exibida, então o item é omitido sem ícone de imagem quebrada e a fala segue normalmente.
+- [x] **CA08 (negativo):** Dado que o modelo retorna um `desenho` contendo `<script>` ou `onload="..."`, quando o item é exibido, então o código não é executado e só as formas permitidas são desenhadas.
+- [x] **CA09:** Dado que o modelo retorna o formato antigo `{texto, imagem_url}` ou texto não-JSON, quando a resposta é processada, então o tutor fala o texto normalmente e a lousa não quebra a aplicação.
+- [x] **CA10:** Dado uma tela de 375 px, quando a lousa abre, então ela fica abaixo do avatar e sem rolagem horizontal da página.
+- [x] **CA11:** Dado uma imagem na lousa, quando o aluno clica nela, então ela abre em tela cheia no lightbox.
+- [x] **CA12:** Dado que o aluno já fez duas perguntas, quando clica em "Ver na lousa" no balão da primeira, então a lousa mostra os itens da primeira resposta.
+- [x] **CA13:** Dado que um item é exibido na lousa, quando ele aparece, então o evento `lousa:item-exibido` é disparado com o elemento correspondente.
+- [x] **CA14:** Dado que a lousa tem itens de uma resposta anterior, quando o aluno faz uma nova pergunta, então a lousa é apagada antes dos novos itens aparecerem.
+- [x] **CA15:** Dado que o aluno fechou a lousa, quando chega uma nova resposta com conteúdo visual, então a lousa abre de novo.
 
 ## O que a atividade não inclui
 

@@ -1,12 +1,13 @@
 /**
  * TUTORIA - Script da Página do Tutor (tutor.html)
- * Orquestra Avatar, Voz, Chat, Chamada ao Gemini e Mídia Didática.
+ * Orquestra Avatar, Voz, Lousa Didática, Chat, Chamada ao Gemini e Lightbox.
  */
 
 import { getStoredApiKey, getStoredSpeechRate, getStoredVoiceUri, hasApiKey } from './armazenamento';
 import { AvatarControlador } from './avatar';
 import { ChatGerenciador } from './chat';
 import { callGeminiApi } from './gemini';
+import { LousaControlador } from './lousa';
 import { obterServicoVoz } from './voz';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -24,15 +25,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const statusIndicator = document.getElementById('status-indicator');
   const statusLabel = document.getElementById('status-label');
 
-  // Pop-up e Lightbox
-  const mediaPopup = document.getElementById('media-popup');
-  const mediaPopupImg = document.getElementById('media-popup-img') as HTMLImageElement | null;
-  const mediaPopupCaption = document.getElementById('media-popup-caption');
-  const btnClosePopup = document.getElementById('btn-close-popup');
+  // Lousa Didática e Lightbox (RF01, RF07, RNF04)
+  const lousaPanel = document.getElementById('lousa-board');
+  const lousaBody = document.getElementById('lousa-body');
+  const btnCloseLousa = document.getElementById('btn-close-lousa');
   const lightboxOverlay = document.getElementById('lightbox-overlay');
   const lightboxImg = document.getElementById('lightbox-img') as HTMLImageElement | null;
 
-  // Inicializa Controladores
+  // Controle de Sequência de Fala (para cancelamento/interrupção)
+  let speechSequenceId = 0;
+
+  // Inicializa Avatar
   const avatar = new AvatarControlador({
     moduloElemento: avatarModule,
     statusTextoElemento: statusText,
@@ -42,25 +45,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const servicoVoz = obterServicoVoz();
 
-  function showMediaPopup(url: string, caption = ''): void {
-    if (!mediaPopup || !mediaPopupImg) return;
-    mediaPopupImg.src = url;
-    if (mediaPopupCaption) {
-      mediaPopupCaption.textContent = caption || 'Material visual didático complementar.';
+  // Função para abrir imagem no lightbox em tela cheia (RF07, CA11)
+  function abrirLightbox(url: string, legenda?: string): void {
+    if (!lightboxOverlay || !lightboxImg) return;
+    lightboxImg.src = url;
+    lightboxImg.alt = legenda || 'Ilustração didática ampliada';
+    lightboxOverlay.classList.add('active');
+  }
+
+  // Inicializa Controlador da Lousa (RF01, RF03, RF04)
+  const lousa = new LousaControlador(
+    {
+      painelElemento: lousaPanel,
+      corpoElemento: lousaBody,
+      btnFecharElemento: btnCloseLousa
+    },
+    (url, legenda) => {
+      abrirLightbox(url, legenda);
     }
-    mediaPopup.classList.add('visible');
+  );
 
-    mediaPopupImg.onerror = () => {
-      hideMediaPopup();
-    };
-  }
+  // Inicializa Chat com suporte ao botão "Ver na Lousa" (RF08, CA12)
+  const chat = new ChatGerenciador(
+    chatStream!,
+    (itens) => {
+      lousa.carregarItens(itens);
+    },
+    (url, legenda) => {
+      abrirLightbox(url, legenda);
+    }
+  );
 
-  function hideMediaPopup(): void {
-    if (mediaPopup) mediaPopup.classList.remove('visible');
-  }
-
-  const chat = new ChatGerenciador(chatStream!, (url, caption) => {
-    showMediaPopup(url, caption);
+  // Ouve evento disparado pela lousa para fazer o avatar apontar (RF09, CA13)
+  document.addEventListener('lousa:item-exibido', () => {
+    avatar.apontarParaLousa(1800);
   });
 
   // Atualiza estado visual da chave
@@ -95,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   atualizarStatusChave();
 
-  // Fluxo principal de processamento
+  // Fluxo principal de processamento de dúvidas
   async function processarPergunta(pergunta: string): Promise<void> {
     const textoLimpo = pergunta.trim();
     if (!textoLimpo) return;
@@ -106,56 +124,98 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // 1. Mensagem no chat
+    // Interrompe qualquer fala ou sequência anterior
+    const currentSequence = ++speechSequenceId;
+    if (servicoVoz.estaFalando()) {
+      await servicoVoz.pararDeFalar();
+    }
+    avatar.pararFala();
+
+    // Limpa a lousa ao chegar uma nova pergunta (RF10, CA14)
+    lousa.limpar();
+
+    // 1. Adiciona a mensagem do aluno no chat
     chat.adicionarMensagem('student', textoLimpo);
 
-    // 2. Avatar pensando
+    // 2. Avatar entra no estado "pensando"
     avatar.definirEstado('thinking');
 
     try {
-      // 3. Chamada à API
+      // 3. Chamada ao Gemini com suporte a etapas didáticas
       const resposta = await callGeminiApi(textoLimpo, apiKey);
 
-      // 4. Exibe resposta
-      chat.adicionarMensagem('tutor', resposta.texto, resposta.imagem_url);
+      if (speechSequenceId !== currentSequence) return;
 
-      // 5. Mídia didática / Lousa de apoio
-      if (resposta.imagem_url) {
-        showMediaPopup(resposta.imagem_url, `Ilustração sobre: "${textoLimpo}"`);
-        // Avatar aponta para o material visual de apoio (RF07 / CA08)
-        setTimeout(() => {
-          avatar.apontarParaLousa(1800);
-        }, 500);
-      } else {
-        hideMediaPopup();
+      // 4. Exibe resposta completa no balão de chat (RF02, CA03, CA12)
+      chat.adicionarMensagem(
+        'tutor',
+        resposta.textoCompleto,
+        resposta.itensLousa.length > 0 ? resposta.itensLousa : null,
+        resposta.imagem_url
+      );
+
+      // 5. Se não houver itens de lousa, garante que a lousa permaneça fechada (CA02)
+      if (resposta.itensLousa.length === 0) {
+        lousa.fechar();
       }
 
-      // 6. Fala vocalizada sincronizada com o Avatar
-      avatar.definirEstado('speaking');
+      // 6. Fala vocalizada sequencial por etapas com sincronização da lousa (RF04, CA03, CA05)
       const voiceUri = getStoredVoiceUri();
       const rate = getStoredSpeechRate();
 
-      await servicoVoz.falar(
-        resposta.texto,
-        {
-          onStart: () => {
-            avatar.definirEstado('speaking');
-          },
-          onBoundary: () => {
-            avatar.notificarPalavraFalada();
-          },
-          onEnd: () => {
-            avatar.pararFala();
-            avatar.definirEstado('idle');
-          },
-          onError: () => {
-            avatar.pararFala();
-            avatar.definirEstado('idle');
-          }
-        },
-        { voiceUri, rate }
-      );
+      for (let i = 0; i < resposta.etapas.length; i++) {
+        if (speechSequenceId !== currentSequence) break;
+        const etapa = resposta.etapas[i];
+
+        // Se a etapa possui item de lousa, exibe no onstart da etapa (RF04, CA05)
+        if (etapa.lousa) {
+          await lousa.adicionarItem(etapa.lousa);
+        }
+
+        if (speechSequenceId !== currentSequence) break;
+
+        if (etapa.fala && etapa.fala.trim()) {
+          avatar.definirEstado('speaking');
+
+          await servicoVoz.falar(
+            etapa.fala,
+            {
+              onStart: () => {
+                if (speechSequenceId === currentSequence) {
+                  avatar.definirEstado('speaking');
+                }
+              },
+              onBoundary: () => {
+                if (speechSequenceId === currentSequence) {
+                  avatar.notificarPalavraFalada();
+                }
+              },
+              onEnd: () => {
+                // Última etapa concluída
+                if (i === resposta.etapas.length - 1 && speechSequenceId === currentSequence) {
+                  avatar.pararFala();
+                  avatar.definirEstado('idle');
+                }
+              },
+              onError: () => {
+                if (i === resposta.etapas.length - 1 && speechSequenceId === currentSequence) {
+                  avatar.pararFala();
+                  avatar.definirEstado('idle');
+                }
+              }
+            },
+            { voiceUri, rate }
+          );
+        }
+      }
+
+      if (speechSequenceId === currentSequence) {
+        avatar.pararFala();
+        avatar.definirEstado('idle');
+      }
     } catch (erro: any) {
+      if (speechSequenceId !== currentSequence) return;
+
       console.error('Erro ao processar dúvida escolar:', erro);
       const mensagemErro =
         'Desculpe, ocorreu uma instabilidade ao buscar sua resposta. Por favor, verifique sua API Key nas Configurações.';
@@ -176,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Interação do Microfone
+  // Interação do Microfone (voz)
   if (btnMic) {
     btnMic.addEventListener('click', async () => {
       if (!hasApiKey()) {
@@ -185,6 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (servicoVoz.estaFalando()) {
+        speechSequenceId++;
         await servicoVoz.pararDeFalar();
         avatar.pararFala();
         avatar.definirEstado('idle');
@@ -244,17 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Pop-up e Lightbox
-  if (btnClosePopup) {
-    btnClosePopup.addEventListener('click', hideMediaPopup);
-  }
-
-  if (mediaPopupImg && lightboxOverlay && lightboxImg) {
-    mediaPopupImg.addEventListener('click', () => {
-      lightboxImg.src = mediaPopupImg.src;
-      lightboxOverlay.classList.add('active');
-    });
-
+  // Lightbox overlay para fechar ao clicar
+  if (lightboxOverlay) {
     lightboxOverlay.addEventListener('click', () => {
       lightboxOverlay.classList.remove('active');
     });
