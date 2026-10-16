@@ -6,7 +6,8 @@
 export const STORAGE_KEYS = {
   API_KEY: 'gemini_api_key',
   SELECTED_VOICE_URI: 'tutoria_selected_voice_uri',
-  SPEECH_RATE: 'tutoria_speech_rate'
+  SPEECH_RATE: 'tutoria_speech_rate',
+  DISABLED_BOOKS: 'tutoria_livros_desativados'
 } as const;
 
 export const CONFIG = {
@@ -32,8 +33,9 @@ export const CONFIG = {
     '- "desenho": código SVG limpo direto para diagramas simples (usando rect, circle, line, path, text). ' +
     '- "texto": destaque ou título didático. ' +
     'Se uma etapa não precisar de apoio visual, use "lousa": null. ' +
+    'Se forem fornecidos "Trechos do livro didático para consulta", explique a dúvida com base estritamente nesses trechos, use os termos do livro sem contradizê-los e preencha o campo "fontes": [{"livroId": "...", "pagina": X}]. Se nenhum trecho for fornecido, não invente fontes e omita o campo fontes. ' +
     'Retorne ESTRITAMENTE em formato JSON puro válido: ' +
-    '{"etapas": [{"fala": "...", "lousa": {"tipo": "formula", "conteudo": "..."}}]}'
+    '{"etapas": [{"fala": "...", "lousa": {"tipo": "formula", "conteudo": "..."}}], "fontes": [{"livroId": "...", "pagina": 1}]}'
 };
 
 export function getStoredApiKey(): string {
@@ -80,3 +82,29 @@ export function getStoredSpeechRate(): number {
 export function setStoredSpeechRate(rate: number): void {
   localStorage.setItem(STORAGE_KEYS.SPEECH_RATE, rate.toString());
 }
+
+export function getStoredDisabledBookIds(): string[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.DISABLED_BOOKS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function setStoredDisabledBookIds(ids: string[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.DISABLED_BOOKS, JSON.stringify(ids));
+  } catch {}
+}
+
+export function setStoredBookDisabled(bookId: string, disabled: boolean): void {
+  const current = new Set(getStoredDisabledBookIds());
+  if (disabled) {
+    current.add(bookId);
+  } else {
+    current.delete(bookId);
+  }
+  setStoredDisabledBookIds(Array.from(current));
+}
+

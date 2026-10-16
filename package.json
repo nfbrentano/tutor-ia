@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "indexar-livros": "tsx scripts/indexar-livros.ts",
+    "gerar-cache": "tsx scripts/gerar-cache.ts",
     "android": "npm run build && npx cap sync android && npx cap run android"
   },
   "dependencies": {
@@ -21,6 +23,8 @@
     "@capacitor/cli": "^8.5.3",
     "@types/node": "^22.13.10",
     "happy-dom": "^21.0.3",
+    "pdfjs-dist": "^6.4.299",
+    "tsx": "^4.23.15",
     "typescript": "^5.8.2",
     "vite": "^6.2.1",
     "vitest": "^3.0.8"

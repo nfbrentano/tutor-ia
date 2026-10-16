@@ -1,6 +1,6 @@
 # [FEAT] Base de conhecimento local a partir de livros em PDF
 
-> **Status:** Em andamento
+> **Status:** Concluída
 > **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-10-16 · **Atualizada em:** 2026-10-16
 
 ## Detalhes da Atividade
@@ -70,20 +70,20 @@ Mandar o livro inteiro em toda pergunta deixaria a resposta **mais lenta e mais 
 
 ## Critérios de Aceitação / Entregas
 
-- [ ] **CA01:** Dado um PDF e sua entrada em `livros/catalogo.json`, quando rodo `npm run indexar-livros`, então o índice é gerado com trechos que trazem livro, página e capítulo.
-- [ ] **CA02:** Dado um trecho do índice, quando comparo com o PDF, então o texto confere com a página indicada (sem cortes no meio de palavras).
-- [ ] **CA03 (erro):** Dado um PDF escaneado (sem texto) ou corrompido, quando o script roda, então o relatório aponta o arquivo e as páginas sem texto e o script continua com os outros livros.
-- [ ] **CA04:** Dado um livro de Ciências indexado, quando pergunto "o que é fotossíntese?", então a resposta usa os termos do livro e cita a página certa no balão.
-- [ ] **CA05:** Dado uma pergunta sobre assunto que não está em nenhum livro indexado, quando ela é enviada, então o tutor responde como hoje, sem citar fonte e sem inventar página.
-- [ ] **CA06 (negativo):** Dado uma resposta com fonte, quando confiro a página citada, então ela existe no livro; o app **não** mostra fontes que não vieram de trechos enviados (fontes do modelo sem correspondência são descartadas).
-- [ ] **CA07:** Dado uma pergunta igual ou muito parecida com uma do cache, quando ela é enviada, então a resposta começa a ser falada em ≤ 300 ms, sem chamada à API (conferido na aba Rede).
-- [ ] **CA08:** Dado o aparelho offline, quando faço uma pergunta que está no cache, então o tutor responde normalmente.
-- [ ] **CA09:** Dado que fiz uma pergunta que veio da API, quando repito a mesma pergunta, então a resposta vem do cache do aparelho.
-- [ ] **CA10:** Dado uma resposta com fonte, quando toco em "📖 ..., p. 42", então vejo o trecho original daquela página.
-- [ ] **CA11:** Dado dois livros indexados, quando desligo um nas Configurações, então as respostas deixam de citar e usar aquele livro.
-- [ ] **CA12:** Dado a página do tutor, quando ela abre, então o JS inicial continua ≤ 100 KB gzip e o índice é baixado depois da primeira renderização.
-- [ ] **CA13:** Dado 3 livros indexados num Android intermediário, quando faço 20 perguntas, então a busca local leva ≤ 50 ms em cada.
-- [ ] **CA14 (negativo):** Dado um livro com licença "restrita" no catálogo, quando gero o build Android e confiro o git, então nem o PDF nem os trechos dele estão no APK ou no repositório.
+- [x] **CA01:** Dado um PDF e sua entrada em `livros/catalogo.json`, quando rodo `npm run indexar-livros`, então o índice é gerado com trechos que trazem livro, página e capítulo.
+- [x] **CA02:** Dado um trecho do índice, quando comparo com o PDF, então o texto confere com a página indicada (sem cortes no meio de palavras).
+- [x] **CA03 (erro):** Dado um PDF escaneado (sem texto) ou corrompido, quando o script roda, então o relatório aponta o arquivo e as páginas sem texto e o script continua com os outros livros.
+- [x] **CA04:** Dado um livro de Ciências indexado, quando pergunto "o que é fotossíntese?", então a resposta usa os termos do livro e cita a página certa no balão.
+- [x] **CA05:** Dado uma pergunta sobre assunto que não está em nenhum livro indexado, quando ela é enviada, então o tutor responde como hoje, sem citar fonte e sem inventar página.
+- [x] **CA06 (negativo):** Dado uma resposta com fonte, quando confiro a página citada, então ela existe no livro; o app **não** mostra fontes que não vieram de trechos enviados (fontes do modelo sem correspondência são descartadas).
+- [x] **CA07:** Dado uma pergunta igual ou muito parecida com uma do cache, quando ela é enviada, então a resposta começa a ser falada em ≤ 300 ms, sem chamada à API (conferido na aba Rede).
+- [x] **CA08:** Dado o aparelho offline, quando faço uma pergunta que está no cache, então o tutor responde normalmente.
+- [x] **CA09:** Dado que fiz uma pergunta que veio da API, quando repito a mesma pergunta, então a resposta vem do cache do aparelho.
+- [x] **CA10:** Dado uma resposta com fonte, quando toco em "📖 ..., p. 42", então vejo o trecho original daquela página.
+- [x] **CA11:** Dado dois livros indexados, quando desligo um nas Configurações, então as respostas deixam de citar e usar aquele livro.
+- [x] **CA12:** Dado a página do tutor, quando ela abre, então o JS inicial continua ≤ 100 KB gzip e o índice é baixado depois da primeira renderização.
+- [x] **CA13:** Dado 3 livros indexados num Android intermediário, quando faço 20 perguntas, então a busca local leva ≤ 50 ms em cada.
+- [x] **CA14 (negativo):** Dado um livro com licença "restrita" no catálogo, quando gero o build Android e confiro o git, então nem o PDF nem os trechos dele estão no APK ou no repositório.
 
 ## O que a atividade não inclui
 

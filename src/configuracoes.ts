@@ -5,13 +5,16 @@
 
 import {
   getStoredApiKey,
+  getStoredDisabledBookIds,
   getStoredSpeechRate,
   getStoredVoiceUri,
   removeStoredApiKey,
   setStoredApiKey,
+  setStoredBookDisabled,
   setStoredSpeechRate,
   setStoredVoiceUri
 } from './armazenamento';
+import { LivroCatalogo } from './conhecimento/tipos';
 import { DiagnosticoAudioVU, verificarProtocolo, verificarSuporteReconhecimentoWeb } from './diagnostico';
 import { callGeminiApi } from './gemini';
 import { obterServicoVoz } from './voz';
@@ -241,4 +244,105 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
   }
+
+  // =========================================================================
+  // SEÇÃO DE LIVROS DIDÁTICOS (RF11, CA11)
+  // =========================================================================
+  const listaLivrosContainer = document.getElementById('lista-livros-config');
+
+  const LIVROS_FALLBACK: LivroCatalogo[] = [
+    {
+      id: 'ciencias-fundamental-6',
+      titulo: 'Ciências da Natureza - 6º Ano',
+      disciplina: 'ciencias',
+      serie: '6º ano EF',
+      autor: 'Ministério da Educação (MEC / Domínio Aberto)',
+      licenca: 'aberta',
+      arquivo: 'livros/ciencias-6ano.pdf'
+    },
+    {
+      id: 'historia-fundamental-7',
+      titulo: 'História do Brasil e Geral - 7º Ano',
+      disciplina: 'historia',
+      serie: '7º ano EF',
+      autor: 'PNLD / Domínio Público',
+      licenca: 'aberta',
+      arquivo: 'livros/historia-7ano.pdf'
+    },
+    {
+      id: 'matematica-fundamental-6',
+      titulo: 'Matemática Prática e Geometria - 6º Ano',
+      disciplina: 'matematica',
+      serie: '6º ano EF',
+      autor: 'Programa Nacional do Livro Didático Aberto',
+      licenca: 'aberta',
+      arquivo: 'livros/matematica-6ano.pdf'
+    }
+  ];
+
+  async function carregarLivrosConfig(): Promise<void> {
+    if (!listaLivrosContainer) return;
+
+    let livros: LivroCatalogo[] = LIVROS_FALLBACK;
+    try {
+      // Tenta obter livros a partir do índice de conhecimento ou do catálogo
+      const resp = await fetch('./conhecimento/indice.json');
+      if (resp.ok) {
+        const dados = await resp.json();
+        if (Array.isArray(dados.livros) && dados.livros.length > 0) {
+          livros = dados.livros;
+        }
+      }
+    } catch {
+      // Mantém fallback se offline ou índice ainda não gerado
+    }
+
+    const desativados = new Set(getStoredDisabledBookIds());
+    listaLivrosContainer.innerHTML = '';
+
+    for (const livro of livros) {
+      const item = document.createElement('div');
+      item.className = 'livro-config-item';
+
+      const info = document.createElement('div');
+      info.className = 'livro-config-info';
+
+      const titulo = document.createElement('div');
+      titulo.className = 'livro-config-titulo';
+      titulo.textContent = livro.titulo;
+
+      const meta = document.createElement('div');
+      meta.className = 'livro-config-meta';
+      meta.innerHTML = `
+        <span class="livro-tag">Disciplina: ${livro.disciplina.toUpperCase()}</span>
+        <span class="livro-tag">${livro.serie}</span>
+        <span class="livro-tag livro-tag-licenca">${livro.licenca}</span>
+      `;
+
+      info.appendChild(titulo);
+      info.appendChild(meta);
+
+      const toggleLabel = document.createElement('label');
+      toggleLabel.className = 'livro-toggle-label';
+      toggleLabel.setAttribute('aria-label', `Ativar ou desativar livro ${livro.titulo}`);
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'livro-toggle-checkbox';
+      checkbox.checked = !desativados.has(livro.id);
+
+      checkbox.addEventListener('change', () => {
+        setStoredBookDisabled(livro.id, !checkbox.checked);
+      });
+
+      toggleLabel.appendChild(checkbox);
+
+      item.appendChild(info);
+      item.appendChild(toggleLabel);
+      listaLivrosContainer.appendChild(item);
+    }
+  }
+
+  carregarLivrosConfig();
 });
+

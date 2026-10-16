@@ -3,6 +3,7 @@
  * Renderiza os balões de conversa, botão para reabrir a lousa e rolagem automática (RF08, CA12).
  */
 
+import { FonteCitada } from './conhecimento/tipos';
 import { ItemLousa } from './lousa/tipos';
 
 export interface ChatMensagem {
@@ -10,6 +11,7 @@ export interface ChatMensagem {
   texto: string;
   itensLousa?: ItemLousa[];
   imagemUrl?: string | null;
+  fontes?: FonteCitada[];
   horario?: string;
 }
 
@@ -17,22 +19,30 @@ export class ChatGerenciador {
   private container: HTMLElement;
   private onVerNaLousa?: (itens: ItemLousa[]) => void;
   private onVerImagem?: (url: string, legenda?: string) => void;
+  private onVerFonte?: (fonte: FonteCitada) => void;
 
   constructor(
     container: HTMLElement,
     onVerNaLousa?: (itens: ItemLousa[]) => void,
-    onVerImagem?: (url: string, legenda?: string) => void
+    onVerImagem?: (url: string, legenda?: string) => void,
+    onVerFonte?: (fonte: FonteCitada) => void
   ) {
     this.container = container;
     this.onVerNaLousa = onVerNaLousa;
     this.onVerImagem = onVerImagem;
+    this.onVerFonte = onVerFonte;
+  }
+
+  definirOnVerFonte(callback: (fonte: FonteCitada) => void): void {
+    this.onVerFonte = callback;
   }
 
   adicionarMensagem(
     remetente: 'student' | 'tutor',
     texto: string,
     itensLousa: ItemLousa[] | null = null,
-    imagemUrl: string | null = null
+    imagemUrl: string | null = null,
+    fontes: FonteCitada[] | null = null
   ): void {
     const bubble = document.createElement('div');
     bubble.className = `chat-bubble ${remetente}`;
@@ -94,8 +104,46 @@ export class ChatGerenciador {
       bubble.appendChild(mediaBtn);
     }
 
+    // Citações de fontes de livros didáticos (RF09, CA06, CA10)
+    if (fontes && fontes.length > 0) {
+      const fontesContainer = document.createElement('div');
+      fontesContainer.className = 'bubble-fontes-container';
+
+      for (const fonte of fontes) {
+        const fonteBtn = document.createElement('button');
+        fonteBtn.type = 'button';
+        fonteBtn.className = 'bubble-fonte-btn';
+        fonteBtn.setAttribute('aria-label', `Abrir página ${fonte.pagina} do livro ${fonte.tituloLivro || fonte.livroId}`);
+
+        const tituloExibicao = fonte.tituloLivro || fonte.livroId;
+        fonteBtn.innerHTML = `
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+          <span>📖 <em>${this.escaparHtml(tituloExibicao)}</em>, p. ${fonte.pagina}</span>
+        `;
+
+        fonteBtn.addEventListener('click', () => {
+          if (this.onVerFonte) {
+            this.onVerFonte(fonte);
+          }
+        });
+        fontesContainer.appendChild(fonteBtn);
+      }
+      bubble.appendChild(fontesContainer);
+    }
+
     this.container.appendChild(bubble);
     this.rolarParaFinal();
+  }
+
+  private escaparHtml(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
   rolarParaFinal(): void {

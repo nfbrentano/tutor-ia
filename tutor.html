@@ -251,6 +251,32 @@
     <img src="" alt="Ampliação de imagem" class="lightbox-img" id="lightbox-img" />
   </div>
 
+  <!-- Modal para Visualização do Trecho do Livro Didático (RF09, CA10, RNF05) -->
+  <div class="modal-fonte-overlay hidden" id="modal-fonte-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-fonte-titulo">
+    <div class="modal-fonte-card">
+      <div class="modal-fonte-header">
+        <div class="modal-fonte-info">
+          <span class="modal-fonte-badge">📖 Livro Didático</span>
+          <h3 id="modal-fonte-titulo" class="modal-fonte-titulo">Título da Obra</h3>
+          <span id="modal-fonte-pagina" class="modal-fonte-subtitulo">Página 1</span>
+        </div>
+        <button id="btn-fechar-modal-fonte" class="modal-fonte-fechar" aria-label="Fechar consulta do livro">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-fonte-corpo">
+        <p id="modal-fonte-texto" class="modal-fonte-texto"></p>
+      </div>
+      <div class="modal-fonte-footer">
+        <span class="modal-fonte-aviso">Trecho original extraído da obra escolar para conferência didática.</span>
+        <button id="btn-entendido-modal-fonte" class="btn-entendido-fonte">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="./src/tutor.ts"></script>
 </body>
 </html>
