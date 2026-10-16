@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TutorIA - Sala de Estudos</title>
+  <meta name="description" content="Sessão interativa com o TutorIA: avatar reativo, reconhecimento e síntese de voz para tirar dúvidas escolares." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>🤖</text></svg>">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="./src/styles/base.css" />
+  <link rel="stylesheet" href="./src/styles/tutor.css" />
+</head>
+<body>
+  <header>
+    <a href="./index.html" class="brand" id="brand-link">
+      <div class="brand-icon">🤖</div>
+      <div class="brand-info">
+        <h1>Tutor<span>IA</span></h1>
+        <span class="badge-level">Sala de Estudos</span>
+      </div>
+    </a>
+
+    <div class="header-actions">
+      <a href="./configuracoes.html" class="api-status-tag" id="status-tag-link" title="Ver configurações da API">
+        <div class="status-dot-indicator" id="status-indicator"></div>
+        <span id="status-label">Verificando...</span>
+      </a>
+
+      <a href="./configuracoes.html" class="btn-icon" id="btn-config-nav" title="Configurações e Diagnóstico">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </a>
+    </div>
+  </header>
+
+  <div class="alert-banner" id="blocking-banner">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <span>
+      Configure sua Chave de API do Gemini para liberar as respostas do assistente.
+      <a href="./configuracoes.html" style="font-weight: 700; text-decoration: underline; margin-left: 0.5rem;">Configurar Agora</a>
+    </span>
+  </div>
+
+  <main class="tutor-layout">
+    <!-- Seção Central do Avatar -->
+    <section class="avatar-section" aria-label="Área do Avatar Interativo">
+      <div id="avatar-module" class="state-idle">
+        <div class="avatar-halo"></div>
+        <div class="avatar-halo-secondary"></div>
+
+        <svg class="avatar-svg" viewBox="0 0 120 120" role="img" aria-label="Avatar do Tutor">
+          <defs>
+            <linearGradient id="headGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1e293b"/>
+              <stop offset="100%" stop-color="#0f172a"/>
+            </linearGradient>
+            <filter id="eyeGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+
+          <!-- Antenas e Detalhes da Cabeça -->
+          <circle cx="60" cy="16" r="4" fill="#38bdf8" />
+          <line x1="60" y1="20" x2="60" y2="28" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
+
+          <!-- Cabeça do Robô Educacional -->
+          <rect class="avatar-head" x="24" y="26" width="72" height="68" rx="20" fill="url(#headGrad)" stroke="#38bdf8" stroke-width="2.5" />
+
+          <!-- Visor / Tela de Rosto -->
+          <rect x="32" y="36" width="56" height="48" rx="12" fill="#080d1a" stroke="#1e293b" stroke-width="1.5" />
+
+          <!-- Olhos Expressivos -->
+          <circle class="avatar-eye eye-left" cx="46" cy="50" r="5.5" filter="url(#eyeGlow)" />
+          <circle class="avatar-eye eye-right" cx="74" cy="50" r="5.5" filter="url(#eyeGlow)" />
+
+          <!-- Boca: Equalizador Modular para Fala Reativa -->
+          <g class="avatar-mouth" id="avatar-mouth">
+            <rect class="mouth-bar mouth-bar-1" x="40" y="72" width="4.5" height="4" rx="2" />
+            <rect class="mouth-bar mouth-bar-2" x="49" y="72" width="4.5" height="4" rx="2" />
+            <rect class="mouth-bar mouth-bar-3" x="58" y="72" width="4.5" height="4" rx="2" />
+            <rect class="mouth-bar mouth-bar-4" x="67" y="72" width="4.5" height="4" rx="2" />
+            <rect class="mouth-bar mouth-bar-5" x="76" y="72" width="4.5" height="4" rx="2" />
+          </g>
+        </svg>
+      </div>
+
+      <!-- Badge de Estado Atual -->
+      <div class="status-badge" id="status-badge-container">
+        <div class="status-dot"></div>
+        <span id="status-text">Aguardando sua dúvida</span>
+      </div>
+
+      <!-- Dock de Controle por Voz -->
+      <div class="action-dock">
+        <button class="btn-mic" id="btn-mic" title="Clique para falar sua pergunta" aria-label="Microfone de Entrada">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+          </svg>
+        </button>
+        <span class="mic-tip" id="mic-tip">Clique no microfone para perguntar</span>
+      </div>
+    </section>
+
+    <!-- Painel Lateral: Histórico de Dúvidas e Respostas -->
+    <aside class="panel" aria-label="Histórico de Conversa">
+      <div class="panel-header">
+        <span>Sessão de Estudos</span>
+        <span id="session-tag" style="font-size: 0.78rem; color: var(--accent-speaking);">● Ativa</span>
+      </div>
+
+      <div class="panel-body" id="chat-stream">
+        <div class="chat-bubble tutor">
+          <div class="bubble-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            Tutor Virtual
+          </div>
+          <div class="bubble-text">
+            Olá! Sou seu tutor escolar virtual. Posso tirar dúvidas de Matemática, História, Geografia, Ciências, Física, Português ou qualquer matéria escolar. Clique no microfone ou digite abaixo para começarmos!
+          </div>
+        </div>
+      </div>
+
+      <!-- Campo de Digitação Alternativo (Fallback) -->
+      <div class="panel-footer">
+        <input type="text" id="text-fallback-input" placeholder="Ou digite sua pergunta escolar aqui..." aria-label="Digite sua pergunta" />
+        <button id="btn-send-text" title="Enviar pergunta">
+          <span>Enviar</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Pop-up Didático de Imagem -->
+  <div class="media-popup" id="media-popup" role="dialog" aria-label="Ilustração Didática">
+    <div class="media-popup-header">
+      <div class="media-popup-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <polyline points="21 15 16 10 5 21"></polyline>
+        </svg>
+        Ilustração Didática
+      </div>
+      <button class="media-popup-close" id="btn-close-popup" title="Fechar visualização">✕</button>
+    </div>
+    <div class="media-popup-body">
+      <div class="media-popup-img-wrap">
+        <img src="" alt="Ilustração didática" class="media-popup-img" id="media-popup-img" title="Clique para ampliar em tela cheia" />
+      </div>
+      <div class="media-popup-caption" id="media-popup-caption">Material visual complementar para enriquecer seu aprendizado.</div>
+    </div>
+  </div>
+
+  <!-- Lightbox para Imagem em Tela Cheia -->
+  <div class="lightbox-overlay" id="lightbox-overlay" role="dialog" aria-label="Imagem ampliada">
+    <img src="" alt="Ampliação de imagem" class="lightbox-img" id="lightbox-img" />
+  </div>
+
+  <script type="module" src="./src/tutor.ts"></script>
+</body>
+</html>

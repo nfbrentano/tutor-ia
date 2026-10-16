@@ -2,17 +2,36 @@
   "name": "tutor-ia",
   "version": "1.0.0",
   "description": "TutorIA - Assistente Educacional Inteligente para Ensino Fundamental e Médio",
-  "main": "index.html",
+  "type": "module",
   "scripts": {
-    "dev": "npx -y serve . -l 3000",
-    "start": "npx -y serve . -l 3000"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "android": "npm run build && npx cap sync android && npx cap run android"
+  },
+  "dependencies": {
+    "@capacitor-community/speech-recognition": "^7.0.1",
+    "@capacitor-community/text-to-speech": "^8.0.2",
+    "@capacitor/core": "^8.5.3"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@types/node": "^22.13.10",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.1",
+    "vitest": "^3.0.8"
   },
   "keywords": [
     "tutor",
     "gemini",
     "educacao",
     "speech-recognition",
-    "text-to-speech"
+    "text-to-speech",
+    "capacitor",
+    "vite"
   ],
   "author": "",
   "license": "MIT"

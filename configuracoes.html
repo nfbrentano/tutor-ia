@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TutorIA - Configurações e Diagnóstico</title>
+  <meta name="description" content="Configurações de chave de API do Gemini, vozes e diagnóstico de microfone do TutorIA." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>🤖</text></svg>">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="./src/styles/base.css" />
+  <link rel="stylesheet" href="./src/styles/configuracoes.css" />
+</head>
+<body>
+  <header>
+    <a href="./index.html" class="brand" id="brand-link">
+      <div class="brand-icon">🤖</div>
+      <div class="brand-info">
+        <h1>Tutor<span>IA</span></h1>
+        <span class="badge-level">Configurações & Diagnóstico</span>
+      </div>
+    </a>
+
+    <div class="header-actions">
+      <a href="./tutor.html" class="btn-primary" id="btn-voltar-tutor" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        Ir para Sala de Estudos
+      </a>
+    </div>
+  </header>
+
+  <main class="settings-container">
+    <div class="settings-header">
+      <h2>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        Preferências do Sistema
+      </h2>
+    </div>
+
+    <!-- Card 1: Chave de API do Google Gemini -->
+    <section class="settings-card" aria-labelledby="card-gemini-title">
+      <div class="settings-card-header">
+        <div class="card-icon">🔑</div>
+        <div>
+          <h3 id="card-gemini-title">Chave de API do Google Gemini</h3>
+          <p>Necessária para que o tutor formule explicações didáticas para suas perguntas.</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="input-api-key">Sua API Key do Gemini:</label>
+        <div class="input-with-button">
+          <input type="password" id="input-api-key" placeholder="AIzaSy..." autocomplete="off" />
+          <button type="button" class="btn-secondary" id="btn-toggle-api-key">Exibir</button>
+        </div>
+      </div>
+
+      <div class="modal-note" style="margin-bottom: 1.25rem;">
+        🔒 Sua chave é salva exclusivamente no armazenamento local deste dispositivo (<code>localStorage</code>). Nenhuma chave é transmitida a servidores intermediários ou incorporada no build do aplicativo.
+        Obtenha uma chave gratuita no <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a>.
+      </div>
+
+      <div id="key-feedback" class="alert-banner" style="margin-bottom: 1.25rem; border-radius: var(--radius-sm);"></div>
+
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <button class="btn-primary" id="btn-save-key">Salvar Chave</button>
+        <button class="btn-secondary" id="btn-test-key">Testar Conexão</button>
+        <button class="btn-danger" id="btn-remove-key">Remover Chave</button>
+      </div>
+    </section>
+
+    <!-- Card 2: Configuração de Voz e Síntese -->
+    <section class="settings-card" aria-labelledby="card-voice-title">
+      <div class="settings-card-header">
+        <div class="card-icon">🗣️</div>
+        <div>
+          <h3 id="card-voice-title">Voz e Leitura</h3>
+          <p>Personalize a voz de leitura das respostas do tutor.</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="select-voice">Voz do Tutor (Português):</label>
+        <select id="select-voice">
+          <option value="">Carregando vozes do sistema...</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="range-rate">Velocidade da Fala: <strong id="label-rate" style="color: var(--primary);">1.05x</strong></label>
+        <input type="range" id="range-rate" min="0.8" max="1.4" step="0.05" value="1.05" />
+      </div>
+
+      <button class="btn-secondary" id="btn-test-voice">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+        </svg>
+        Ouvir Demonstração da Voz
+      </button>
+    </section>
+
+    <!-- Card 3: Diagnóstico do Microfone -->
+    <section class="settings-card" aria-labelledby="card-diag-title">
+      <div class="settings-card-header">
+        <div class="card-icon">🎙️</div>
+        <div>
+          <h3 id="card-diag-title">Diagnóstico do Microfone e Permissões</h3>
+          <p>Valide se o hardware e o sistema operacional estão permitindo a captura de voz.</p>
+        </div>
+      </div>
+
+      <div class="diag-item">
+        <span>🌐 Endereço da Página / Protocolo:</span>
+        <span class="diag-badge" id="diag-protocol-val">Verificando...</span>
+      </div>
+
+      <div class="diag-item">
+        <span>🎙️ API de Reconhecimento de Fala:</span>
+        <span class="diag-badge" id="diag-speech-val">Verificando...</span>
+      </div>
+
+      <div class="vu-meter-container">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 600; font-size: 0.88rem;">🔊 Sinal de Áudio do Microfone:</span>
+          <span class="diag-badge" id="diag-audio-val">Não testado</span>
+        </div>
+        <div class="vu-meter-bar-wrap">
+          <div class="vu-meter-bar" id="diag-meter-bar"></div>
+        </div>
+        <span style="font-size: 0.75rem; color: var(--text-muted);">
+          Clique abaixo para testar o microfone. A barra se moverá conforme você fala.
+        </span>
+      </div>
+
+      <div id="diag-instructions" class="diag-instructions-box"></div>
+
+      <div style="margin-top: 1.25rem;">
+        <button class="btn-primary" id="btn-run-mic-test">Testar Áudio Agora</button>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./src/configuracoes.ts"></script>
+</body>
+</html>
