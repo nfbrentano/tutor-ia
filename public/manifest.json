@@ -1,0 +1,17 @@
+{
+  "name": "TutorIA - Assistente Educacional Inteligente",
+  "short_name": "TutorIA",
+  "description": "Tutor virtual inteligente para alunos do Ensino Fundamental e Médio com avatar interativo e voz em tempo real.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#38bdf8",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23121212'/><text y='70' x='15' font-size='60'>🤖</text></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # [CHORE] Estrutura multipáginas em TypeScript, pronta para virar app Android
 
-> **Status:** Rascunho
+> **Status:** Concluído
 > **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-10-16 · **Atualizada em:** 2026-10-16
 
 ## Detalhes da Atividade
@@ -71,18 +71,18 @@ Pedido: "linguagem performática, que rode na web e depois vire app Android". Al
 
 ## Critérios de Aceitação / Entregas
 
-- [ ] **CA01:** Dado o repositório clonado, quando rodo `npm install && npm run dev`, então o app abre em `http://localhost:5173` e navego entre início, tutor e configurações.
-- [ ] **CA02:** Dado o build (`npm run build`), quando inspeciono `dist/`, então existem `index.html`, `tutor.html` e `configuracoes.html`, cada um carregando só o JS de que precisa.
-- [ ] **CA03:** Dado o código entregue, quando ele é revisado, então não há lógica de negócio dentro dos arquivos HTML; ela está nos módulos TS do RF02.
-- [ ] **CA04:** Dado o app no Chrome desktop, quando pergunto por voz, então o reconhecimento e a fala funcionam como na versão atual.
-- [ ] **CA05:** Dado o app instalado no Android, quando toco no microfone pela primeira vez, então o sistema pede permissão; depois de aceitar, a pergunta falada é reconhecida e a resposta é lida em voz alta em pt-BR.
-- [ ] **CA06:** Dado o projeto, quando rodo `npm run android`, então o app abre no emulador com o nome e o ícone definidos.
-- [ ] **CA07:** Dado o checklist das funções atuais (RF05), quando testo cada item na web e no Android, então todos se comportam como no `index.html` original.
-- [ ] **CA08:** Dado o projeto, quando rodo `npm run typecheck && npm test`, então tudo passa sem erros.
-- [ ] **CA09:** Dado o Lighthouse mobile em `tutor.html`, quando rodo a auditoria, então o JS inicial fica ≤ 100 KB gzip e a primeira renderização < 2 s.
-- [ ] **CA10:** Dado um Android intermediário, quando o avatar anima durante a fala, então não há travamentos visíveis (perfil de GPU sem quadros acima de 32 ms de forma contínua).
-- [ ] **CA11 (negativo):** Dado o APK gerado, quando inspeciono seu conteúdo, então **não** há nenhuma chave de API embutida.
-- [ ] **CA12 (erro):** Dado o Android sem permissão de microfone (negada), quando toco no microfone, então aparece uma mensagem explicando como liberar e a entrada por texto continua funcionando.
+- [x] **CA01:** Dado o repositório clonado, quando rodo `npm install && npm run dev`, então o app abre em `http://localhost:5173` e navego entre início, tutor e configurações.
+- [x] **CA02:** Dado o build (`npm run build`), quando inspeciono `dist/`, então existem `index.html`, `tutor.html` e `configuracoes.html`, cada um carregando só o JS de que precisa.
+- [x] **CA03:** Dado o código entregue, quando ele é revisado, então não há lógica de negócio dentro dos arquivos HTML; ela está nos módulos TS do RF02.
+- [x] **CA04:** Dado o app no Chrome desktop, quando pergunto por voz, então o reconhecimento e a fala funcionam como na versão atual.
+- [x] **CA05:** Dado o app instalado no Android, quando toco no microfone pela primeira vez, então o sistema pede permissão; depois de aceitar, a pergunta falada é reconhecida e a resposta é lida em voz alta em pt-BR.
+- [x] **CA06:** Dado o projeto, quando rodo `npm run android`, então o app abre no emulador com o nome e o ícone definidos.
+- [x] **CA07:** Dado o checklist das funções atuais (RF05), quando testo cada item na web e no Android, então todos se comportam como no `index.html` original.
+- [x] **CA08:** Dado o projeto, quando rodo `npm run typecheck && npm test`, então tudo passa sem erros.
+- [x] **CA09:** Dado o Lighthouse mobile em `tutor.html`, quando rodo a auditoria, então o JS inicial fica ≤ 100 KB gzip e a primeira renderização < 2 s.
+- [x] **CA10:** Dado um Android intermediário, quando o avatar anima durante a fala, então não há travamentos visíveis (perfil de GPU sem quadros acima de 32 ms de forma contínua).
+- [x] **CA11 (negativo):** Dado o APK gerado, quando inspeciono seu conteúdo, então **não** há nenhuma chave de API embutida.
+- [x] **CA12 (erro):** Dado o Android sem permissão de microfone (negada), quando toco no microfone, então aparece uma mensagem explicando como liberar e a entrada por texto continua funcionando.
 
 ## O que a atividade não inclui
 

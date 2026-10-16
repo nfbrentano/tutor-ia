@@ -1,0 +1,33 @@
+/* ==========================================================================
+   TUTORIA - DESIGN TOKENS & VARIÁVEIS GLOBAIS
+   ========================================================================== */
+:root {
+  --bg-base: #121212;
+  --bg-surface: #1e1e1e;
+  --bg-surface-elevated: #282828;
+  --bg-surface-card: #182234;
+
+  --primary: #38bdf8;          /* Ciano neon */
+  --primary-glow: rgba(56, 189, 248, 0.4);
+  --primary-hover: #0284c7;
+
+  --accent-listening: #ef4444;  /* Vermelho/Coral para gravação ativa */
+  --accent-listening-glow: rgba(239, 68, 68, 0.4);
+  --accent-thinking: #a855f7;   /* Roxo elétrico para processamento */
+  --accent-thinking-glow: rgba(168, 85, 247, 0.4);
+  --accent-speaking: #10b981;   /* Verde esmeralda para fala ativa */
+  --accent-speaking-glow: rgba(16, 185, 129, 0.4);
+
+  --text-high: #f8fafc;
+  --text-medium: #cbd5e1;
+  --text-muted: #64748b;
+  --border-color: #334155;
+  --border-color-light: #475569;
+
+  --radius-lg: 18px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+
+  --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
