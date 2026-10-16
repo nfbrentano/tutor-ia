@@ -1,0 +1,1870 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TutorIA - Assistente Educacional Inteligente</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20'>🤖</text></svg>">
+  
+  <style>
+    /* ==========================================================================
+       1. VARIÁVEIS GLOBAIS E RESET (DARK MODE DE ALTO CONTRASTE)
+       ========================================================================== */
+    :root {
+      --bg-base: #121212;
+      --bg-surface: #1e1e1e;
+      --bg-surface-elevated: #282828;
+      --bg-surface-card: #182234;
+      
+      --primary: #38bdf8;          /* Ciano neon */
+      --primary-glow: rgba(56, 189, 248, 0.4);
+      --accent-listening: #ef4444;  /* Vermelho/Coral para gravação ativa */
+      --accent-thinking: #a855f7;   /* Roxo elétrico para processamento */
+      --accent-speaking: #10b981;   /* Verde esmeralda para fala ativa */
+      
+      --text-high: #f8fafc;
+      --text-medium: #cbd5e1;
+      --text-muted: #64748b;
+      --border-color: #334155;
+      
+      --radius-lg: 18px;
+      --radius-md: 10px;
+      --radius-sm: 6px;
+      
+      --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-high);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* ==========================================================================
+       2. CABEÇALHO E CONTROLES SUPERIORES
+       ========================================================================== */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid var(--border-color);
+      background-color: rgba(24, 24, 27, 0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--primary), #818cf8);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0f172a;
+      box-shadow: 0 0 15px var(--primary-glow);
+    }
+
+    .brand-info h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: var(--text-high);
+      line-height: 1.1;
+    }
+
+    .brand-info h1 span {
+      color: var(--primary);
+    }
+
+    .badge-level {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.65rem;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      color: var(--text-medium);
+      display: inline-block;
+      margin-top: 2px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .api-status-tag {
+      font-size: 0.8rem;
+      padding: 0.35rem 0.8rem;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-medium);
+    }
+
+    .status-dot-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #eab308;
+    }
+    .status-dot-indicator.configured {
+      background: var(--accent-speaking);
+      box-shadow: 0 0 8px var(--accent-speaking);
+    }
+    .status-dot-indicator.unconfigured {
+      background: var(--accent-listening);
+      box-shadow: 0 0 8px var(--accent-listening);
+    }
+
+    .btn-icon {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-high);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+
+    .btn-icon:hover {
+      background: var(--bg-surface-elevated);
+      border-color: var(--primary);
+      box-shadow: 0 0 12px var(--primary-glow);
+      transform: translateY(-1px);
+    }
+
+    /* ==========================================================================
+       3. LAYOUT PRINCIPAL (GRADE: AVATAR CENTRAL E PAINEL LATERAL)
+       ========================================================================== */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 440px;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2rem;
+      gap: 2rem;
+      align-items: stretch;
+    }
+
+    @media (max-width: 980px) {
+      main {
+        grid-template-columns: 1fr;
+        padding: 1.25rem;
+        gap: 1.5rem;
+      }
+    }
+
+    /* ==========================================================================
+       4. COMPONENTE MODULAR DO AVATAR
+       ========================================================================== */
+    .avatar-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: radial-gradient(circle at center, rgba(30, 41, 59, 0.4) 0%, rgba(18, 18, 18, 0.8) 75%);
+      border: 1px solid rgba(51, 65, 85, 0.5);
+      border-radius: var(--radius-lg);
+      padding: 3rem 2rem;
+      min-height: 480px;
+    }
+
+    /* Contêiner Modular Isolado do Avatar */
+    #avatar-module {
+      position: relative;
+      width: 270px;
+      height: 270px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #1e293b 0%, #090d16 100%);
+      border: 3.5px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition-smooth);
+      box-shadow: 0 0 35px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Halos de Energia e Ondas */
+    .avatar-halo {
+      position: absolute;
+      inset: -12px;
+      border-radius: 50%;
+      border: 2px dashed var(--primary);
+      opacity: 0.35;
+      pointer-events: none;
+      animation: rotateHalo 25s linear infinite;
+      transition: var(--transition-smooth);
+    }
+
+    .avatar-halo-secondary {
+      position: absolute;
+      inset: -24px;
+      border-radius: 50%;
+      border: 1.5px solid transparent;
+      opacity: 0;
+      pointer-events: none;
+      transition: var(--transition-smooth);
+    }
+
+    .avatar-svg {
+      width: 190px;
+      height: 190px;
+      overflow: visible;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.5));
+    }
+
+    /* Elementos Internos do SVG */
+    .avatar-head {
+      transition: transform 0.3s ease, fill 0.3s ease;
+      transform-origin: center;
+    }
+
+    .avatar-eye {
+      fill: var(--primary);
+      transition: transform 0.2s ease, fill 0.3s ease;
+      transform-origin: center;
+      filter: drop-shadow(0 0 6px var(--primary-glow));
+    }
+
+    .mouth-bar {
+      fill: var(--text-medium);
+      transform-origin: bottom;
+      transition: height 0.15s ease, fill 0.3s ease;
+    }
+
+    /* ESTADOS DO AVATAR */
+
+    /* 1. AGUARDANDO (IDLE) */
+    #avatar-module.state-idle {
+      border-color: #3b82f6;
+      box-shadow: 0 0 30px rgba(59, 130, 246, 0.25);
+      animation: breatheIdle 4s infinite ease-in-out;
+    }
+    #avatar-module.state-idle .avatar-eye {
+      animation: blinkEye 4.5s infinite;
+    }
+
+    /* 2. OUVINDO (LISTENING) */
+    #avatar-module.state-listening {
+      border-color: var(--accent-listening);
+      box-shadow: 0 0 45px rgba(239, 68, 68, 0.55);
+      transform: scale(1.02);
+    }
+    #avatar-module.state-listening .avatar-halo {
+      border-color: var(--accent-listening);
+      opacity: 0.85;
+      animation: rotateHalo 6s linear infinite, pulseGlow 1.2s infinite alternate ease-in-out;
+    }
+    #avatar-module.state-listening .avatar-halo-secondary {
+      border-color: rgba(239, 68, 68, 0.4);
+      opacity: 1;
+      animation: pulseRipple 1.4s infinite ease-out;
+    }
+    #avatar-module.state-listening .avatar-eye {
+      fill: #fca5a5;
+      transform: scale(1.15);
+    }
+
+    /* 3. PENSANDO (THINKING) */
+    #avatar-module.state-thinking {
+      border-color: var(--accent-thinking);
+      box-shadow: 0 0 45px rgba(168, 85, 247, 0.55);
+    }
+    #avatar-module.state-thinking .avatar-halo {
+      border-color: var(--accent-thinking);
+      opacity: 0.9;
+      animation: rotateHalo 2.5s linear infinite;
+    }
+    #avatar-module.state-thinking .avatar-eye {
+      fill: #d8b4fe;
+      animation: eyeThinking 1.5s infinite ease-in-out;
+    }
+
+    /* 4. FALANDO (SPEAKING) */
+    #avatar-module.state-speaking {
+      border-color: var(--accent-speaking);
+      box-shadow: 0 0 50px rgba(16, 185, 129, 0.55);
+      animation: speakingBob 0.6s infinite alternate ease-in-out;
+    }
+    #avatar-module.state-speaking .avatar-halo {
+      border-color: var(--accent-speaking);
+      opacity: 0.8;
+      animation: rotateHalo 10s linear infinite, pulseGlow 0.8s infinite alternate ease-in-out;
+    }
+    #avatar-module.state-speaking .avatar-eye {
+      fill: #6ee7b7;
+    }
+    #avatar-module.state-speaking .mouth-bar-1 { animation: voiceEqualizer 0.24s infinite alternate ease-in-out; }
+    #avatar-module.state-speaking .mouth-bar-2 { animation: voiceEqualizer 0.32s infinite alternate ease-in-out 0.06s; }
+    #avatar-module.state-speaking .mouth-bar-3 { animation: voiceEqualizer 0.18s infinite alternate ease-in-out 0.12s; }
+    #avatar-module.state-speaking .mouth-bar-4 { animation: voiceEqualizer 0.28s infinite alternate ease-in-out 0.08s; }
+    #avatar-module.state-speaking .mouth-bar-5 { animation: voiceEqualizer 0.22s infinite alternate ease-in-out 0.15s; }
+
+    /* ANIMAÇÕES EM CSS KEYFRAMES */
+    @keyframes blinkEye {
+      0%, 94%, 100% { transform: scaleY(1); }
+      97% { transform: scaleY(0.1); }
+    }
+    @keyframes rotateHalo {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulseGlow {
+      from { transform: scale(0.97); opacity: 0.5; }
+      to { transform: scale(1.05); opacity: 0.95; }
+    }
+    @keyframes pulseRipple {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      100% { transform: scale(1.2); opacity: 0; }
+    }
+    @keyframes breatheIdle {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    @keyframes speakingBob {
+      0% { transform: translateY(0) scale(1.01); }
+      100% { transform: translateY(-3px) scale(1.02); }
+    }
+    @keyframes eyeThinking {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+    @keyframes voiceEqualizer {
+      0% { height: 4px; y: 76px; fill: var(--primary); }
+      50% { height: 26px; y: 54px; fill: var(--accent-speaking); }
+      100% { height: 16px; y: 64px; fill: #6ee7b7; }
+    }
+
+    /* Badge de Estado Atual */
+    .status-badge {
+      margin-top: 1.8rem;
+      padding: 0.5rem 1.4rem;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      transition: var(--transition-smooth);
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: var(--transition-smooth);
+    }
+    .state-idle .status-dot { background: var(--primary); box-shadow: 0 0 8px var(--primary); }
+    .state-listening .status-dot { background: var(--accent-listening); box-shadow: 0 0 10px var(--accent-listening); }
+    .state-thinking .status-dot { background: var(--accent-thinking); box-shadow: 0 0 10px var(--accent-thinking); }
+    .state-speaking .status-dot { background: var(--accent-speaking); box-shadow: 0 0 10px var(--accent-speaking); }
+
+    /* Barra de Ação Central (Microfone e Atalhos) */
+    .action-dock {
+      margin-top: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .btn-mic {
+      background: linear-gradient(135deg, var(--primary), #0284c7);
+      color: #0f172a;
+      border: none;
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition-smooth);
+      box-shadow: 0 6px 20px var(--primary-glow);
+      position: relative;
+    }
+    .btn-mic:hover:not(:disabled) {
+      transform: scale(1.08);
+      box-shadow: 0 8px 25px rgba(56, 189, 248, 0.6);
+    }
+    .btn-mic:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      filter: grayscale(0.8);
+      transform: none;
+      box-shadow: none;
+    }
+    .btn-mic.recording {
+      background: linear-gradient(135deg, var(--accent-listening), #dc2626);
+      color: #ffffff;
+      box-shadow: 0 0 30px rgba(239, 68, 68, 0.8);
+      animation: pulseRecord 1s infinite alternate;
+    }
+
+    @keyframes pulseRecord {
+      from { transform: scale(1); }
+      to { transform: scale(1.1); }
+    }
+
+    .mic-tip {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      letter-spacing: 0.2px;
+    }
+
+    /* ==========================================================================
+       5. PAINEL LATERAL: HISTÓRICO, TRANSCRIÇÃO E DIGITAÇÃO
+       ========================================================================== */
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      height: calc(100vh - 125px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    }
+
+    .panel-header {
+      padding: 1.1rem 1.4rem;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-high);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(30, 30, 30, 0.7);
+    }
+
+    .panel-body {
+      flex: 1;
+      padding: 1.4rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      scroll-behavior: smooth;
+    }
+
+    .panel-body::-webkit-scrollbar {
+      width: 6px;
+    }
+    .panel-body::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+
+    /* Balões de Conversação */
+    .chat-bubble {
+      padding: 1rem 1.2rem;
+      border-radius: var(--radius-md);
+      font-size: 0.94rem;
+      line-height: 1.6;
+      position: relative;
+      animation: slideInBubble 0.25s ease-out forwards;
+    }
+
+    @keyframes slideInBubble {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .chat-bubble.student {
+      background: var(--bg-surface-elevated);
+      border-left: 3.5px solid var(--primary);
+      color: var(--text-high);
+      align-self: flex-end;
+      width: 90%;
+    }
+
+    .chat-bubble.tutor {
+      background: var(--bg-surface-card);
+      border-left: 3.5px solid var(--accent-speaking);
+      color: var(--text-high);
+      align-self: flex-start;
+      width: 95%;
+    }
+
+    .bubble-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .chat-bubble.student .bubble-label { color: var(--primary); }
+    .chat-bubble.tutor .bubble-label { color: var(--accent-speaking); }
+
+    .bubble-text {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* Botão de abrir pop-up de imagem na mensagem */
+    .bubble-media-btn {
+      margin-top: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--primary);
+      padding: 0.4rem 0.8rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+    .bubble-media-btn:hover {
+      background: rgba(56, 189, 248, 0.22);
+      border-color: var(--primary);
+    }
+
+    /* Fallback de Digitação */
+    .panel-footer {
+      padding: 0.85rem 1.15rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 0.65rem;
+      background: rgba(24, 24, 27, 0.9);
+    }
+    .panel-footer input {
+      flex: 1;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.75rem 1rem;
+      color: var(--text-high);
+      font-family: inherit;
+      font-size: 0.92rem;
+      transition: var(--transition-smooth);
+    }
+    .panel-footer input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
+    .panel-footer input:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .panel-footer button {
+      background: var(--primary);
+      border: none;
+      color: #0f172a;
+      font-weight: 700;
+      padding: 0 1.25rem;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .panel-footer button:hover:not(:disabled) {
+      background: #7dd3fc;
+      transform: translateY(-1px);
+    }
+    .panel-footer button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ==========================================================================
+       6. POP-UP ELEGANTE DE IMAGEM ILUSTRATIVA (DIDÁTICA)
+       ========================================================================== */
+    .media-popup {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 360px;
+      background: var(--bg-surface);
+      border: 1.5px solid var(--primary);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7), 0 0 25px var(--primary-glow);
+      overflow: hidden;
+      z-index: 80;
+      opacity: 0;
+      transform: translateY(30px) scale(0.95);
+      pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .media-popup.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: all;
+    }
+
+    .media-popup-header {
+      padding: 0.75rem 1rem;
+      background: rgba(30, 41, 59, 0.9);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .media-popup-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .media-popup-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 0.2rem;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+    .media-popup-close:hover {
+      color: var(--text-high);
+    }
+
+    .media-popup-body {
+      padding: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .media-popup-img-wrap {
+      width: 100%;
+      height: 200px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: #090d16;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border-color);
+      position: relative;
+    }
+
+    .media-popup-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.3s ease;
+      cursor: pointer;
+    }
+    .media-popup-img:hover {
+      transform: scale(1.03);
+    }
+
+    .media-popup-caption {
+      font-size: 0.78rem;
+      color: var(--text-medium);
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* Lightbox Modal de Imagem em Tela Cheia */
+    .lightbox-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.92);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 150;
+      padding: 2rem;
+    }
+    .lightbox-overlay.active {
+      display: flex;
+    }
+    .lightbox-img {
+      max-width: 90vw;
+      max-height: 85vh;
+      border-radius: var(--radius-md);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      border: 1px solid var(--border-color);
+    }
+
+    /* ==========================================================================
+       7. MODAL DE CONFIGURAÇÃO (API KEY OBRIGATÓRIA)
+       ========================================================================== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 1.5rem;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-card {
+      background: var(--bg-surface);
+      border: 1.5px solid var(--border-color);
+      width: 100%;
+      max-width: 500px;
+      padding: 2.2rem;
+      border-radius: var(--radius-lg);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+      animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalPop {
+      from { transform: scale(0.92); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-card h2 {
+      font-size: 1.35rem;
+      margin-bottom: 0.75rem;
+      color: var(--text-high);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .modal-card p {
+      font-size: 0.88rem;
+      color: var(--text-medium);
+      margin-bottom: 1.25rem;
+      line-height: 1.5;
+    }
+
+    .modal-card code {
+      background: #0f172a;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      color: var(--primary);
+      font-family: monospace;
+    }
+
+    .modal-input-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-input-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.45rem;
+      text-transform: uppercase;
+    }
+
+    .modal-card input {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      background: var(--bg-base);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      color: var(--text-high);
+      font-family: monospace;
+      font-size: 0.95rem;
+      transition: var(--transition-smooth);
+    }
+    .modal-card input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 12px var(--primary-glow);
+    }
+
+    .modal-note {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      margin-bottom: 1.5rem;
+      background: rgba(56, 189, 248, 0.06);
+      padding: 0.75rem;
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--primary);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-medium);
+      padding: 0.65rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+    .btn-secondary:hover {
+      background: var(--bg-surface-elevated);
+      color: var(--text-high);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      border: none;
+      color: #0f172a;
+      font-weight: 700;
+      padding: 0.65rem 1.5rem;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      box-shadow: 0 4px 15px var(--primary-glow);
+    }
+    .btn-primary:hover {
+      background: #7dd3fc;
+      transform: translateY(-1px);
+    }
+
+    /* Banner de Alerta Bloqueante */
+    .blocking-banner {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+      padding: 0.65rem 1rem;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .blocking-banner.active {
+      display: flex;
+    }
+
+    /* Banner para detecção de file:// */
+    .protocol-warning-banner {
+      background: #7f1d1d;
+      color: #fecaca;
+      border-bottom: 2px solid #ef4444;
+      padding: 0.85rem 1.25rem;
+      text-align: center;
+      font-size: 0.9rem;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .protocol-warning-banner.active {
+      display: flex;
+    }
+    .protocol-warning-banner a {
+      color: #ffffff;
+      font-weight: 700;
+      text-decoration: underline;
+    }
+
+    .mic-test-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-medium);
+      font-size: 0.78rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 20px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: var(--transition-smooth);
+      margin-top: 0.4rem;
+    }
+    .mic-test-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: rgba(56, 189, 248, 0.1);
+    }
+  </style>
+</head>
+<body>
+  <!-- Banner de aviso se aberto via file:// -->
+  <div class="protocol-warning-banner" id="protocol-warning-banner">
+    ⚠️ <strong>Atenção:</strong> Você abriu o arquivo via <code>file://</code>. O microfone do Google Chrome só funciona via servidor local. 
+    <a href="http://localhost:3000">Clique aqui para abrir http://localhost:3000</a>
+  </div>
+  <header>
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+        </svg>
+      </div>
+      <div class="brand-info">
+        <h1>Tutor<span>IA</span></h1>
+        <span class="badge-level">Ensino Fundamental & Médio</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <div class="api-status-tag" id="api-status-tag" title="Status da Chave de API">
+        <div class="status-dot-indicator" id="status-indicator"></div>
+        <span id="status-label">Verificando Chave...</span>
+      </div>
+      <button class="btn-icon" id="btn-open-settings" title="Configurar API Key do Gemini">
+        <!-- Ícone de Engrenagem -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       CONTEÚDO PRINCIPAL
+       ========================================================================== -->
+  <main>
+    <!-- Área Central com o Avatar Modular -->
+    <section class="avatar-section">
+      
+      <!-- Aviso de Bloqueio se não houver API Key -->
+      <div class="blocking-banner" id="blocking-banner">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>Configure sua Chave de API do Gemini para liberar o assistente.</span>
+      </div>
+
+      <!-- CONTÊINER MODULAR DO AVATAR -->
+      <div id="avatar-module" class="state-idle">
+        <div class="avatar-halo"></div>
+        <div class="avatar-halo-secondary"></div>
+        
+        <svg class="avatar-svg" viewBox="0 0 120 120">
+          <defs>
+            <linearGradient id="headGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1e293b"/>
+              <stop offset="100%" stop-color="#0f172a"/>
+            </linearGradient>
+            <filter id="eyeGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+
+          <!-- Antenas e Detalhes da Cabeça -->
+          <circle cx="60" cy="16" r="4" fill="#38bdf8" />
+          <line x1="60" y1="20" x2="60" y2="28" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
+          
+          <!-- Cabeça do Robô Educacional -->
+          <rect class="avatar-head" x="24" y="26" width="72" height="68" rx="20" fill="url(#headGrad)" stroke="#38bdf8" stroke-width="2.5" />
+          
+          <!-- Visor / Tela de Rosto -->
+          <rect x="32" y="36" width="56" height="48" rx="12" fill="#080d1a" stroke="#1e293b" stroke-width="1.5" />
+
+          <!-- Olhos Expressivos (Ciano Neon) -->
+          <circle class="avatar-eye eye-left" cx="46" cy="50" r="5.5" filter="url(#eyeGlow)" />
+          <circle class="avatar-eye eye-right" cx="74" cy="50" r="5.5" filter="url(#eyeGlow)" />
+          
+          <!-- Boca: Equalizador Modular para Fala Reativa -->
+          <g class="avatar-mouth" id="avatar-mouth">
+            <rect class="mouth-bar mouth-bar-1" x="40" y="72" width="4.5" height="4" rx="2" />
+            <rect class="mouth-bar mouth-bar-2" x="49" y="72" width="4.5" height="4" rx="2" />
+            <rect class="mouth-bar mouth-bar-3" x="58" y="72" width="4.5" height="4" rx="2" />
+            <rect class="mouth-bar mouth-bar-4" x="67" y="72" width="4.5" height="4" rx="2" />
+            <rect class="mouth-bar mouth-bar-5" x="76" y="72" width="4.5" height="4" rx="2" />
+          </g>
+        </svg>
+      </div>
+
+      <!-- Badge de Estado Atual -->
+      <div class="status-badge" id="status-badge-container">
+        <div class="status-dot"></div>
+        <span id="status-text">Aguardando sua dúvida</span>
+      </div>
+
+      <!-- Dock de Controle por Voz -->
+      <div class="action-dock">
+        <button class="btn-mic" id="btn-mic" title="Clique para falar sua pergunta">
+          <!-- Ícone do Microfone -->
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+          </svg>
+        </button>
+        <span class="mic-tip" id="mic-tip">Clique no microfone para perguntar</span>
+        <button class="mic-test-btn" id="btn-open-mic-test" title="Verificar se o microfone e permissões estão funcionando">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+          </svg>
+          Diagnóstico do Microfone
+        </button>
+      </div>
+    </section>
+
+    <!-- Painel Lateral: Histórico de Dúvidas e Respostas -->
+    <aside class="panel">
+      <div class="panel-header">
+        <span>Sessão de Estudos</span>
+        <span id="session-tag" style="font-size: 0.78rem; color: var(--accent-speaking);">● Online</span>
+      </div>
+      
+      <div class="panel-body" id="chat-stream">
+        <div class="chat-bubble tutor">
+          <div class="bubble-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            Tutor Virtual
+          </div>
+          <div class="bubble-text">Olá! Sou seu tutor escolar virtual. Posso tirar dúvidas de Matemática, História, Geografia, Ciências, Física, Português ou qualquer outra matéria. Clique no microfone ou digite abaixo para começarmos!</div>
+        </div>
+      </div>
+
+      <!-- Campo de Digitação Alternativo (Fallback) -->
+      <div class="panel-footer">
+        <input type="text" id="text-fallback-input" placeholder="Ou digite sua pergunta escolar aqui..." />
+        <button id="btn-send-text">
+          <span>Enviar</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ==========================================================================
+       POP-UP FLUTUANTE ELEGANTE DE IMAGEM DIDÁTICA
+       ========================================================================== -->
+  <div class="media-popup" id="media-popup">
+    <div class="media-popup-header">
+      <div class="media-popup-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <polyline points="21 15 16 10 5 21"></polyline>
+        </svg>
+        Ilustração Didática
+      </div>
+      <button class="media-popup-close" id="btn-close-popup" title="Fechar visualização">✕</button>
+    </div>
+    <div class="media-popup-body">
+      <div class="media-popup-img-wrap">
+        <img src="" alt="Ilustração didática" class="media-popup-img" id="media-popup-img" title="Clique para ampliar em tela cheia" />
+      </div>
+      <div class="media-popup-caption" id="media-popup-caption">Material visual complementar para enriquecer seu aprendizado.</div>
+    </div>
+  </div>
+
+  <!-- Lightbox para Imagem em Tela Cheia -->
+  <div class="lightbox-overlay" id="lightbox-overlay">
+    <img src="" alt="Ampliação de imagem" class="lightbox-img" id="lightbox-img" />
+  </div>
+
+  <!-- ==========================================================================
+       MODAL DE CONFIGURAÇÕES: API KEY DO GOOGLE GEMINI
+       ========================================================================== */ -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal-card">
+      <h2>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 2l-2 2m-1-1l2 2M3 22l6-6M3 16l6 6M14 4l6 6-9 9-6-6 9-9z"></path>
+        </svg>
+        Configurações do Gemini
+      </h2>
+      <p>
+        Para que o tutor responda às suas perguntas e gere explicações didáticas, insira sua <strong>API Key do Google Gemini</strong>.
+      </p>
+      
+      <div class="modal-input-group">
+        <label for="input-api-key">Sua Chave de API (Gemini):</label>
+        <input type="password" id="input-api-key" placeholder="AIzaSy..." autocomplete="off" />
+      </div>
+
+      <div class="modal-note">
+        🔒 A chave é armazenada com segurança exclusivamente no seu navegador (<code>localStorage</code>) e nunca é enviada a servidores intermediários. Obtenha sua chave gratuitamente no <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">Google AI Studio</a>.
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary" id="btn-cancel-settings">Fechar</button>
+        <button class="btn-primary" id="btn-save-settings">Salvar Chave</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL DE DIAGNÓSTICO DO MICROFONE
+       ========================================================================== -->
+  <div class="modal-overlay" id="mic-test-modal">
+    <div class="modal-card">
+      <h2>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="23"></line>
+          <line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>
+        Diagnóstico do Microfone
+      </h2>
+      <p>
+        Este painel testa se o seu navegador e o macOS estão permitindo a captura de voz.
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem;">
+        <div style="padding: 0.75rem; border-radius: 8px; background: #0f172a; border: 1px solid var(--border-color); font-size: 0.86rem; display: flex; justify-content: space-between; align-items: center;">
+          <span>🌐 Endereço da Página:</span>
+          <strong id="diag-protocol-val" style="color: var(--primary);">Verificando...</strong>
+        </div>
+
+        <div style="padding: 0.75rem; border-radius: 8px; background: #0f172a; border: 1px solid var(--border-color); font-size: 0.86rem; display: flex; justify-content: space-between; align-items: center;">
+          <span>🎙️ API SpeechRecognition:</span>
+          <strong id="diag-speech-val" style="color: var(--text-muted);">Verificando...</strong>
+        </div>
+
+        <div style="padding: 0.75rem; border-radius: 8px; background: #0f172a; border: 1px solid var(--border-color); font-size: 0.86rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+            <span>🔊 Sinal de Áudio do Microfone:</span>
+            <strong id="diag-audio-val" style="color: var(--text-muted);">Não testado</strong>
+          </div>
+          <!-- Barra de VU-meter em tempo real -->
+          <div style="height: 12px; background: #1e293b; border-radius: 6px; overflow: hidden; position: relative;">
+            <div id="diag-meter-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #10b981, #38bdf8, #ef4444); transition: width 0.05s ease-out;"></div>
+          </div>
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.3rem;">Fale algo após clicar em "Testar Áudio Agora" para ver a barra se mover.</span>
+        </div>
+      </div>
+
+      <div id="diag-instructions" style="display: none; padding: 0.85rem; border-radius: 8px; font-size: 0.84rem; line-height: 1.45; margin-bottom: 1.25rem;"></div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary" id="btn-close-mic-test">Fechar</button>
+        <button class="btn-primary" id="btn-run-mic-audio-test">Testar Áudio Agora</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       LÓGICA JAVASCRIPT (VANILLA NATIVO)
+       ========================================================================== -->
+  <script>
+    /**
+     * TUTORIA - Módulo de Estado e Gerenciamento do Assistente Virtual Educacional
+     */
+    const CONFIG = {
+      API_KEY_STORAGE_KEY: 'gemini_api_key',
+      PRIMARY_MODEL: 'gemini-3.5-flash-lite',
+      FALLBACK_MODELS: ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite', 'gemini-1.5-flash'],
+      VOICE_LANG: 'pt-BR',
+      // Prompt rigoroso para manter o foco didático
+      SYSTEM_PROMPT: 
+        "Aja como um tutor escolar paciente, encorajador, acolhedor e didático para alunos do Ensino Fundamental e Médio. " +
+        "Responda apenas dúvidas de disciplinas escolares (como Matemática, Português, História, Geografia, Ciências, Física, Química, Biologia, Filosofia, etc). " +
+        "Use uma linguagem clara, acessível e pedagógica. " +
+        "Se o aluno fizer perguntas alheias aos estudos ou inadequadas, redirecione-o com muita gentileza de volta aos estudos. " +
+        "Retorne a resposta ESTRITAMENTE em formato JSON puro (sem marcações markdown extras fora do json, sem ```json, apenas o JSON válido): " +
+        "{\"texto\": \"Sua explicação didática aqui...\", \"imagem_url\": \"URL direta de uma imagem ilustrativa real da web sobre o tema (deixe string vazia se não houver imagem aplicável)\"}"
+    };
+
+    // Referências dos Elementos do DOM
+    const avatarModule = document.getElementById('avatar-module');
+    const statusText = document.getElementById('status-text');
+    const btnMic = document.getElementById('btn-mic');
+    const micTip = document.getElementById('mic-tip');
+    const chatStream = document.getElementById('chat-stream');
+    const textInput = document.getElementById('text-fallback-input');
+    const btnSendText = document.getElementById('btn-send-text');
+    const blockingBanner = document.getElementById('blocking-banner');
+    
+    // Status no Header
+    const statusIndicator = document.getElementById('status-indicator');
+    const statusLabel = document.getElementById('status-label');
+
+    // Modal de Configurações
+    const modalSettings = document.getElementById('settings-modal');
+    const btnOpenSettings = document.getElementById('btn-open-settings');
+    const btnCancelSettings = document.getElementById('btn-cancel-settings');
+    const btnSaveSettings = document.getElementById('btn-save-settings');
+    const inputApiKey = document.getElementById('input-api-key');
+
+    // Pop-up e Lightbox de Imagem
+    const mediaPopup = document.getElementById('media-popup');
+    const mediaPopupImg = document.getElementById('media-popup-img');
+    const mediaPopupCaption = document.getElementById('media-popup-caption');
+    const btnClosePopup = document.getElementById('btn-close-popup');
+    const lightboxOverlay = document.getElementById('lightbox-overlay');
+    const lightboxImg = document.getElementById('lightbox-img');
+
+    // Estados e Controladores da Aplicação
+    let recognition = null;
+    let isListening = false;
+    let selectedVoice = null;
+    let isSpeaking = false;
+
+    /* ==========================================================================
+       A. GERENCIAMENTO DA API KEY E BLOQUEIO DO SISTEMA
+       ========================================================================== */
+    function getStoredApiKey() {
+      return (localStorage.getItem(CONFIG.API_KEY_STORAGE_KEY) || '').trim();
+    }
+
+    function updateApiKeyUiState() {
+      const key = getStoredApiKey();
+      const hasKey = key.length > 0;
+
+      if (hasKey) {
+        statusIndicator.className = 'status-dot-indicator configured';
+        statusLabel.textContent = 'IA Pronta';
+        blockingBanner.classList.remove('active');
+        btnMic.disabled = !recognition; // só habilita se o navegador suportar reconhecimento
+        textInput.disabled = false;
+        btnSendText.disabled = false;
+        btnCancelSettings.style.display = 'inline-block';
+      } else {
+        statusIndicator.className = 'status-dot-indicator unconfigured';
+        statusLabel.textContent = 'Chave Ausente';
+        blockingBanner.classList.add('active');
+        btnMic.disabled = true;
+        textInput.disabled = true;
+        btnSendText.disabled = true;
+        btnCancelSettings.style.display = 'none'; // Impede fechar se não houver chave
+      }
+      return hasKey;
+    }
+
+    function requireApiKey() {
+      if (!updateApiKeyUiState()) {
+        openSettingsModal();
+        return false;
+      }
+      return true;
+    }
+
+    function openSettingsModal() {
+      inputApiKey.value = getStoredApiKey();
+      modalSettings.classList.add('active');
+      inputApiKey.focus();
+    }
+
+    function closeSettingsModal() {
+      if (getStoredApiKey()) {
+        modalSettings.classList.remove('active');
+      } else {
+        alert('É necessário fornecer uma API Key válida do Gemini para liberar o Tutor.');
+      }
+    }
+
+    btnOpenSettings.addEventListener('click', openSettingsModal);
+    btnCancelSettings.addEventListener('click', () => {
+      if (getStoredApiKey()) {
+        modalSettings.classList.remove('active');
+      }
+    });
+
+    btnSaveSettings.addEventListener('click', () => {
+      const val = inputApiKey.value.trim();
+      if (val) {
+        localStorage.setItem(CONFIG.API_KEY_STORAGE_KEY, val);
+        modalSettings.classList.remove('active');
+        updateApiKeyUiState();
+        setAvatarState('idle', 'Chave configurada com sucesso! Como posso te ajudar hoje?');
+      } else {
+        alert('Por favor, informe uma chave de API válida para prosseguir.');
+      }
+    });
+
+    /* ==========================================================================
+       B. CONTROLE DOS ESTADOS VISUAIS DO AVATAR
+       ========================================================================== */
+    /**
+     * Define o estado visual do Avatar: 'idle' | 'listening' | 'thinking' | 'speaking'
+     */
+    function setAvatarState(state, customMessage = null) {
+      avatarModule.className = '';
+      avatarModule.classList.add(`state-${state}`);
+
+      const stateLabels = {
+        'idle': 'Aguardando sua dúvida',
+        'listening': 'Ouvindo sua pergunta...',
+        'thinking': 'Consultando material didático...',
+        'speaking': 'Explicando...'
+      };
+
+      statusText.textContent = customMessage || stateLabels[state] || 'Pronto';
+
+      // Atualiza botão do microfone
+      if (state === 'listening') {
+        btnMic.classList.add('recording');
+        micTip.textContent = 'Gravando... Fale claramente!';
+      } else {
+        btnMic.classList.remove('recording');
+        micTip.textContent = 'Clique no microfone para perguntar';
+      }
+    }
+
+    /* ==========================================================================
+       C. SÍNTESE DE VOZ (TEXT-TO-SPEECH COM WEB SPEECH API)
+       ========================================================================== */
+    function initSpeechSynthesis() {
+      const selectBestVoice = () => {
+        const voices = window.speechSynthesis.getVoices();
+        // Prioriza vozes pt-BR naturais ou da Google/Microsoft
+        selectedVoice = 
+          voices.find(v => v.lang === 'pt-BR' && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Luciana') || v.name.includes('Maria'))) ||
+          voices.find(v => v.lang === 'pt-BR') ||
+          voices.find(v => v.lang.startsWith('pt')) ||
+          null;
+      };
+
+      selectBestVoice();
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = selectBestVoice;
+      }
+    }
+
+    function speakExplanation(text, onComplete) {
+      if (!('speechSynthesis' in window)) {
+        console.warn('Síntese de voz não suportada pelo navegador.');
+        if (onComplete) onComplete();
+        return;
+      }
+
+      // Cancela reproduções anteriores em andamento
+      window.speechSynthesis.cancel();
+
+      // Limpa tags ou referências técnicas antes de falar
+      const spokenText = text.replace(/[*_#`]/g, '').trim();
+      const utterance = new SpeechSynthesisUtterance(spokenText);
+
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+      utterance.lang = CONFIG.VOICE_LANG;
+      utterance.rate = 1.05; // Ritmo agradável e dinâmico
+      utterance.pitch = 1.0;
+
+      utterance.onstart = () => {
+        isSpeaking = true;
+        setAvatarState('speaking');
+      };
+
+      const finishSpeech = () => {
+        isSpeaking = false;
+        setAvatarState('idle');
+        if (onComplete) onComplete();
+      };
+
+      utterance.onend = finishSpeech;
+      utterance.onerror = (e) => {
+        console.error('Erro na síntese vocal:', e);
+        finishSpeech();
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    /* ==========================================================================
+       D. RECONHECIMENTO DE FALA (SPEECH-TO-TEXT COM WEB SPEECH API)
+       ========================================================================== */
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (!SpeechRecognition) {
+        console.warn('Reconhecimento de fala não suportado neste navegador.');
+        micTip.textContent = 'Microfone não suportado no navegador atual. Use o campo de texto.';
+        btnMic.disabled = true;
+        return;
+      }
+
+      recognition = new SpeechRecognition();
+      recognition.lang = CONFIG.VOICE_LANG;
+      recognition.continuous = false;
+      recognition.interimResults = true; // Transcrição ao vivo enquanto o aluno fala!
+
+      recognition.onstart = () => {
+        isListening = true;
+        setAvatarState('listening', 'Estou ouvindo... pode falar!');
+      };
+
+      recognition.onresult = (event) => {
+        let interimText = '';
+        let finalText = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalText += event.results[i][0].transcript;
+          } else {
+            interimText += event.results[i][0].transcript;
+          }
+        }
+
+        // Mostra o que o aluno está falando em tempo real no badge de status!
+        if (interimText) {
+          statusText.textContent = `"${interimText}..."`;
+        }
+
+        if (finalText && finalText.trim()) {
+          statusText.textContent = `"${finalText}"`;
+          processQuestion(finalText.trim());
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Erro no reconhecimento de fala:', event.error);
+        isListening = false;
+        const messages = {
+          'not-allowed': 'Permissão do microfone negada. Clique no cadeado na barra de endereço do Chrome e permita o Microfone.',
+          'service-not-allowed': 'Serviço de voz bloqueado pelo navegador.',
+          'audio-capture': 'Nenhum microfone detectado. Verifique o microfone em Ajustes do Sistema → Privacidade e Segurança → Microfone.',
+          'network': 'Falha de conexão com o serviço de voz do Google. Verifique sua conexão com a internet.',
+          'no-speech': 'Não ouvi nenhuma fala. Clique no microfone e tente novamente.',
+          'aborted': 'Gravação cancelada.'
+        };
+        const msg = messages[event.error] || `Erro no microfone: ${event.error}`;
+        setAvatarState('idle', msg);
+        if (!['no-speech', 'aborted'].includes(event.error)) {
+          appendChatBubble('tutor', `⚠️ ${msg}`);
+        }
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        if (avatarModule.classList.contains('state-listening')) {
+          setAvatarState('idle');
+        }
+      };
+    }
+
+    function toggleVoiceRecognition() {
+      if (!requireApiKey()) return;
+
+      if (!recognition) {
+        alert('Reconhecimento de fala indisponível neste navegador. Por favor, utilize o campo de texto ao lado.');
+        return;
+      }
+
+      if (isListening) {
+        try {
+          recognition.stop();
+        } catch (_) {}
+        return;
+      }
+
+      // Interrompe qualquer fala da IA em andamento para escutar o aluno
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+
+      try {
+        recognition.start();
+      } catch (err) {
+        console.warn('Tentativa de reiniciar reconhecimento:', err);
+        try {
+          recognition.abort();
+          setTimeout(() => recognition.start(), 100);
+        } catch (e) {
+          setAvatarState('idle', 'Não consegui ligar o microfone. Tente clicar novamente.');
+        }
+      }
+    }
+
+    btnMic.addEventListener('click', toggleVoiceRecognition);
+
+    /* ==========================================================================
+       E. INTEGRAÇÃO COM A API DO GOOGLE GEMINI
+       ========================================================================== */
+    async function callGeminiApi(questionText) {
+      const apiKey = getStoredApiKey();
+      const modelsToTry = [CONFIG.PRIMARY_MODEL, ...CONFIG.FALLBACK_MODELS];
+      let lastError = null;
+
+      const payload = {
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: questionText }]
+          }
+        ],
+        systemInstruction: {
+          parts: [{ text: CONFIG.SYSTEM_PROMPT }]
+        },
+        generationConfig: {
+          temperature: 0.6,
+          topP: 0.95,
+          responseMimeType: "application/json"
+        }
+      };
+
+      for (const model of modelsToTry) {
+        try {
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const message = errorData.error?.message || `Erro HTTP ${response.status} no modelo ${model}`;
+            lastError = new Error(message);
+
+            // Se o modelo foi descontinuado ou não existe nesta versão da API (404/503), tenta o próximo
+            if (response.status === 404 || response.status === 503) {
+              console.warn(`Modelo ${model} indisponível (${response.status}), tentando fallback...`);
+              continue;
+            }
+            throw lastError;
+          }
+
+          const responseData = await response.json();
+          const rawText = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+          if (!rawText) {
+            throw new Error('A IA retornou uma resposta sem conteúdo legível.');
+          }
+
+          const cleaned = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+
+          try {
+            const parsed = JSON.parse(cleaned);
+            return {
+              texto: parsed.texto || "Não consegui formular uma resposta clara para essa dúvida.",
+              imagem_url: parsed.imagem_url && parsed.imagem_url.trim().startsWith('http') ? parsed.imagem_url.trim() : null
+            };
+          } catch (jsonErr) {
+            console.warn('Falha no JSON.parse estruturado, usando texto puro:', cleaned);
+            return {
+              texto: cleaned,
+              imagem_url: null
+            };
+          }
+        } catch (err) {
+          lastError = err;
+          // Erros de permissão/chave não devem ficar em loop
+          if (err.message && (err.message.includes('API key') || err.message.includes('permission') || err.message.includes('INVALID_ARGUMENT'))) {
+            throw err;
+          }
+        }
+      }
+
+      throw lastError || new Error('Não foi possível obter resposta dos modelos do Gemini.');
+    }
+
+    /* ==========================================================================
+       F. FLUXO PRINCIPAL: PROCESSAMENTO E EXIBIÇÃO
+       ========================================================================== */
+    async function processQuestion(question) {
+      if (!question || !question.trim()) return;
+      if (!requireApiKey()) return;
+
+      // 1. Exibe a pergunta do aluno no chat
+      appendChatBubble('student', question);
+
+      // 2. Transiciona o Avatar para o estado 'Pensando'
+      setAvatarState('thinking');
+
+      try {
+        // 3. Chamada à API
+        const data = await callGeminiApi(question);
+
+        // 4. Exibe a resposta do tutor no chat
+        appendChatBubble('tutor', data.texto, data.imagem_url);
+
+        // 5. Se houver imagem válida, abre o Pop-up elegante
+        if (data.imagem_url) {
+          showMediaPopup(data.imagem_url, `Ilustração sobre: "${question}"`);
+        } else {
+          hideMediaPopup();
+        }
+
+        // 6. Lê a resposta em voz alta sincronizada com o Avatar ('Falando')
+        speakExplanation(data.texto);
+
+      } catch (error) {
+        console.error('Erro ao processar dúvida:', error);
+        const errMsg = "Desculpe, ocorreu uma instabilidade ao buscar sua resposta. Por favor, verifique se sua API Key do Gemini está correta nas configurações.";
+        appendChatBubble('tutor', errMsg);
+        speakExplanation(errMsg);
+      }
+    }
+
+    /**
+     * Adiciona balões estilizados ao histórico de conversas
+     */
+    function appendChatBubble(role, message, imageUrl = null) {
+      const bubble = document.createElement('div');
+      bubble.className = `chat-bubble ${role}`;
+
+      const label = document.createElement('div');
+      label.className = 'bubble-label';
+      label.textContent = role === 'student' ? 'Você (Aluno)' : 'Tutor Virtual';
+      bubble.appendChild(label);
+
+      const text = document.createElement('div');
+      text.className = 'bubble-text';
+      text.textContent = message;
+      bubble.appendChild(text);
+
+      // Se contiver imagem vinculada, adiciona atalho no balão para reabrir o pop-up
+      if (imageUrl) {
+        const mediaBtn = document.createElement('button');
+        mediaBtn.className = 'bubble-media-btn';
+        mediaBtn.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+          Ver Ilustração Didática
+        `;
+        mediaBtn.addEventListener('click', () => {
+          showMediaPopup(imageUrl, 'Ilustração complementar do tópico');
+        });
+        bubble.appendChild(mediaBtn);
+      }
+
+      chatStream.appendChild(bubble);
+      chatStream.scrollTop = chatStream.scrollHeight;
+    }
+
+    /* ==========================================================================
+       G. POP-UP DE IMAGENS E LIGHTBOX
+       ========================================================================== */
+    function showMediaPopup(url, caption = '') {
+      mediaPopupImg.src = url;
+      mediaPopupCaption.textContent = caption || 'Material visual didático complementar.';
+      mediaPopup.classList.add('visible');
+
+      // Se falhar o carregamento da imagem da web, fecha suavemente
+      mediaPopupImg.onerror = () => {
+        hideMediaPopup();
+      };
+    }
+
+    function hideMediaPopup() {
+      mediaPopup.classList.remove('visible');
+    }
+
+    btnClosePopup.addEventListener('click', hideMediaPopup);
+
+    // Lightbox para visualização em tela cheia ao clicar na imagem do pop-up
+    mediaPopupImg.addEventListener('click', () => {
+      lightboxImg.src = mediaPopupImg.src;
+      lightboxOverlay.classList.add('active');
+    });
+
+    lightboxOverlay.addEventListener('click', () => {
+      lightboxOverlay.classList.remove('active');
+    });
+
+    /* ==========================================================================
+       H. SUBMISSÃO VIA DIGITAÇÃO (FALLBACK)
+       ========================================================================== */
+    function handleTextSubmit() {
+      const text = textInput.value.trim();
+      if (text) {
+        textInput.value = '';
+        processQuestion(text);
+      }
+    }
+
+    btnSendText.addEventListener('click', handleTextSubmit);
+    textInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleTextSubmit();
+      }
+    });
+
+    /* ==========================================================================
+       I. DIAGNÓSTICO DO MICROFONE E PROTOCOLO
+       ========================================================================== */
+    const protocolWarningBanner = document.getElementById('protocol-warning-banner');
+    const micTestModal = document.getElementById('mic-test-modal');
+    const btnOpenMicTest = document.getElementById('btn-open-mic-test');
+    const btnCloseMicTest = document.getElementById('btn-close-mic-test');
+    const btnRunMicAudioTest = document.getElementById('btn-run-mic-audio-test');
+    const diagProtocolVal = document.getElementById('diag-protocol-val');
+    const diagSpeechVal = document.getElementById('diag-speech-val');
+    const diagAudioVal = document.getElementById('diag-audio-val');
+    const diagMeterBar = document.getElementById('diag-meter-bar');
+    const diagInstructions = document.getElementById('diag-instructions');
+
+    let audioContext = null;
+    let micStream = null;
+    let animFrameId = null;
+
+    function checkProtocol() {
+      const isFile = window.location.protocol === 'file:';
+      if (isFile) {
+        if (protocolWarningBanner) protocolWarningBanner.classList.add('active');
+        if (diagProtocolVal) {
+          diagProtocolVal.textContent = 'file:// (Incompatível com Microfone)';
+          diagProtocolVal.style.color = '#ef4444';
+        }
+      } else {
+        if (protocolWarningBanner) protocolWarningBanner.classList.remove('active');
+        if (diagProtocolVal) {
+          diagProtocolVal.textContent = window.location.origin + ' (OK)';
+          diagProtocolVal.style.color = '#10b981';
+        }
+      }
+    }
+
+    function openMicTestModal() {
+      checkProtocol();
+      const hasSpeech = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+      diagSpeechVal.textContent = hasSpeech ? 'Disponível no Chrome (OK)' : 'Indisponível neste navegador';
+      diagSpeechVal.style.color = hasSpeech ? '#10b981' : '#ef4444';
+      micTestModal.classList.add('active');
+    }
+
+    function closeMicTestModal() {
+      stopAudioTest();
+      micTestModal.classList.remove('active');
+    }
+
+    function stopAudioTest() {
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+      if (micStream) {
+        micStream.getTracks().forEach(t => t.stop());
+        micStream = null;
+      }
+      if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+      }
+      if (diagMeterBar) diagMeterBar.style.width = '0%';
+    }
+
+    async function runAudioSignalTest() {
+      stopAudioTest();
+      diagAudioVal.textContent = 'Solicitando acesso...';
+      diagAudioVal.style.color = '#eab308';
+      diagInstructions.style.display = 'none';
+
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(micStream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        diagAudioVal.textContent = '● Microfone Captando! Fale algo...';
+        diagAudioVal.style.color = '#10b981';
+
+        function updateMeter() {
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i];
+          }
+          const avg = sum / dataArray.length;
+          const percentage = Math.min(100, Math.round((avg / 60) * 100));
+          if (diagMeterBar) diagMeterBar.style.width = `${percentage}%`;
+
+          animFrameId = requestAnimationFrame(updateMeter);
+        }
+        updateMeter();
+
+      } catch (err) {
+        console.error('Falha no teste de áudio:', err);
+        diagAudioVal.textContent = 'Bloqueado ou Não Encontrado';
+        diagAudioVal.style.color = '#ef4444';
+
+        diagInstructions.style.display = 'block';
+        diagInstructions.style.background = 'rgba(239, 68, 68, 0.15)';
+        diagInstructions.style.border = '1px solid rgba(239, 68, 68, 0.4)';
+        diagInstructions.style.color = '#fca5a5';
+
+        if (err.name === 'NotAllowedError') {
+          diagInstructions.innerHTML = 
+            '<strong>Como liberar o microfone no Chrome / Mac:</strong><br>' +
+            '1. Clique no ícone de <strong>ajustes/cadeado</strong> ao lado de <code>localhost:3000</code> na barra de endereços do Chrome e ative o Microfone.<br>' +
+            '2. Se persistir, abra os <strong>Ajustes do Sistema do macOS → Privacidade e Segurança → Microfone</strong> e marque a chave do <strong>Google Chrome</strong>.';
+        } else if (err.name === 'NotFoundError') {
+          diagInstructions.innerHTML = '<strong>Nenhum microfone detectado:</strong> Verifique se o microfone embutido ou fone está conectado ao Mac.';
+        } else {
+          diagInstructions.innerHTML = `<strong>Erro ao acessar áudio:</strong> ${err.name} - ${err.message}`;
+        }
+      }
+    }
+
+    if (btnOpenMicTest) btnOpenMicTest.addEventListener('click', openMicTestModal);
+    if (btnCloseMicTest) btnCloseMicTest.addEventListener('click', closeMicTestModal);
+    if (btnRunMicAudioTest) btnRunMicAudioTest.addEventListener('click', runAudioSignalTest);
+
+    /* ==========================================================================
+       J. INICIALIZAÇÃO DA APLICAÇÃO
+       ========================================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      checkProtocol();
+      initSpeechSynthesis();
+      initSpeechRecognition();
+      
+      const isConfigured = updateApiKeyUiState();
+      if (!isConfigured) {
+        openSettingsModal();
+      }
+    });
+  </script>
+</body>
+</html>
+
