@@ -1,6 +1,6 @@
 # [FEAT] Avatar do tutor com movimentos humanos
 
-> **Status:** Em andamento
+> **Status:** Concluído
 > **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-10-16 · **Atualizada em:** 2026-10-16
 
 ## Detalhes da Atividade
@@ -53,19 +53,19 @@
 
 ## Critérios de Aceitação / Entregas
 
-- [ ] **CA01:** Dado que o aluno abre o tutor, quando a página carrega, então o avatar aparece com cabeça, tronco e dois braços visíveis, nas cores atuais do tema.
-- [ ] **CA02:** Dado que o tutor está em repouso, quando o aluno observa por 10 s, então o avatar respira e balança a cabeça de leve, sem ficar parado.
-- [ ] **CA03:** Dado que o tutor está em qualquer estado, quando o aluno observa por 30 s, então o avatar pisca entre 5 e 15 vezes, em intervalos irregulares.
-- [ ] **CA04:** Dado que o tutor está falando em um navegador que emite `boundary`, quando cada palavra é pronunciada, então a boca abre e fecha no ritmo das palavras e fica fechada nas pausas entre frases.
-- [ ] **CA05:** Dado que o navegador não emite `boundary`, quando o tutor fala, então a boca anima de forma aproximada e para em até 300 ms depois do fim da fala (`onend`).
-- [ ] **CA06:** Dado que o tutor está em repouso, quando o aluno clica no microfone e depois envia a pergunta, então o avatar passa para a pose "ouvindo" e depois para "pensando" (mão no queixo), com transições suaves, sem saltos visíveis.
-- [ ] **CA07:** Dado que o tutor fala uma resposta com pelo menos 3 frases, quando cada frase começa, então o avatar faz um gesto diferente do gesto anterior.
-- [ ] **CA08:** Dado que a resposta tem conteúdo na lousa, quando um item novo aparece nela, então o avatar olha e aponta para a lousa e depois volta a olhar para o aluno.
-- [ ] **CA09:** Dado o código entregue, quando ele é revisado, então toda a lógica de animação está em um único módulo sem bibliotecas de animação externas.
-- [ ] **CA10:** Dado o tutor em repouso por 1 minuto, quando o desempenho é medido no Chrome DevTools, então não há quadros acima de 50 ms e a CPU da aba fica abaixo de 10%.
-- [ ] **CA11:** Dado que o sistema do aluno está com "reduzir movimento" ativado, quando o tutor fala, então só olhos e boca se mexem.
-- [ ] **CA12:** Dado uma tela de 375 px de largura, quando o avatar gesticula, então nenhuma parte do corpo é cortada e não aparece rolagem horizontal.
-- [ ] **CA13 (negativo):** Dado que o aluno interrompe a fala clicando no microfone, quando a fala é cancelada, então a boca fecha e os gestos param imediatamente; o avatar **não** continua "falando" sozinho.
+- [x] **CA01:** Dado que o aluno abre o tutor, quando a página carrega, então o avatar aparece com cabeça, tronco e dois braços visíveis, nas cores atuais do tema.
+- [x] **CA02:** Dado que o tutor está em repouso, quando o aluno observa por 10 s, então o avatar respira e balança a cabeça de leve, sem ficar parado.
+- [x] **CA03:** Dado que o tutor está em qualquer estado, quando o aluno observa por 30 s, então o avatar pisca entre 5 e 15 vezes, em intervalos irregulares.
+- [x] **CA04:** Dado que o tutor está falando em um navegador que emite `boundary`, quando cada palavra é pronunciada, então a boca abre e fecha no ritmo das palavras e fica fechada nas pausas entre frases.
+- [x] **CA05:** Dado que o navegador não emite `boundary`, quando o tutor fala, então a boca anima de forma aproximada e para em até 300 ms depois do fim da fala (`onend`).
+- [x] **CA06:** Dado que o tutor está em repouso, quando o aluno clica no microfone e depois envia a pergunta, então o avatar passa para a pose "ouvindo" e depois para "pensando" (mão no queixo), com transições suaves, sem saltos visíveis.
+- [x] **CA07:** Dado que o tutor fala uma resposta com pelo menos 3 frases, quando cada frase começa, então o avatar faz um gesto diferente do gesto anterior.
+- [x] **CA08:** Dado que a resposta tem conteúdo na lousa, quando um item novo aparece nela, então o avatar olha e aponta para a lousa e depois volta a olhar para o aluno.
+- [x] **CA09:** Dado o código entregue, quando ele é revisado, então toda a lógica de animação está em um único módulo sem bibliotecas de animação externas.
+- [x] **CA10:** Dado o tutor em repouso por 1 minuto, quando o desempenho é medido no Chrome DevTools, então não há quadros acima de 50 ms e a CPU da aba fica abaixo de 10%.
+- [x] **CA11:** Dado que o sistema do aluno está com "reduzir movimento" ativado, quando o tutor fala, então só olhos e boca se mexem.
+- [x] **CA12:** Dado uma tela de 375 px de largura, quando o avatar gesticula, então nenhuma parte do corpo é cortada e não aparece rolagem horizontal.
+- [x] **CA13 (negativo):** Dado que o aluno interrompe a fala clicando no microfone, quando a fala é cancelada, então a boca fecha e os gestos param imediatamente; o avatar **não** continua "falando" sozinho.
 
 ## O que a atividade não inclui
 
