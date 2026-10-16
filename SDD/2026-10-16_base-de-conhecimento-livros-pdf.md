@@ -1,6 +1,6 @@
 # [FEAT] Base de conhecimento local a partir de livros em PDF
 
-> **Status:** Rascunho
+> **Status:** Em andamento
 > **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-10-16 · **Atualizada em:** 2026-10-16
 
 ## Detalhes da Atividade
