@@ -1,9 +1,18 @@
-<!-- BEGIN:nextjs-agent-rules -->
+# TutorIA - Instruções e Diretrizes do Projeto
 
-# This is NOT the Next.js you know
+## Stack Tecnológica
+- **Linguagem:** TypeScript (modo `strict`)
+- **Bundler / Dev Server:** Vite (arquitetura Multi-Page Application - MPA)
+- **Mobile Runtime:** Capacitor (Android)
+- **Testes Unitários:** Vitest
+- **Estilos:** CSS Vanilla com variáveis/design tokens e layout responsivo
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+## Estrutura Multi-páginas (MPA)
+- `index.html`: Boas-vindas, apresentação do Tutor e navegação inicial.
+- `tutor.html`: Interface principal de interação (Avatar, lousa, chat, controles de voz e texto).
+- `configuracoes.html`: Gerenciamento de chave de API, seleção de voz e testes de áudio/microfone.
 
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
+## Princípios de Código
+1. Sem lógica de negócio dentro dos arquivos HTML. Todo o comportamento é orquestrado via TypeScript modular (`src/`).
+2. Nenhuma chave de API ou credencial sensível deve ser colocada no código ou embutida no build do app/APK.
+3. Compatibilidade híbrida: abstrair APIs de voz (reconhecimento e síntese) para funcionar nativamente no navegador (Web Speech API) e no Android (Capacitor plugins).

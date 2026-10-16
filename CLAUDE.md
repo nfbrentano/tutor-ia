@@ -64,7 +64,7 @@ SDD/2026-09-23_modo-escuro.md
 7. **Mover especificação:** mover o arquivo para `SDD/DONE/AAAA-MM-DD_nome-da-feature.md` (ex.: `git mv SDD/AAAA-MM-DD_nome-da-feature.md SDD/DONE/`).
 8. **Finalizar PR:** comitar as alterações finais, enviar para a branch remota e finalizar o Pull Request para merge na `main`.
 
-## Next.js
+## Diretrizes Técnicas
 
-@AGENTS.md
+Consulte [AGENTS.md](AGENTS.md) para diretrizes de TypeScript, Vite e Capacitor.
 
