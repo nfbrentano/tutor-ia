@@ -3,8 +3,15 @@
  * Implementa respiração, piscadas estocásticas, sincronização de boca e gestos humanos.
  */
 
-import { sortearProximoGesto } from './gestos';
-import { AvatarConfig, AvatarElementos, AvatarEstado, CONFIG_AVATAR_PADRAO, GestoTipo } from './tipos';
+import { sortearProximoGesto, sortearProximoGestoEspera } from './gestos';
+import {
+  AvatarConfig,
+  AvatarElementos,
+  AvatarEstado,
+  CONFIG_AVATAR_PADRAO,
+  GestoEsperaTipo,
+  GestoTipo
+} from './tipos';
 
 export class AvatarAnimator {
   private estadoAtual: AvatarEstado = 'idle';
@@ -14,10 +21,12 @@ export class AvatarAnimator {
   // Timers e IDs
   private timerPiscada: any = null;
   private timerGesto: any = null;
+  private timerGestoEspera: any = null;
   private timerApontar: any = null;
   private timerFallbackBoca: any = null;
   private estaApontando = false;
   private ultimoGesto: GestoTipo | null = null;
+  private ultimoGestoEspera: GestoEsperaTipo | null = null;
   private estaPiscando = false;
   private ultimoBoundaryTimestamp = 0;
 
@@ -135,7 +144,10 @@ export class AvatarAnimator {
         'gesto-palmas-abertas',
         'gesto-enfatizar',
         'gesto-contar-dedos',
-        'gesto-mao-no-peito'
+        'gesto-mao-no-peito',
+        'gesto-olhar-cima',
+        'gesto-pensativo',
+        'gesto-postura-atenta'
       );
       mod.classList.add(`state-${novoEstado}`);
     }
@@ -172,9 +184,14 @@ export class AvatarAnimator {
     }
 
     if (novoEstado === 'speaking') {
+      this.pararCicloGestosEspera();
       this.iniciarLoopGestos();
       this.iniciarFallbackBocaSeNecessario();
+    } else if (novoEstado === 'thinking') {
+      this.pararFala();
+      this.iniciarCicloGestosEspera();
     } else {
+      this.pararCicloGestosEspera();
       this.pararFala();
     }
   }
@@ -310,8 +327,60 @@ export class AvatarAnimator {
     }, tempo);
   }
 
+  /* ==========================================================================
+     GESTOS DE ESPERA ATIVA (RF05, CA06, RNF05)
+     ========================================================================== */
+  iniciarCicloGestosEspera(intervaloMs = 2500): void {
+    this.pararCicloGestosEspera();
+    if (this.prefereMovimentoReduzido()) return;
+
+    // Aplica imediatamente o primeiro gesto de espera
+    this.aplicarProximoGestoEspera();
+
+    this.timerGestoEspera = setInterval(() => {
+      if (this.estadoAtual !== 'thinking') {
+        this.pararCicloGestosEspera();
+        return;
+      }
+      this.aplicarProximoGestoEspera();
+    }, intervaloMs);
+  }
+
+  pararCicloGestosEspera(): void {
+    if (this.timerGestoEspera) {
+      clearInterval(this.timerGestoEspera);
+      this.timerGestoEspera = null;
+    }
+    const mod = this.elementos.moduloElemento;
+    if (mod) {
+      mod.classList.remove(
+        'gesto-olhar-cima',
+        'gesto-pensativo',
+        'gesto-postura-atenta'
+      );
+    }
+    this.ultimoGestoEspera = null;
+  }
+
+  aplicarProximoGestoEspera(): void {
+    if (this.prefereMovimentoReduzido()) return;
+    const mod = this.elementos.moduloElemento;
+    if (!mod) return;
+
+    const proximo = sortearProximoGestoEspera(this.ultimoGestoEspera);
+    this.ultimoGestoEspera = proximo;
+
+    mod.classList.remove(
+      'gesto-olhar-cima',
+      'gesto-pensativo',
+      'gesto-postura-atenta'
+    );
+    mod.classList.add(`gesto-${proximo}`);
+  }
+
   destruir(): void {
     this.pausarAnimacoes();
+    this.pararCicloGestosEspera();
     if (this.timerApontar) clearTimeout(this.timerApontar);
   }
 }

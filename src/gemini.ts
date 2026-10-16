@@ -1,6 +1,7 @@
 /**
  * TUTORIA - Módulo de Integração com o Google Gemini
- * Suporta resposta estruturada por etapas didáticas e recursos visuais de lousa (RF02).
+ * Suporta resposta estruturada por etapas didáticas, lousa, streaming SSE e modelo lembrado.
+ * (RF02, RF08, RF09, RF10, RF11, CA09, CA10, CA11, CA12, CA13)
  */
 
 import { CONFIG } from './armazenamento';
@@ -8,6 +9,107 @@ import { EtapaExplicacao, ItemLousa, RespostaDidatica } from './lousa/tipos';
 
 export * from './lousa/tipos';
 export type GeminiResponse = RespostaDidatica;
+
+/* ==========================================================================
+   MODELO LEMBRADO E GESTÃO DE FALHAS 404 (RF10, CA12)
+   ========================================================================== */
+export const CHAVE_MODELO_SUCESSO = 'tutoria_modelo_sucesso';
+export const CHAVE_MODELOS_404 = 'tutoria_modelos_404';
+export const VALIDADE_24H_MS = 24 * 60 * 60 * 1000;
+
+let memoriaModeloSucesso: { modelo: string; timestamp: number } | null = null;
+let memoriaModelos404: Record<string, number> = {};
+
+export function limparCacheModelos(): void {
+  memoriaModeloSucesso = null;
+  memoriaModelos404 = {};
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(CHAVE_MODELO_SUCESSO);
+      localStorage.removeItem(CHAVE_MODELOS_404);
+    }
+  } catch {}
+}
+
+export function registrarModeloSucesso(modelo: string): void {
+  const agora = Date.now();
+  memoriaModeloSucesso = { modelo, timestamp: agora };
+  delete memoriaModelos404[modelo];
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(CHAVE_MODELO_SUCESSO, JSON.stringify(memoriaModeloSucesso));
+      localStorage.setItem(CHAVE_MODELOS_404, JSON.stringify(memoriaModelos404));
+    }
+  } catch {}
+}
+
+export function registrarModelo404(modelo: string): void {
+  const agora = Date.now();
+  memoriaModelos404[modelo] = agora;
+  if (memoriaModeloSucesso?.modelo === modelo) {
+    memoriaModeloSucesso = null;
+  }
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(CHAVE_MODELOS_404, JSON.stringify(memoriaModelos404));
+      localStorage.removeItem(CHAVE_MODELO_SUCESSO);
+    }
+  } catch {}
+}
+
+export function obterModelosOrdenados(customModels?: string[]): string[] {
+  const agora = Date.now();
+  const modelosBase = customModels && customModels.length > 0
+    ? customModels
+    : [CONFIG.PRIMARY_MODEL, ...CONFIG.FALLBACK_MODELS];
+
+  // Recupera do localStorage se a memória estiver vazia
+  try {
+    if (typeof localStorage !== 'undefined') {
+      if (!memoriaModeloSucesso) {
+        const stored = localStorage.getItem(CHAVE_MODELO_SUCESSO);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (agora - parsed.timestamp < VALIDADE_24H_MS) {
+            memoriaModeloSucesso = parsed;
+          } else {
+            localStorage.removeItem(CHAVE_MODELO_SUCESSO);
+          }
+        }
+      }
+
+      if (Object.keys(memoriaModelos404).length === 0) {
+        const stored404 = localStorage.getItem(CHAVE_MODELOS_404);
+        if (stored404) {
+          memoriaModelos404 = JSON.parse(stored404);
+        }
+      }
+    }
+  } catch {}
+
+  // Pula modelos que deram 404 dentro do período de 24h
+  const modelosDisponiveis = modelosBase.filter(m => {
+    const timestamp404 = memoriaModelos404[m];
+    if (timestamp404 && agora - timestamp404 < VALIDADE_24H_MS) {
+      return false;
+    }
+    return true;
+  });
+
+  const listaFinal = modelosDisponiveis.length > 0 ? modelosDisponiveis : modelosBase;
+
+  // Se houver modelo lembrado bem-sucedido nas últimas 24h, tenta-o primeiro
+  if (
+    memoriaModeloSucesso &&
+    agora - memoriaModeloSucesso.timestamp < VALIDADE_24H_MS &&
+    listaFinal.includes(memoriaModeloSucesso.modelo)
+  ) {
+    const lembrado = memoriaModeloSucesso.modelo;
+    return [lembrado, ...listaFinal.filter(m => m !== lembrado)];
+  }
+
+  return listaFinal;
+}
 
 /**
  * Remove formatações markdown e referências textuais antes da síntese de voz.
@@ -25,8 +127,8 @@ export function cleanTextForSpeech(text: string): string {
 }
 
 /**
- * Faz o parser e sanitização da resposta do Gemini, aceitando o novo formato de etapas
- * ou o formato legado { texto, imagem_url } ou texto puro (RF02, CA03, CA09, CT03).
+ * Faz o parser e sanitização da resposta do Gemini, aceitando o novo formato de etapas,
+ * NDJSON por linha, formato legado { texto, imagem_url } ou texto puro (RF02, RF09, CA03, CA09, CA11, CT03).
  */
 export function parseGeminiResponse(rawText: string): RespostaDidatica {
   const respostaPadraoVazia: RespostaDidatica = {
@@ -46,18 +148,53 @@ export function parseGeminiResponse(rawText: string): RespostaDidatica {
     return respostaPadraoVazia;
   }
 
-  // Remove blocos de código ```json ... ``` se existirem
+  // Remove delimitadores markdown ```json ... ``` se existirem
   const cleaned = rawText
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/```\s*$/i, '')
     .trim();
 
+  // Tentativa 1: NDJSON (uma etapa por linha)
+  const lines = cleaned.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length > 1) {
+    const etapasNdjson: EtapaExplicacao[] = [];
+    let todosValidos = true;
+    for (const line of lines) {
+      try {
+        const item = JSON.parse(line.replace(/^,|,$/g, ''));
+        if (item && typeof item.fala === 'string') {
+          etapasNdjson.push({
+            fala: item.fala.trim(),
+            lousa: item.lousa || null
+          });
+        } else {
+          todosValidos = false;
+          break;
+        }
+      } catch {
+        todosValidos = false;
+        break;
+      }
+    }
+    if (todosValidos && etapasNdjson.length > 0) {
+      const falasValidas = etapasNdjson.map(e => e.fala).filter(Boolean);
+      const textoCompleto = falasValidas.join(' ');
+      const itensLousa = etapasNdjson.map(e => e.lousa).filter((it): it is ItemLousa => it !== null);
+      return {
+        etapas: etapasNdjson.slice(0, 8),
+        textoCompleto,
+        itensLousa,
+        texto: textoCompleto,
+        imagem_url: null
+      };
+    }
+  }
+
   try {
     const parsed = JSON.parse(cleaned);
 
-    // 1. Novo formato: etapas (RF02)
+    // Tentativa 2: Formato com array etapas: [{ fala, lousa }] (RF02)
     if (Array.isArray(parsed.etapas) && parsed.etapas.length > 0) {
-      // Limita a no máximo 8 etapas para manter a lousa sucinta (RNF06)
       const etapasLimitadas = parsed.etapas.slice(0, 8);
 
       const etapas: EtapaExplicacao[] = etapasLimitadas.map((e: any) => {
@@ -91,7 +228,20 @@ export function parseGeminiResponse(rawText: string): RespostaDidatica {
       };
     }
 
-    // 2. Formato legado: { texto, imagem_url } (CA09)
+    // Tentativa 3: Objeto único de etapa { fala, lousa }
+    if (typeof parsed.fala === 'string') {
+      const fala = parsed.fala.trim();
+      const lousa = parsed.lousa || null;
+      return {
+        etapas: [{ fala, lousa }],
+        textoCompleto: fala,
+        itensLousa: lousa ? [lousa] : [],
+        texto: fala,
+        imagem_url: null
+      };
+    }
+
+    // Tentativa 4: Formato legado: { texto, imagem_url } (CA09)
     if (typeof parsed.texto === 'string') {
       const fala = parsed.texto.trim();
       let lousa: ItemLousa | null = null;
@@ -116,7 +266,7 @@ export function parseGeminiResponse(rawText: string): RespostaDidatica {
       };
     }
 
-    // Se o JSON não tiver etapas nem texto
+    // Fallback para JSON genérico
     return {
       etapas: [{ fala: cleaned, lousa: null }],
       textoCompleto: cleaned,
@@ -125,7 +275,7 @@ export function parseGeminiResponse(rawText: string): RespostaDidatica {
       imagem_url: null
     };
   } catch {
-    // 3. Texto puro não-JSON (CA09)
+    // Tentativa 5: Texto puro não-JSON (CA09, CA11)
     return {
       etapas: [{ fala: cleaned, lousa: null }],
       textoCompleto: cleaned,
@@ -136,22 +286,34 @@ export function parseGeminiResponse(rawText: string): RespostaDidatica {
   }
 }
 
+export interface OpcoesChamadaGemini {
+  customModels?: string[];
+  signal?: AbortSignal;
+  onEtapaRecebida?: (etapa: EtapaExplicacao) => void;
+  ignorarStreaming?: boolean;
+}
+
 /**
- * Dispara requisição para o Gemini com fallback automático entre modelos.
+ * Dispara requisição para o Gemini com streaming SSE e fallback automático entre modelos.
+ * (RF08, RF09, RF10, RF11, CA09 - CA14)
  */
 export async function callGeminiApi(
   questionText: string,
   apiKey: string,
-  customModels?: string[]
+  opcoesOuModelos?: OpcoesChamadaGemini | string[]
 ): Promise<RespostaDidatica> {
   const trimmedKey = (apiKey || '').trim();
   if (!trimmedKey) {
     throw new Error('API Key do Gemini ausente ou inválida.');
   }
 
-  const modelsToTry = customModels && customModels.length > 0
-    ? customModels
-    : [CONFIG.PRIMARY_MODEL, ...CONFIG.FALLBACK_MODELS];
+  // Compatibilidade: se for array, trata como customModels
+  const opcoes: OpcoesChamadaGemini = Array.isArray(opcoesOuModelos)
+    ? { customModels: opcoesOuModelos }
+    : (opcoesOuModelos || {});
+
+  // Obtém modelos com ordenação do modelo lembrado (RF10, CA12)
+  const modelsToTry = obterModelosOrdenados(opcoes.customModels);
 
   let lastError: Error | null = null;
 
@@ -172,13 +334,22 @@ export async function callGeminiApi(
     }
   };
 
+  const querStreaming = Boolean(opcoes.onEtapaRecebida && !opcoes.ignorarStreaming);
+
   for (const model of modelsToTry) {
     try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${trimmedKey}`;
+      if (opcoes.signal?.aborted) {
+        throw new DOMException('Requisição cancelada pelo usuário.', 'AbortError');
+      }
+
+      const method = querStreaming ? 'streamGenerateContent?alt=sse&' : 'generateContent?';
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:${method}key=${trimmedKey}`;
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: opcoes.signal
       });
 
       if (!response.ok) {
@@ -196,12 +367,89 @@ export async function callGeminiApi(
 
         if (response.status === 404 || response.status === 503) {
           console.warn(`Modelo ${model} indisponível (${response.status}), tentando fallback...`);
+          if (response.status === 404) {
+            registrarModelo404(model);
+          }
           continue;
         }
 
         throw lastError;
       }
 
+      // SUCESSO: Registra o modelo como lembrado para as próximas requisições (RF10, CA12)
+      registrarModeloSucesso(model);
+
+      // 1. Processamento via streaming SSE (RF08, CA09, CA10)
+      if (querStreaming && response.body && typeof (response.body as any).getReader === 'function') {
+        const reader = (response.body as any).getReader();
+        const decoder = new TextDecoder();
+        let rawBuffer = '';
+        let sseLineBuffer = '';
+        const etapasEmitidas: EtapaExplicacao[] = [];
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunkText = decoder.decode(value, { stream: true });
+            sseLineBuffer += chunkText;
+
+            // Processa linhas SSE (data: {...})
+            const sseLines = sseLineBuffer.split('\n');
+            sseLineBuffer = sseLines.pop() || ''; // mantém linha incompleta no buffer
+
+            for (const line of sseLines) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith('data:')) {
+                const jsonStr = trimmed.replace(/^data:\s*/, '').trim();
+                if (!jsonStr || jsonStr === '[DONE]') continue;
+                try {
+                  const sseData = JSON.parse(jsonStr);
+                  const parte = sseData.candidates?.[0]?.content?.parts?.[0]?.text;
+                  if (parte) {
+                    rawBuffer += parte;
+                    // Verifica se linhas completas de etapa surgiram no buffer
+                    processarBufferIncremental(rawBuffer, etapasEmitidas, opcoes.onEtapaRecebida);
+                  }
+                } catch {
+                  // Linha sse parcial, aguarda próximo chunk
+                }
+              }
+            }
+          }
+        } catch (streamErr: any) {
+          if (streamErr?.name === 'AbortError') throw streamErr;
+          console.warn('Conexão de streaming interrompida, processando dados acumulados:', streamErr);
+        }
+
+        // Fim do stream: se emitiu etapas incrementais, retorna a resposta completa
+        if (etapasEmitidas.length > 0) {
+          const falas = etapasEmitidas.map(e => e.fala).filter(Boolean);
+          const textoCompleto = falas.join(' ');
+          const itensLousa = etapasEmitidas.map(e => e.lousa).filter((it): it is ItemLousa => it !== null);
+          return {
+            etapas: etapasEmitidas,
+            textoCompleto,
+            itensLousa,
+            modeloUsado: model,
+            texto: textoCompleto,
+            imagem_url: null
+          };
+        }
+
+        // Fallback do streaming (RF09, CA11): se não emitiu linha a linha, processa o texto acumulado
+        const parsedFinal = parseGeminiResponse(rawBuffer);
+        if (opcoes.onEtapaRecebida) {
+          parsedFinal.etapas.forEach(e => opcoes.onEtapaRecebida!(e));
+        }
+        return {
+          ...parsedFinal,
+          modeloUsado: model
+        };
+      }
+
+      // 2. Processamento regular sem streaming (ou fallback se body reader não existir)
       const responseData = await response.json();
       const rawContent = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
 
@@ -210,6 +458,11 @@ export async function callGeminiApi(
       }
 
       const result = parseGeminiResponse(rawContent);
+
+      if (opcoes.onEtapaRecebida) {
+        result.etapas.forEach(e => opcoes.onEtapaRecebida!(e));
+      }
+
       return {
         ...result,
         modeloUsado: model
@@ -217,6 +470,8 @@ export async function callGeminiApi(
     } catch (err: any) {
       lastError = err instanceof Error ? err : new Error(String(err));
       if (
+        lastError.name === 'AbortError' ||
+        lastError.message.includes('cancelada') ||
         lastError.message.includes('API key') ||
         lastError.message.includes('permission') ||
         lastError.message.includes('INVALID_ARGUMENT') ||
@@ -228,4 +483,61 @@ export async function callGeminiApi(
   }
 
   throw lastError || new Error('Não foi possível obter resposta dos modelos do Gemini.');
+}
+
+/**
+ * Extrai etapas completas do buffer acumulado conforme chegam durante o streaming (RF08, CA09, CA10).
+ */
+function processarBufferIncremental(
+  buffer: string,
+  etapasEmitidas: EtapaExplicacao[],
+  callback?: (etapa: EtapaExplicacao) => void
+): void {
+  if (!callback) return;
+
+  // 1. Tenta extrair linhas completas NDJSON
+  const lines = buffer.split('\n');
+  // Processa linhas completas anteriores à última linha aberta
+  for (let i = 0; i < lines.length - 1; i++) {
+    const line = lines[i].trim().replace(/^,|,$/g, '');
+    if (!line) continue;
+    try {
+      const obj = JSON.parse(line);
+      if (obj && typeof obj.fala === 'string') {
+        const jaEmitida = etapasEmitidas.some(e => e.fala === obj.fala.trim());
+        if (!jaEmitida) {
+          const novaEtapa: EtapaExplicacao = {
+            fala: obj.fala.trim(),
+            lousa: obj.lousa || null
+          };
+          etapasEmitidas.push(novaEtapa);
+          callback(novaEtapa);
+        }
+      }
+    } catch {
+      // Linha não é JSON completo individual
+    }
+  }
+
+  // 2. Se for formato com array "etapas": [ {...}, {...} ]
+  // Procura objetos de etapa fechados no array
+  const regexEtapaObjeto = /\{\s*"fala"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"(?:\s*,\s*"lousa"\s*:\s*(\{[^}]+\}|null))?\s*\}/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = regexEtapaObjeto.exec(buffer)) !== null) {
+    try {
+      const objetoCompleto = JSON.parse(match[0]);
+      if (objetoCompleto && typeof objetoCompleto.fala === 'string') {
+        const jaEmitida = etapasEmitidas.some(e => e.fala === objetoCompleto.fala.trim());
+        if (!jaEmitida) {
+          const novaEtapa: EtapaExplicacao = {
+            fala: objetoCompleto.fala.trim(),
+            lousa: objetoCompleto.lousa || null
+          };
+          etapasEmitidas.push(novaEtapa);
+          callback(novaEtapa);
+        }
+      }
+    } catch {}
+  }
 }
