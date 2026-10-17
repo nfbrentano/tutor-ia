@@ -164,6 +164,31 @@
         💡 Ao desativar uma obra, o tutor deixará de usar trechos daquele livro em suas respostas (RF11).
       </div>
     </section>
+
+    <!-- Card 5: Modo do Avatar (RF11, CA05) -->
+    <section class="settings-card" aria-labelledby="card-avatar-title">
+      <div class="settings-card-header">
+        <div class="card-icon">🎭</div>
+        <div>
+          <h3 id="card-avatar-title">Modo de Exibição do Avatar</h3>
+          <p>Escolha entre o personagem 3D articulado ou o avatar 2D simplificado em SVG.</p>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top: 1rem;">
+        <label for="select-avatar-mode" style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">
+          Visual do Tutor:
+        </label>
+        <select id="select-avatar-mode" class="select-field" style="width: 100%; padding: 0.75rem 1rem; border-radius: var(--radius-md); background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.95rem;">
+          <option value="auto">Automático (3D interativo com plano B em 2D)</option>
+          <option value="3d">Avatar 3D (Three.js + VRM)</option>
+          <option value="2d">Avatar 2D (SVG Leve)</option>
+        </select>
+        <span id="avatar-mode-tip" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; display: block;">
+          No modo Automático, o personagem 3D é exibido e substitui automaticamente pelo 2D em dispositivos sem aceleração gráfica ou com internet lenta.
+        </span>
+      </div>
+    </section>
   </main>
 
   <script type="module" src="./src/configuracoes.ts"></script>

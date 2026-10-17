@@ -15,6 +15,23 @@ export interface AvatarElementos {
   micDicaElemento?: HTMLElement | null;
 }
 
+/**
+ * Interface unificada para controladores de Avatar (2D SVG e 3D VRM/WebGL).
+ * Permite que a tela do Tutor seja desacoplada da implementação visual específica (RF01, CA01).
+ */
+export interface ControladorAvatar {
+  definirEstado(novoEstado: AvatarEstado, mensagemCustomizada?: string | null): void;
+  obterEstado(): AvatarEstado;
+  atualizarMensagem(mensagem: string): void;
+  notificarPalavraFalada(palavra?: string): void;
+  pararFala(): void;
+  apontarParaLousa(duracaoMs?: number, elementoAlvo?: HTMLElement | null): void;
+  iniciarCicloGestosEspera(intervaloMs?: number): void;
+  pararCicloGestosEspera(): void;
+  aplicarProximoGestoEspera(): void;
+  destruir(): void;
+}
+
 export interface AvatarConfig {
   piscadaIntervaloMinMs: number;
   piscadaIntervaloMaxMs: number;

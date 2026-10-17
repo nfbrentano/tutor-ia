@@ -5,12 +5,13 @@
 
 import {
   getStoredApiKey,
+  getStoredAvatarMode,
   getStoredDisabledBookIds,
   getStoredSpeechRate,
   getStoredVoiceUri,
   hasApiKey
 } from './armazenamento';
-import { AvatarControlador } from './avatar';
+import { AvatarControlador, ControladorAvatar } from './avatar';
 import { ChatGerenciador } from './chat';
 import {
   buscarTrechosRelevantes,
@@ -50,13 +51,16 @@ document.addEventListener('DOMContentLoaded', () => {
   let speechSequenceId = 0;
   let activeAbortController: AbortController | null = null;
 
-  // Inicializa Avatar
-  const avatar = new AvatarControlador({
+  // Inicializa Avatar 2D Inicial (Plano B e Carregamento Instantâneo - RF02, RF03)
+  const avatar2D = new AvatarControlador({
     moduloElemento: avatarModule,
     statusTextoElemento: statusText,
     micBotaoElemento: btnMic,
     micDicaElemento: micTip
   });
+
+  // Interface desacoplada de controle do avatar (RF01, CA01)
+  let avatar: ControladorAvatar = avatar2D;
 
   const servicoVoz = obterServicoVoz();
 
@@ -90,6 +94,36 @@ document.addEventListener('DOMContentLoaded', () => {
       rate: getStoredSpeechRate()
     })
   });
+
+  // Carregamento Progressivo do Avatar 3D sob demanda (RF02, RF03, CA02, CA03, CA04, CA05, RNF01)
+  const modoAvatar = getStoredAvatarMode();
+  if (modoAvatar !== '2d') {
+    const canvas3D = document.getElementById('avatar-3d-canvas') as HTMLCanvasElement | null;
+    if (canvas3D) {
+      import('./avatar3d')
+        .then(async ({ carregarAvatar3D }) => {
+          const avatar3DInstancia = await carregarAvatar3D({
+            canvasElemento: canvas3D,
+            moduloElemento: avatarModule,
+            statusTextoElemento: statusText,
+            micBotaoElemento: btnMic,
+            micDicaElemento: micTip
+          });
+
+          if (avatar3DInstancia) {
+            // Preserva estado atual da interação (ouvindo, falando, etc.)
+            const estadoAtual = avatar.obterEstado();
+            avatar = avatar3DInstancia;
+            avatar.definirEstado(estadoAtual);
+            controladorEspera.definirAvatar(avatar);
+            avatar2D.destruir();
+          }
+        })
+        .catch((err) => {
+          console.warn('Avatar3D: Falha ao inicializar 3D, plano B (SVG) ativo.', err);
+        });
+    }
+  }
 
   // Inicializa Chat com suporte ao botão "Ver na Lousa" (RF08, CA12)
   const chat = new ChatGerenciador(
@@ -282,8 +316,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 onStart: () => {
                   if (speechSequenceId === currentSequence) avatar.definirEstado('speaking');
                 },
-                onBoundary: () => {
-                  if (speechSequenceId === currentSequence) avatar.notificarPalavraFalada();
+                onBoundary: (_charIndex, word) => {
+                  if (speechSequenceId === currentSequence) avatar.notificarPalavraFalada(word);
                 },
                 onEnd: () => {
                   if (speechSequenceId === currentSequence) {
@@ -369,9 +403,9 @@ document.addEventListener('DOMContentLoaded', () => {
                   avatar.definirEstado('speaking');
                 }
               },
-              onBoundary: () => {
+              onBoundary: (_charIndex, word) => {
                 if (speechSequenceId === currentSequence) {
-                  avatar.notificarPalavraFalada();
+                  avatar.notificarPalavraFalada(word);
                 }
               },
               onEnd: () => {
@@ -446,7 +480,7 @@ document.addEventListener('DOMContentLoaded', () => {
       avatar.definirEstado('idle', 'Ocorreu um erro.');
 
       await servicoVoz.falar(mensagemErro, {
-        onBoundary: () => avatar.notificarPalavraFalada(),
+        onBoundary: (_charIndex, word) => avatar.notificarPalavraFalada(word),
         onEnd: () => {
           avatar.pararFala();
           avatar.definirEstado('idle');

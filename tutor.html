@@ -56,6 +56,9 @@
           <div class="avatar-halo"></div>
           <div class="avatar-halo-secondary"></div>
 
+          <!-- Canvas para Renderização WebGL do Avatar 3D (RF01, RF02, RNF07) -->
+          <canvas id="avatar-3d-canvas" class="avatar-3d-canvas" width="300" height="330" role="img" aria-label="Avatar 3D do Tutor" style="position: absolute; inset: 0; width: 100%; height: 100%; display: none; opacity: 0; transition: opacity 0.4s ease; pointer-events: none; z-index: 2;"></canvas>
+
           <svg class="avatar-svg" viewBox="0 0 240 280" role="img" aria-label="Avatar Articulado do Tutor">
             <defs>
               <linearGradient id="headGrad" x1="0%" y1="0%" x2="100%" y2="100%">

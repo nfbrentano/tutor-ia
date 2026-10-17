@@ -7,8 +7,11 @@ export const STORAGE_KEYS = {
   API_KEY: 'gemini_api_key',
   SELECTED_VOICE_URI: 'tutoria_selected_voice_uri',
   SPEECH_RATE: 'tutoria_speech_rate',
-  DISABLED_BOOKS: 'tutoria_livros_desativados'
+  DISABLED_BOOKS: 'tutoria_livros_desativados',
+  AVATAR_MODE: 'tutoria_avatar_mode'
 } as const;
+
+export type AvatarModoConfig = 'auto' | '3d' | '2d';
 
 export const CONFIG = {
   PRIMARY_MODEL: 'gemini-3.5-flash-lite',
@@ -106,5 +109,23 @@ export function setStoredBookDisabled(bookId: string, disabled: boolean): void {
     current.delete(bookId);
   }
   setStoredDisabledBookIds(Array.from(current));
+}
+
+export function getStoredAvatarMode(): AvatarModoConfig {
+  try {
+    const val = localStorage.getItem(STORAGE_KEYS.AVATAR_MODE) as AvatarModoConfig | null;
+    if (val === '3d' || val === '2d' || val === 'auto') {
+      return val;
+    }
+    return 'auto';
+  } catch {
+    return 'auto';
+  }
+}
+
+export function setStoredAvatarMode(mode: AvatarModoConfig): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.AVATAR_MODE, mode);
+  } catch {}
 }
 
