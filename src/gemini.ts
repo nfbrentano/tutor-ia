@@ -6,6 +6,7 @@
 
 import { CONFIG } from './armazenamento';
 import { EtapaExplicacao, ItemLousa, RespostaDidatica } from './lousa/tipos';
+import { TrechoLivro } from './conhecimento/tipos';
 
 export * from './lousa/tipos';
 export type GeminiResponse = RespostaDidatica;
@@ -127,10 +128,56 @@ export function cleanTextForSpeech(text: string): string {
 }
 
 /**
+ * Valida fontes retornadas pelo modelo contra os trechos realmente enviados no prompt (RF05, RF06, CA06).
+ * Fontes alucinadas ou de páginas não enviadas são estritamente descartadas.
+ */
+export function extrairEValidarFontes(
+  fontesRaw: any,
+  trechosContexto?: TrechoLivro[]
+): Array<{ livroId: string; tituloLivro?: string; pagina: number; trechoId?: string }> | undefined {
+  if (!Array.isArray(fontesRaw) || fontesRaw.length === 0) {
+    return undefined;
+  }
+  if (!trechosContexto || trechosContexto.length === 0) {
+    return undefined;
+  }
+
+  const fontesValidadas: Array<{ livroId: string; tituloLivro?: string; pagina: number; trechoId?: string }> = [];
+  const chavesAdicionadas = new Set<string>();
+
+  for (const item of fontesRaw) {
+    if (!item || typeof item !== 'object') continue;
+    const livroId = String(item.livroId || '').trim();
+    const pagina = Number(item.pagina);
+    if (!livroId || isNaN(pagina)) continue;
+
+    // CA06: O app NÃO mostra fontes que não vieram de trechos enviados
+    const trechoEncontrado = trechosContexto.find(
+      t => t.livroId === livroId && Number(t.pagina) === pagina
+    );
+
+    if (trechoEncontrado) {
+      const chave = `${livroId}-p${pagina}`;
+      if (!chavesAdicionadas.has(chave)) {
+        chavesAdicionadas.add(chave);
+        fontesValidadas.push({
+          livroId,
+          tituloLivro: trechoEncontrado.tituloLivro,
+          pagina,
+          trechoId: trechoEncontrado.id
+        });
+      }
+    }
+  }
+
+  return fontesValidadas.length > 0 ? fontesValidadas : undefined;
+}
+
+/**
  * Faz o parser e sanitização da resposta do Gemini, aceitando o novo formato de etapas,
  * NDJSON por linha, formato legado { texto, imagem_url } ou texto puro (RF02, RF09, CA03, CA09, CA11, CT03).
  */
-export function parseGeminiResponse(rawText: string): RespostaDidatica {
+export function parseGeminiResponse(rawText: string, trechosContexto?: TrechoLivro[]): RespostaDidatica {
   const respostaPadraoVazia: RespostaDidatica = {
     etapas: [
       {
@@ -192,6 +239,7 @@ export function parseGeminiResponse(rawText: string): RespostaDidatica {
 
   try {
     const parsed = JSON.parse(cleaned);
+    const fontes = extrairEValidarFontes(parsed.fontes, trechosContexto);
 
     // Tentativa 2: Formato com array etapas: [{ fala, lousa }] (RF02)
     if (Array.isArray(parsed.etapas) && parsed.etapas.length > 0) {
@@ -224,7 +272,8 @@ export function parseGeminiResponse(rawText: string): RespostaDidatica {
         textoCompleto,
         itensLousa,
         texto: textoCompleto,
-        imagem_url: null
+        imagem_url: null,
+        fontes
       };
     }
 
@@ -237,7 +286,8 @@ export function parseGeminiResponse(rawText: string): RespostaDidatica {
         textoCompleto: fala,
         itensLousa: lousa ? [lousa] : [],
         texto: fala,
-        imagem_url: null
+        imagem_url: null,
+        fontes
       };
     }
 
@@ -262,7 +312,8 @@ export function parseGeminiResponse(rawText: string): RespostaDidatica {
         textoCompleto: fala,
         itensLousa: lousa ? [lousa] : [],
         texto: fala,
-        imagem_url: lousa ? (lousa.conteudo as any).urlReal : null
+        imagem_url: lousa ? (lousa.conteudo as any).urlReal : null,
+        fontes
       };
     }
 
@@ -272,7 +323,8 @@ export function parseGeminiResponse(rawText: string): RespostaDidatica {
       textoCompleto: cleaned,
       itensLousa: [],
       texto: cleaned,
-      imagem_url: null
+      imagem_url: null,
+      fontes
     };
   } catch {
     // Tentativa 5: Texto puro não-JSON (CA09, CA11)
@@ -291,6 +343,7 @@ export interface OpcoesChamadaGemini {
   signal?: AbortSignal;
   onEtapaRecebida?: (etapa: EtapaExplicacao) => void;
   ignorarStreaming?: boolean;
+  trechosContexto?: TrechoLivro[];
 }
 
 /**
@@ -317,11 +370,26 @@ export async function callGeminiApi(
 
   let lastError: Error | null = null;
 
+  // Monta prompt com bloco de trechos se houver trechos relevantes (RF05, RF06)
+  let textoPromptFinal = questionText;
+  if (opcoes.trechosContexto && opcoes.trechosContexto.length > 0) {
+    const trechosFormatados = opcoes.trechosContexto.map((t, idx) => {
+      return `[Trecho ${idx + 1}] Livro: "${t.tituloLivro}" (ID: ${t.livroId}), Página ${t.pagina}:\n"${t.texto}"`;
+    }).join('\n\n');
+
+    // Limite de ~1500 tokens / ~6000 caracteres para os trechos de referência (RF05)
+    const trechosTruncados = trechosFormatados.length > 6000
+      ? trechosFormatados.slice(0, 6000) + '...'
+      : trechosFormatados;
+
+    textoPromptFinal = `${questionText}\n\n--- Trechos do livro didático para consulta ---\n${trechosTruncados}\n-----------------------------------------------`;
+  }
+
   const payload = {
     contents: [
       {
         role: 'user',
-        parts: [{ text: questionText }]
+        parts: [{ text: textoPromptFinal }]
       }
     ],
     systemInstruction: {
@@ -428,18 +496,26 @@ export async function callGeminiApi(
           const falas = etapasEmitidas.map(e => e.fala).filter(Boolean);
           const textoCompleto = falas.join(' ');
           const itensLousa = etapasEmitidas.map(e => e.lousa).filter((it): it is ItemLousa => it !== null);
+
+          let fontesValidadas: any = undefined;
+          try {
+            const parsedBuffer = JSON.parse(rawBuffer);
+            fontesValidadas = extrairEValidarFontes(parsedBuffer.fontes, opcoes.trechosContexto);
+          } catch {}
+
           return {
             etapas: etapasEmitidas,
             textoCompleto,
             itensLousa,
             modeloUsado: model,
             texto: textoCompleto,
-            imagem_url: null
+            imagem_url: null,
+            fontes: fontesValidadas
           };
         }
 
         // Fallback do streaming (RF09, CA11): se não emitiu linha a linha, processa o texto acumulado
-        const parsedFinal = parseGeminiResponse(rawBuffer);
+        const parsedFinal = parseGeminiResponse(rawBuffer, opcoes.trechosContexto);
         if (opcoes.onEtapaRecebida) {
           parsedFinal.etapas.forEach(e => opcoes.onEtapaRecebida!(e));
         }
@@ -457,7 +533,7 @@ export async function callGeminiApi(
         throw new Error('A IA retornou uma resposta sem conteúdo legível.');
       }
 
-      const result = parseGeminiResponse(rawContent);
+      const result = parseGeminiResponse(rawContent, opcoes.trechosContexto);
 
       if (opcoes.onEtapaRecebida) {
         result.etapas.forEach(e => opcoes.onEtapaRecebida!(e));

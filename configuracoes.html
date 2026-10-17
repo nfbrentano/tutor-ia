@@ -143,6 +143,27 @@
         <button class="btn-primary" id="btn-run-mic-test">Testar Áudio Agora</button>
       </div>
     </section>
+
+    <!-- Card 4: Livros Didáticos e Base de Conhecimento (RF11, CA11) -->
+    <section class="settings-card" aria-labelledby="card-books-title">
+      <div class="settings-card-header">
+        <div class="card-icon">📚</div>
+        <div>
+          <h3 id="card-books-title">Livros Didáticos (Base de Conhecimento)</h3>
+          <p>Ative ou desative livros escolares para que o tutor consulte e cite nas explicações.</p>
+        </div>
+      </div>
+
+      <div id="lista-livros-config" class="livros-config-lista">
+        <div class="livros-carregando" style="color: var(--text-muted); font-size: 0.88rem;">
+          Carregando catálogo de livros escolares...
+        </div>
+      </div>
+
+      <div class="modal-note" style="margin-top: 1.25rem;">
+        💡 Ao desativar uma obra, o tutor deixará de usar trechos daquele livro em suas respostas (RF11).
+      </div>
+    </section>
   </main>
 
   <script type="module" src="./src/configuracoes.ts"></script>
