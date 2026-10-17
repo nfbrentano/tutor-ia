@@ -5,14 +5,17 @@
 
 import {
   getStoredApiKey,
+  getStoredAvatarMode,
   getStoredDisabledBookIds,
   getStoredSpeechRate,
   getStoredVoiceUri,
   removeStoredApiKey,
   setStoredApiKey,
+  setStoredAvatarMode,
   setStoredBookDisabled,
   setStoredSpeechRate,
-  setStoredVoiceUri
+  setStoredVoiceUri,
+  AvatarModoConfig
 } from './armazenamento';
 import { LivroCatalogo } from './conhecimento/tipos';
 import { DiagnosticoAudioVU, verificarProtocolo, verificarSuporteReconhecimentoWeb } from './diagnostico';
@@ -344,5 +347,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   carregarLivrosConfig();
+
+  // Modo do Avatar (RF11, CA05)
+  const selectAvatarMode = document.getElementById('select-avatar-mode') as HTMLSelectElement | null;
+  if (selectAvatarMode) {
+    selectAvatarMode.value = getStoredAvatarMode();
+    selectAvatarMode.addEventListener('change', () => {
+      const novoModo = selectAvatarMode.value as AvatarModoConfig;
+      setStoredAvatarMode(novoModo);
+    });
+  }
 });
 

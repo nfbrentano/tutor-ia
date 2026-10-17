@@ -3,7 +3,7 @@
  * Orquestra reação inicial, eco de tema, lousa de preparação, curiosidades e transição sem sobreposição.
  */
 
-import { AvatarControlador } from '../avatar';
+import { ControladorAvatar } from '../avatar/tipos';
 import { LousaControlador } from '../lousa';
 import { ServicoVoz } from '../voz/tipos';
 import { CONFIG_ESPERA, ConfigEspera } from './config';
@@ -12,7 +12,7 @@ import { sortearFraseReacao } from './frases';
 import { detectarTema, gerarFraseComEco, TemaDetectado } from './temas';
 
 export interface EsperaCallbacks {
-  avatar: AvatarControlador;
+  avatar: ControladorAvatar;
   lousa: LousaControlador;
   servicoVoz: ServicoVoz;
   obterConfigVoz: () => { voiceUri?: string; rate?: number };
@@ -21,6 +21,10 @@ export interface EsperaCallbacks {
 export class ControladorEspera {
   private callbacks: EsperaCallbacks;
   private config: ConfigEspera;
+
+  definirAvatar(novoAvatar: ControladorAvatar): void {
+    this.callbacks.avatar = novoAvatar;
+  }
 
   // Estado da espera atual
   private ativa = false;

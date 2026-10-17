@@ -9,11 +9,12 @@ import {
   AvatarElementos,
   AvatarEstado,
   CONFIG_AVATAR_PADRAO,
+  ControladorAvatar,
   GestoEsperaTipo,
   GestoTipo
 } from './tipos';
 
-export class AvatarAnimator {
+export class AvatarAnimator implements ControladorAvatar {
   private estadoAtual: AvatarEstado = 'idle';
   private elementos: AvatarElementos;
   private config: AvatarConfig;
@@ -238,7 +239,7 @@ export class AvatarAnimator {
   /* ==========================================================================
      SINCRONIZAÇÃO LABIAL (BOCA)
      ========================================================================== */
-  notificarPalavraFalada(): void {
+  notificarPalavraFalada(_palavra?: string): void {
     this.ultimoBoundaryTimestamp = Date.now();
     this.abrirBoca(1.0);
     setTimeout(() => {
@@ -306,7 +307,7 @@ export class AvatarAnimator {
   /* ==========================================================================
      APONTAR PARA A LOUSA / APOIO VISUAL (RF07)
      ========================================================================== */
-  apontarParaLousa(duracaoMs?: number): void {
+  apontarParaLousa(duracaoMs?: number, _elementoAlvo?: HTMLElement | null): void {
     if (this.prefereMovimentoReduzido()) return;
 
     const tempo = duracaoMs || this.config.duracaoApontarMs;

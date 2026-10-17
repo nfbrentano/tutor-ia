@@ -16,12 +16,15 @@
   "dependencies": {
     "@capacitor-community/speech-recognition": "^7.0.1",
     "@capacitor-community/text-to-speech": "^8.0.2",
-    "@capacitor/core": "^8.5.3"
+    "@capacitor/core": "^8.5.3",
+    "@pixiv/three-vrm": "^3.5.5",
+    "three": "^0.186.1"
   },
   "devDependencies": {
     "@capacitor/android": "^8.5.3",
     "@capacitor/cli": "^8.5.3",
     "@types/node": "^22.13.10",
+    "@types/three": "^0.186.0",
     "happy-dom": "^21.0.3",
     "pdfjs-dist": "^6.4.299",
     "tsx": "^4.23.15",
