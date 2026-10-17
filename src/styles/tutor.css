@@ -214,6 +214,21 @@ main.tutor-layout {
   }
 }
 
+@keyframes alexaHaloPulse {
+  0% {
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.35), inset 0 0 10px rgba(56, 189, 248, 0.2);
+    border-color: rgba(56, 189, 248, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(56, 189, 248, 0.75), inset 0 0 20px rgba(56, 189, 248, 0.45);
+    border-color: rgba(56, 189, 248, 0.95);
+  }
+  100% {
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.35), inset 0 0 10px rgba(56, 189, 248, 0.2);
+    border-color: rgba(56, 189, 248, 0.45);
+  }
+}
+
 /* Estado: LISTENING (Ouvindo) */
 #avatar-module.state-listening .avatar-halo {
   border-color: var(--accent-listening);
@@ -233,11 +248,16 @@ main.tutor-layout {
   fill: var(--accent-listening);
 }
 
-/* Estado: THINKING (Pensando - mão no queixo) */
+/* Estado: THINKING (Pensando - mão no queixo e halo pulsante estilo Alexa) */
 #avatar-module.state-thinking .avatar-halo {
   border-color: var(--accent-thinking);
-  opacity: 0.85;
-  animation: rotateHalo 4s linear infinite reverse;
+  opacity: 0.9;
+  animation: rotateHalo 4s linear infinite reverse, alexaHaloPulse 2s ease-in-out infinite;
+}
+#avatar-module.state-thinking .avatar-halo-secondary {
+  border-color: rgba(56, 189, 248, 0.4);
+  opacity: 0.6;
+  animation: rotateHalo 6s linear infinite;
 }
 #avatar-module.state-thinking .avatar-head-group {
   transform: rotate(3.5deg) translateY(-1px);

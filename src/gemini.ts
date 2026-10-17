@@ -563,6 +563,7 @@ export async function callGeminiApi(
 
 /**
  * Extrai etapas completas do buffer acumulado conforme chegam durante o streaming (RF08, CA09, CA10).
+ * Utiliza balanceamento de chaves e strings para suportar estruturas aninhadas sem quebrar (tabelas, listas, fórmulas).
  */
 function processarBufferIncremental(
   buffer: string,
@@ -573,13 +574,12 @@ function processarBufferIncremental(
 
   // 1. Tenta extrair linhas completas NDJSON
   const lines = buffer.split('\n');
-  // Processa linhas completas anteriores à última linha aberta
   for (let i = 0; i < lines.length - 1; i++) {
     const line = lines[i].trim().replace(/^,|,$/g, '');
     if (!line) continue;
     try {
       const obj = JSON.parse(line);
-      if (obj && typeof obj.fala === 'string') {
+      if (obj && typeof obj.fala === 'string' && obj.fala.trim()) {
         const jaEmitida = etapasEmitidas.some(e => e.fala === obj.fala.trim());
         if (!jaEmitida) {
           const novaEtapa: EtapaExplicacao = {
@@ -591,29 +591,71 @@ function processarBufferIncremental(
         }
       }
     } catch {
-      // Linha não é JSON completo individual
+      // Linha parcial, continua
     }
   }
 
-  // 2. Se for formato com array "etapas": [ {...}, {...} ]
-  // Procura objetos de etapa fechados no array
-  const regexEtapaObjeto = /\{\s*"fala"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"(?:\s*,\s*"lousa"\s*:\s*(\{[^}]+\}|null))?\s*\}/g;
-  let match: RegExpExecArray | null;
+  // 2. Parser robusto de objetos no array "etapas": [ ... ]
+  const etapasIndex = buffer.indexOf('"etapas"');
+  if (etapasIndex !== -1) {
+    const startIndex = buffer.indexOf('[', etapasIndex);
+    if (startIndex !== -1) {
+      let depth = 0;
+      let inString = false;
+      let escape = false;
+      let objStart = -1;
 
-  while ((match = regexEtapaObjeto.exec(buffer)) !== null) {
-    try {
-      const objetoCompleto = JSON.parse(match[0]);
-      if (objetoCompleto && typeof objetoCompleto.fala === 'string') {
-        const jaEmitida = etapasEmitidas.some(e => e.fala === objetoCompleto.fala.trim());
-        if (!jaEmitida) {
-          const novaEtapa: EtapaExplicacao = {
-            fala: objetoCompleto.fala.trim(),
-            lousa: objetoCompleto.lousa || null
-          };
-          etapasEmitidas.push(novaEtapa);
-          callback(novaEtapa);
+      for (let i = startIndex + 1; i < buffer.length; i++) {
+        const char = buffer[i];
+
+        if (escape) {
+          escape = false;
+          continue;
+        }
+
+        if (char === '\\') {
+          escape = true;
+          continue;
+        }
+
+        if (char === '"') {
+          inString = !inString;
+          continue;
+        }
+
+        if (inString) continue;
+
+        if (char === '{') {
+          if (depth === 0) {
+            objStart = i;
+          }
+          depth++;
+        } else if (char === '}') {
+          depth--;
+          if (depth === 0 && objStart !== -1) {
+            const jsonStr = buffer.slice(objStart, i + 1);
+            try {
+              const obj = JSON.parse(jsonStr);
+              if (obj && typeof obj.fala === 'string' && obj.fala.trim()) {
+                const jaEmitida = etapasEmitidas.some(e => e.fala === obj.fala.trim());
+                if (!jaEmitida) {
+                  const novaEtapa: EtapaExplicacao = {
+                    fala: obj.fala.trim(),
+                    lousa: obj.lousa || null
+                  };
+                  etapasEmitidas.push(novaEtapa);
+                  callback(novaEtapa);
+                }
+              }
+            } catch {
+              // Objeto com erro sintático parcial
+            }
+            objStart = -1;
+          }
+        } else if (char === ']' && depth === 0) {
+          break;
         }
       }
-    } catch {}
+    }
   }
 }
