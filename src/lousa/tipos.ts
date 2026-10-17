@@ -48,4 +48,6 @@ export interface RespostaDidatica {
   modeloUsado?: string;
   texto: string; // retrocompatibilidade com código existente e testes
   imagem_url?: string | null;
+  fontes?: Array<{ livroId: string; tituloLivro?: string; pagina: number; trechoId?: string }>;
 }
+

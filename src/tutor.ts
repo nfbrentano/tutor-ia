@@ -3,9 +3,22 @@
  * Orquestra Avatar, Voz, Lousa Didática, Chat, Espera Ativa, Chamada ao Gemini com Streaming e Lightbox.
  */
 
-import { getStoredApiKey, getStoredSpeechRate, getStoredVoiceUri, hasApiKey } from './armazenamento';
+import {
+  getStoredApiKey,
+  getStoredDisabledBookIds,
+  getStoredSpeechRate,
+  getStoredVoiceUri,
+  hasApiKey
+} from './armazenamento';
 import { AvatarControlador } from './avatar';
 import { ChatGerenciador } from './chat';
+import {
+  buscarTrechosRelevantes,
+  FonteCitada,
+  GerenciadorCacheConhecimento,
+  IndiceConhecimento,
+  TrechoLivro
+} from './conhecimento';
 import { ControladorEspera } from './espera';
 import { callGeminiApi, EtapaExplicacao } from './gemini';
 import { LousaControlador } from './lousa';
@@ -89,6 +102,90 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   );
 
+  // Modal para Visualização de Trecho de Livro Didático (RF09, CA10, RNF05)
+  const modalFonteOverlay = document.getElementById('modal-fonte-overlay');
+  const modalFonteTitulo = document.getElementById('modal-fonte-titulo');
+  const modalFontePagina = document.getElementById('modal-fonte-pagina');
+  const modalFonteTexto = document.getElementById('modal-fonte-texto');
+  const btnFecharModalFonte = document.getElementById('btn-fechar-modal-fonte');
+  const btnEntendidoModalFonte = document.getElementById('btn-entendido-modal-fonte');
+
+  function fecharModalFonte(): void {
+    if (modalFonteOverlay) {
+      modalFonteOverlay.classList.add('hidden');
+    }
+  }
+
+  if (btnFecharModalFonte) btnFecharModalFonte.addEventListener('click', fecharModalFonte);
+  if (btnEntendidoModalFonte) btnEntendidoModalFonte.addEventListener('click', fecharModalFonte);
+  if (modalFonteOverlay) {
+    modalFonteOverlay.addEventListener('click', (e) => {
+      if (e.target === modalFonteOverlay) fecharModalFonte();
+    });
+  }
+
+  function abrirModalFonte(fonte: FonteCitada): void {
+    if (!modalFonteOverlay || !modalFonteTitulo || !modalFontePagina || !modalFonteTexto) return;
+
+    // RNF05: O texto dos trechos é sempre inserido na tela com textContent (nunca innerHTML)
+    modalFonteTitulo.textContent = fonte.tituloLivro || `Livro ${fonte.livroId}`;
+    modalFontePagina.textContent = `Página ${fonte.pagina}`;
+
+    let trechoEncontrado: TrechoLivro | undefined;
+    if (indiceConhecimento) {
+      if (fonte.trechoId) {
+        trechoEncontrado = indiceConhecimento.trechos.find(t => t.id === fonte.trechoId);
+      }
+      if (!trechoEncontrado) {
+        trechoEncontrado = indiceConhecimento.trechos.find(
+          t => t.livroId === fonte.livroId && Number(t.pagina) === Number(fonte.pagina)
+        );
+      }
+    }
+
+    if (trechoEncontrado) {
+      modalFonteTexto.textContent = trechoEncontrado.texto;
+      if (trechoEncontrado.capitulo) {
+        modalFontePagina.textContent = `Página ${fonte.pagina} • ${trechoEncontrado.capitulo}`;
+      }
+    } else {
+      modalFonteTexto.textContent = `Trecho original citado da página ${fonte.pagina} da obra "${fonte.tituloLivro || fonte.livroId}".`;
+    }
+
+    modalFonteOverlay.classList.remove('hidden');
+  }
+
+  chat.definirOnVerFonte(abrirModalFonte);
+
+  // Base de Conhecimento e Cache - Carregamento sob demanda sem bloquear renderização (RF12, CA12)
+  let indiceConhecimento: IndiceConhecimento | null = null;
+  const gerenciadorCache = new GerenciadorCacheConhecimento();
+
+  async function carregarConhecimentoAssincrono(): Promise<void> {
+    try {
+      const respCache = await fetch('./conhecimento/cache.json');
+      if (respCache.ok) {
+        const itensCache = await respCache.json();
+        gerenciadorCache.carregarCachePreConstruido(itensCache);
+      }
+    } catch {
+      // Ignora falha de cache se offline ou ausente
+    }
+
+    try {
+      const respIndice = await fetch('./conhecimento/indice.json');
+      if (respIndice.ok) {
+        indiceConhecimento = await respIndice.json();
+      }
+    } catch {
+      // Ignora falha de índice
+    }
+  }
+
+  setTimeout(() => {
+    carregarConhecimentoAssincrono();
+  }, 100);
+
   // Ouve evento disparado pela lousa para fazer o avatar apontar (RF09, CA13)
   document.addEventListener('lousa:item-exibido', () => {
     avatar.apontarParaLousa(1800);
@@ -161,7 +258,74 @@ document.addEventListener('DOMContentLoaded', () => {
     // Funciona inclusive offline (RNF01)
     controladorEspera.iniciarEspera(textoLimpo);
 
-    // 3. Fila de etapas para streaming e reprodução sequencial sem travamentos (RF04, RF08, CA09, CA10)
+    // 3. Consulta ao Cache (Pré-construído e IndexedDB) (RF07, RF08, RNF06, CA07, CA08, CA09)
+    try {
+      const respostaEmCache = await gerenciadorCache.buscarEmCache(textoLimpo);
+      if (respostaEmCache) {
+        if (speechSequenceId !== currentSequence || currentSignal.aborted) return;
+
+        // Resposta imediata do cache (<= 300ms, offline)
+        await controladorEspera.notificarPrimeiraEtapaChegou();
+
+        for (const etapa of respostaEmCache.etapas) {
+          if (speechSequenceId !== currentSequence || currentSignal.aborted) break;
+          if (etapa.lousa) {
+            await lousa.adicionarItem(etapa.lousa);
+          }
+          if (etapa.fala && etapa.fala.trim()) {
+            avatar.definirEstado('speaking');
+            const voiceUri = getStoredVoiceUri();
+            const rate = getStoredSpeechRate();
+            await servicoVoz.falar(
+              etapa.fala,
+              {
+                onStart: () => {
+                  if (speechSequenceId === currentSequence) avatar.definirEstado('speaking');
+                },
+                onBoundary: () => {
+                  if (speechSequenceId === currentSequence) avatar.notificarPalavraFalada();
+                },
+                onEnd: () => {
+                  if (speechSequenceId === currentSequence) {
+                    avatar.pararFala();
+                    avatar.definirEstado('idle');
+                  }
+                },
+                onError: () => {
+                  if (speechSequenceId === currentSequence) {
+                    avatar.pararFala();
+                    avatar.definirEstado('idle');
+                  }
+                }
+              },
+              { voiceUri, rate }
+            );
+          }
+        }
+
+        if (speechSequenceId !== currentSequence || currentSignal.aborted) return;
+
+        chat.adicionarMensagem(
+          'tutor',
+          respostaEmCache.textoCompleto,
+          respostaEmCache.itensLousa.length > 0 ? respostaEmCache.itensLousa : null,
+          respostaEmCache.imagem_url,
+          respostaEmCache.fontes
+        );
+
+        avatar.definirEstado('idle');
+        return;
+      }
+    } catch (cacheErr) {
+      console.warn('Erro ao consultar cache de conhecimento:', cacheErr);
+    }
+
+    // 4. Busca trechos relevantes nos livros escolares via BM25 (RF04, RF05, RF06, CA04, CA05, CA11)
+    const livrosDesativados = getStoredDisabledBookIds();
+    const resultadosBusca = buscarTrechosRelevantes(textoLimpo, indiceConhecimento, { livrosDesativados });
+    const trechosContexto = resultadosBusca.map(r => r.trecho);
+
+    // 5. Fila de etapas para streaming e reprodução sequencial sem travamentos (RF04, RF08, CA09, CA10)
     const filaEtapas: EtapaExplicacao[] = [];
     let primeiraEtapaIniciada = false;
     let processandoFila = false;
@@ -232,9 +396,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      // 4. Chamada à API com Streaming SSE e fallback incremental (RF08, RF09, RF10, CA09 - CA12)
+      // 6. Chamada à API com Streaming SSE e contexto dos livros escolares (RF05, RF08, CA04, CA09)
       const resposta = await callGeminiApi(textoLimpo, apiKey, {
         signal: currentSignal,
+        trechosContexto: trechosContexto.length > 0 ? trechosContexto : undefined,
         onEtapaRecebida: (novaEtapa) => {
           if (speechSequenceId !== currentSequence || currentSignal.aborted) return;
           filaEtapas.push(novaEtapa);
@@ -244,20 +409,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (speechSequenceId !== currentSequence || currentSignal.aborted) return;
 
+      // Salva a resposta gerada no cache de execução (IndexedDB) para reaproveitamento (RF08, CA09)
+      gerenciadorCache.salvarNoCacheExecucao(textoLimpo, resposta);
+
       // Se nenhuma etapa foi emitida via stream (fallback de formato único RF09 / CA11)
       if (!primeiraEtapaIniciada) {
         resposta.etapas.forEach(e => filaEtapas.push(e));
         consumirFilaEtapas();
       }
 
-      // 5. Exibe a resposta completa no chat (RF02, CA03, CA12)
+      // 7. Exibe a resposta completa no chat com fontes (RF02, RF09, CA06, CA10, CA12)
       if (!bolhaChatCriada) {
         bolhaChatCriada = true;
         chat.adicionarMensagem(
           'tutor',
           resposta.textoCompleto,
           resposta.itensLousa.length > 0 ? resposta.itensLousa : null,
-          resposta.imagem_url
+          resposta.imagem_url,
+          resposta.fontes
         );
       }
 

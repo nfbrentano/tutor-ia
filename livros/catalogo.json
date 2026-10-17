@@ -1,0 +1,29 @@
+[
+  {
+    "id": "ciencias-fundamental-6",
+    "titulo": "Ciências da Natureza - 6º Ano",
+    "disciplina": "ciencias",
+    "serie": "6º ano EF",
+    "autor": "Ministério da Educação (MEC / Domínio Aberto)",
+    "licenca": "aberta",
+    "arquivo": "livros/ciencias-6ano.pdf"
+  },
+  {
+    "id": "historia-fundamental-7",
+    "titulo": "História do Brasil e Geral - 7º Ano",
+    "disciplina": "historia",
+    "serie": "7º ano EF",
+    "autor": "PNLD / Domínio Público",
+    "licenca": "aberta",
+    "arquivo": "livros/historia-7ano.pdf"
+  },
+  {
+    "id": "matematica-fundamental-6",
+    "titulo": "Matemática Prática e Geometria - 6º Ano",
+    "disciplina": "matematica",
+    "serie": "6º ano EF",
+    "autor": "Programa Nacional do Livro Didático Aberto",
+    "licenca": "aberta",
+    "arquivo": "livros/matematica-6ano.pdf"
+  }
+]
