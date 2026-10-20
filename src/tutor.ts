@@ -364,6 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let primeiraEtapaIniciada = false;
     let processandoFila = false;
     let bolhaChatCriada = false;
+    let streamFinalizado = false;
 
     async function consumirFilaEtapas(): Promise<void> {
       if (processandoFila) return;
@@ -409,13 +410,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
               },
               onEnd: () => {
-                if (filaEtapas.length === 0 && speechSequenceId === currentSequence) {
+                if (filaEtapas.length === 0 && streamFinalizado && speechSequenceId === currentSequence) {
                   avatar.pararFala();
                   avatar.definirEstado('idle');
                 }
               },
               onError: () => {
-                if (filaEtapas.length === 0 && speechSequenceId === currentSequence) {
+                if (filaEtapas.length === 0 && streamFinalizado && speechSequenceId === currentSequence) {
                   avatar.pararFala();
                   avatar.definirEstado('idle');
                 }
@@ -427,6 +428,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       processandoFila = false;
+
+      if (streamFinalizado && filaEtapas.length === 0 && speechSequenceId === currentSequence) {
+        avatar.pararFala();
+        avatar.definirEstado('idle');
+      }
     }
 
     try {
@@ -436,10 +442,16 @@ document.addEventListener('DOMContentLoaded', () => {
         trechosContexto: trechosContexto.length > 0 ? trechosContexto : undefined,
         onEtapaRecebida: (novaEtapa) => {
           if (speechSequenceId !== currentSequence || currentSignal.aborted) return;
+          if (!primeiraEtapaIniciada) {
+            primeiraEtapaIniciada = true;
+            controladorEspera.notificarPrimeiraEtapaChegou();
+          }
           filaEtapas.push(novaEtapa);
           consumirFilaEtapas();
         }
       });
+
+      streamFinalizado = true;
 
       if (speechSequenceId !== currentSequence || currentSignal.aborted) return;
 
@@ -448,8 +460,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Se nenhuma etapa foi emitida via stream (fallback de formato único RF09 / CA11)
       if (!primeiraEtapaIniciada) {
+        primeiraEtapaIniciada = true;
+        await controladorEspera.notificarPrimeiraEtapaChegou();
         resposta.etapas.forEach(e => filaEtapas.push(e));
         consumirFilaEtapas();
+      } else if (filaEtapas.length > 0) {
+        consumirFilaEtapas();
+      } else if (!servicoVoz.estaFalando() && speechSequenceId === currentSequence) {
+        avatar.pararFala();
+        avatar.definirEstado('idle');
       }
 
       // 7. Exibe a resposta completa no chat com fontes (RF02, RF09, CA06, CA10, CA12)

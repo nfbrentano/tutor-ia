@@ -115,13 +115,17 @@ export class Avatar3D implements ControladorAvatar {
       this.camera.position.set(0.0, 1.35, 1.5);
       this.camera.lookAt(0.0, 1.3, 0.0);
 
-      // 4. Iluminação suave
-      const lightAmbient = new THREE.AmbientLight(0xffffff, 2.0);
+      // 4. Iluminação de estúdio tridimensional (Key Light frontal suave + Fill Light + Rim Light ciano)
+      const lightAmbient = new THREE.AmbientLight(0xfff8f2, 1.5);
       this.scene.add(lightAmbient);
 
-      const lightDir = new THREE.DirectionalLight(0xffffff, 1.4);
-      lightDir.position.set(1.0, 2.0, 2.0).normalize();
-      this.scene.add(lightDir);
+      const keyLight = new THREE.DirectionalLight(0xffffff, 1.25);
+      keyLight.position.set(0.8, 1.8, 1.8).normalize();
+      this.scene.add(keyLight);
+
+      const rimLight = new THREE.DirectionalLight(0x7dd3fc, 0.75);
+      rimLight.position.set(-1.2, 1.6, -1.2).normalize();
+      this.scene.add(rimLight);
 
       // 5. Carregamento do VRM com timeout de 10s (RF03, CA04)
       const vrmCarregado = await this.carregarModeloComTimeout(
@@ -140,13 +144,13 @@ export class Avatar3D implements ControladorAvatar {
       // Normalização de orientação
       VRMUtils.rotateVRM0(this.vrm);
 
-      // Configuração da câmera olhando para a cabeça do VRM
+      // Configuração da câmera olhando para o peitoral/cabeça do VRM com enquadramento amigável
       const headBone = this.vrm.humanoid?.getNormalizedBoneNode('head');
       if (headBone) {
         const headPos = new THREE.Vector3();
         headBone.getWorldPosition(headPos);
-        this.camera.position.set(0.0, headPos.y + 0.02, 1.45);
-        this.camera.lookAt(0.0, headPos.y - 0.04, 0.0);
+        this.camera.position.set(0.0, headPos.y + 0.03, 1.35);
+        this.camera.lookAt(0.0, headPos.y - 0.07, 0.0);
       }
 
       // 6. Inicia Loops
@@ -299,16 +303,20 @@ export class Avatar3D implements ControladorAvatar {
     this.vrm.expressionManager?.setValue('blink', this.valorBlink);
 
     // 4. Expressões Faciais por Estado (RF10)
-    if (this.estadoAtual === 'speaking' || this.estadoAtual === 'idle') {
-      this.vrm.expressionManager?.setValue('happy', 0.25);
+    if (this.estadoAtual === 'speaking') {
+      this.vrm.expressionManager?.setValue('happy', 0.35);
       this.vrm.expressionManager?.setValue('relaxed', 0.0);
+    } else if (this.estadoAtual === 'idle') {
+      this.vrm.expressionManager?.setValue('happy', 0.25);
+      this.vrm.expressionManager?.setValue('relaxed', 0.05);
     } else if (this.estadoAtual === 'thinking') {
       this.vrm.expressionManager?.setValue('happy', 0.0);
-      this.vrm.expressionManager?.setValue('relaxed', 0.4);
-    } else {
-      this.vrm.expressionManager?.setValue('happy', 0.1);
+      this.vrm.expressionManager?.setValue('relaxed', 0.5);
+    } else if (this.estadoAtual === 'listening') {
+      this.vrm.expressionManager?.setValue('happy', 0.15);
       this.vrm.expressionManager?.setValue('relaxed', 0.1);
     }
+    this.vrm.expressionManager?.update();
 
     // 5. Olhar para a Câmera (lookAt) (RF09, CA12)
     if (this.vrm.lookAt && this.camera) {
@@ -334,6 +342,11 @@ export class Avatar3D implements ControladorAvatar {
 
     // 7. Interpolação suave de Poses de Ossos (RF06, CA09)
     this.interpolarOssos(reducedMotion);
+
+    // 8. Atualização de física de cabelos e roupas (SpringBone)
+    if (!reducedMotion) {
+      this.vrm.springBoneManager?.update(delta);
+    }
   }
 
   private interpolarOssos(reducedMotion: boolean): void {

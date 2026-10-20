@@ -30,7 +30,6 @@ export class ControladorEspera {
   private ativa = false;
   private perguntaAtual = '';
   private temaAtual: TemaDetectado | null = null;
-  private inicioEsperaTimestamp = 0;
   private curiosidadeFalada = false;
   private lousaPreparada = false;
   private estaFalandoReacao = false;
@@ -69,7 +68,6 @@ export class ControladorEspera {
 
     this.ativa = true;
     this.perguntaAtual = pergunta;
-    this.inicioEsperaTimestamp = Date.now();
     this.curiosidadeFalada = false;
     this.lousaPreparada = false;
     this.estaFalandoReacao = false;
@@ -86,11 +84,11 @@ export class ControladorEspera {
 
     this.ultimaFraseReacao = frase;
 
-    // 3. Agenda fala da reação imediata
+    // 3. Agenda fala da reação apenas se a IA demorar para responder (estilo Alexa)
     this.timerReacao = setTimeout(async () => {
       if (!this.ativa) return;
       await this.falarFraseEspera(frase);
-    }, 120);
+    }, this.config.tempoReacaoInicialMs);
 
     // 4. Temporizador de Lousa de Preparação (RF03, CA04: 1.5s)
     this.timerLousa = setTimeout(async () => {
@@ -172,8 +170,6 @@ export class ControladorEspera {
   async notificarPrimeiraEtapaChegou(): Promise<void> {
     if (!this.ativa) return;
 
-    const tempoDecorridoMs = Date.now() - this.inicioEsperaTimestamp;
-
     // Cancela temporizadores pendentes de lousa e curiosidade
     if (this.timerLousa) {
       clearTimeout(this.timerLousa);
@@ -184,17 +180,14 @@ export class ControladorEspera {
       this.timerCuriosidade = null;
     }
 
-    // RF06 / CA07: Se a resposta chegou em menos de 800 ms, cancela reação imediata e vai direto
-    if (tempoDecorridoMs < this.config.tempoCancelamentoReacaoRapidaMs) {
-      if (this.timerReacao) {
-        clearTimeout(this.timerReacao);
-        this.timerReacao = null;
-      }
-      if (this.estaFalandoReacao) {
-        await this.callbacks.servicoVoz.pararDeFalar();
-        this.estaFalandoReacao = false;
-        if (this.resolverFalaReacao) this.resolverFalaReacao();
-      }
+    // Cancela temporizador de fala de espera se ainda não disparou
+    if (this.timerReacao) {
+      clearTimeout(this.timerReacao);
+      this.timerReacao = null;
+    }
+
+    // Se não chegou a falar nenhuma frase de espera, transiciona imediatamente
+    if (!this.estaFalandoReacao) {
       this.ativa = false;
       return;
     }

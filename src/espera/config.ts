@@ -3,7 +3,9 @@
  */
 
 export interface ConfigEspera {
-  /** Tempo limite para cancelar frase de reação se resposta chegar rápido (RF06, CA07) */
+  /** Tempo para disparar frase de reação se a IA demorar para responder (estilo Alexa) */
+  tempoReacaoInicialMs: number;
+  /** Tempo limite para cancelar frase de reação se resposta chegar rápido */
   tempoCancelamentoReacaoRapidaMs: number;
   /** Tempo para abrir lousa de preparação com o título/tema (RF03, CA04) */
   tempoLousaPreparacaoMs: number;
@@ -16,9 +18,10 @@ export interface ConfigEspera {
 }
 
 export const CONFIG_ESPERA: ConfigEspera = {
-  tempoCancelamentoReacaoRapidaMs: 800,
-  tempoLousaPreparacaoMs: 1500,
-  tempoCuriosidadeMs: 4000,
+  tempoReacaoInicialMs: 2800,
+  tempoCancelamentoReacaoRapidaMs: 2500,
+  tempoLousaPreparacaoMs: 3500,
+  tempoCuriosidadeMs: 6000,
   tempoCicloGestosEsperaMs: 2500,
   tempoMaximoTransicaoFraseMs: 1500
 };
