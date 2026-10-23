@@ -1,8 +1,11 @@
 /// <reference types="vitest" />
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
+import { pluginGravador } from './scripts/vite-plugin-gravador';
 
 export default defineConfig({
+  // Gravador de gestos: página e plugin só existem em `npm run dev` (gravador.html fica fora do build)
+  plugins: [pluginGravador()],
   build: {
     outDir: 'dist',
     rollupOptions: {
