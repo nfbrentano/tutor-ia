@@ -1,6 +1,6 @@
 # [FEAT] Gravador de gestos: vídeo do professor → clipe de animação do avatar (MediaPipe)
 
-> **Status:** Em revisão
+> **Status:** Em andamento
 > **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-10-23 · **Atualizada em:** 2026-10-23
 
 ## Detalhes da Atividade
@@ -40,6 +40,7 @@
 ### Riscos conhecidos
 
 - **Profundidade com uma câmera só:** no protótipo, o antebraço apontado para a câmera foi lido como caído (erro de ~50° em "palmas abertas"), e duas poses com o braço à frente do corpo não foram detectadas. Por isso há filtro de suavização, revisão no avatar antes de salvar e o RF13.
+- **Resultado do autoteste com o modelo provisório (implementação):** média de 26° por pose nos braços (mãos juntas 19°, palmas abertas 33°, enfatizar 11°, contar nos dedos 23°, pensando 32°, cumprimentar 38°); a pose de repouso não foi detectada. O conversor reproduz exatamente as direções medidas pelo MediaPipe: o erro restante é da detecção num modelo de anime, e a meta de 25° fica para o vídeo de pessoa real (CT19).
 - **Mãos e rosto não validados:** o detector de mãos do MediaPipe não reconhece a mão do modelo de anime renderizado, então dedos e cabeça só podem ser validados com vídeo de pessoa real (CT18).
 
 ## Requisitos da Atividade
@@ -51,7 +52,7 @@
 | RF01 | **Página de desenvolvimento** `gravador.html` na raiz, com script em `src/gravador/`. Acessível só com `npm run dev`: fica **fora** de `build.rollupOptions.input`, do `dist/` e do APK. Não há link para ela no app. | P0 | CA01, CA02 |
 | RF02 | **Duas entradas de vídeo:** (a) webcam ao vivo (`getUserMedia`), com contagem regressiva de 3 s e botão gravar/parar; (b) arquivo de vídeo (`.mp4`/`.mov` H.264, por exemplo do iPhone em Ajustes > Câmera > Formatos > "Mais Compatível"). O vídeo é processado quadro a quadro a 30 fps fixos, independente da velocidade da máquina. | P0 | CA03, CA04 |
 | RF03 | **Detecção:** MediaPipe Tasks Vision (corpo com coordenadas 3D, as duas mãos e o rosto) em modo VIDEO, com os modelos carregados sob demanda. Cada quadro gera pontos do corpo, das mãos e do rosto com índice de confiança. | P0 | CA03 |
-| RF04 | **Conversão para VRM (conversor vetorial em `src/gravador/conversor.ts`):** (a) braços e antebraços: direção ombro→cotovelo e cotovelo→punho dos pontos 3D do corpo, convertidos para o espaço do avatar (x igual, y e z invertidos) e mirados com `calcularRotacaoBracoParaDirecao`, o antebraço no espaço do braço; (b) tronco: giro e inclinação a partir da linha dos ombros e dos quadris, repartidos entre `spine` e `chest`; (c) cabeça: matriz de orientação do rosto do MediaPipe Face Landmarker (`facialTransformationMatrixes`); (d) dedos: ângulo entre as falanges dos pontos da mão, aplicado como curvatura (mesmo eixo de `aplicarDedos` do avatar). Pernas ficam em repouso e o quadril não se desloca. | P0 | CA05 |
+| RF04 | **Conversão para VRM (conversor vetorial em `src/gravador/conversor.ts`):** (a) braços e antebraços: direção ombro→cotovelo e cotovelo→punho dos pontos 3D do corpo, convertidos para o espaço do avatar (x igual, y e z invertidos) e mirados com `calcularRotacaoBracoParaDirecao`, o antebraço no espaço do braço; (b) tronco: orientação a partir da linha dos ombros e dos quadris. Braços e cabeça são calculados em relação ao giro e à inclinação para a frente do tronco medido, mas o avatar recebe **só o giro**, repartido entre `spine` e `chest`: o MediaPipe vê o tronco ~10° inclinado para a frente mesmo com a pessoa reta, e a linha dos ombros entorta quando um braço sobe; (c) cabeça: matriz de orientação do rosto do MediaPipe Face Landmarker (`facialTransformationMatrixes`); (d) dedos: ângulo entre as falanges dos pontos da mão, aplicado como curvatura (mesmo eixo de `aplicarDedos` do avatar). Pernas ficam em repouso e o quadril não se desloca. | P0 | CA05 |
 | RF05 | **Suavização e falhas de detecção:** filtro One Euro (ou equivalente) nas rotações, ajustável em "suave ↔ responsivo". Ossos com confiança < 0,5 mantêm a última rotação válida; mais de 0,5 s sem detecção marca o trecho como "falha" na linha do tempo. | P0 | CA06, CA07 |
 | RF06 | **Pré-visualização ao vivo:** o avatar atual (persona escolhida numa lista) repete o movimento em tempo real ao lado do vídeo. Opção **Espelhar** (padrão desligado: a mão direita da pessoa move a mão direita do avatar). | P0 | CA05, CA08 |
 | RF07 | **Edição antes de salvar:** linha do tempo com recorte de início e fim, reprodução em loop no avatar, escolha da categoria, nome do clipe e, opcionalmente, as personas a que o clipe se aplica. Opção **Loop suave** (padrão ligado em `idle`, `listening`, `thinking` e `speaking`): mistura os últimos 0,3 s com os primeiros para o loop não dar salto. | P0 | CA09, CA10 |
@@ -88,7 +89,7 @@
 ## Critérios de Aceitação / Entregas
 
 - [ ] **CA01:** Dado o projeto rodando com `npm run dev`, quando acesso `/gravador.html`, então a página abre com as opções de webcam e arquivo, a lista de personas e o aviso de privacidade.
-- [ ] **CA02 (negativo):** Dado `npm run build`, quando inspeciono `dist/` e o bundle, então não há `gravador.html` nem código do MediaPipe.
+- [x] **CA02 (negativo):** Dado `npm run build`, quando inspeciono `dist/` e o bundle, então não há `gravador.html` nem código do MediaPipe.
 - [ ] **CA03:** Dado um vídeo `.mp4` de 30 s com uma pessoa gesticulando, quando o envio ao gravador, então ele processa em ≤ 60 s, a 30 quadros por segundo de vídeo, e mostra a linha do tempo com o movimento.
 - [ ] **CA04:** Dado a webcam liberada, quando clico em gravar, então há contagem regressiva de 3 s, a gravação começa e o botão parar encerra; com a permissão negada, aparece uma mensagem clara e a opção de arquivo continua disponível.
 - [ ] **CA05:** Dado que a pessoa levanta o braço direito para a frente, quando a pré-visualização é exibida, então o braço direito do avatar sobe para a frente (não para trás nem para o lado); com "Espelhar" ligado, quem sobe é o braço esquerdo.
@@ -98,10 +99,10 @@
 - [ ] **CA09:** Dado um trecho recortado de 4 s em loop com "Loop suave", quando ele reinicia, então não há salto visível entre o fim e o começo.
 - [ ] **CA10:** Dado que escolho a categoria `thinking` e as personas `machado` e `ada`, quando salvo, então o JSON tem `"categoria": "thinking"` e `"personas": ["machado", "ada"]`.
 - [ ] **CA11:** Dado um clipe salvo de 10 s, quando inspeciono o arquivo, então ele segue o formato do RF08, tem ≤ 250 KB e só traz ossos humanoides VRM válidos.
-- [ ] **CA12:** Dado o botão "Salvar no projeto" em `npm run dev`, quando salvo `explicando-1`, então `public/avatar/animacoes/explicando-1.json` é criado e o `manifesto.json` ganha a entrada, sem apagar as existentes.
-- [ ] **CA13 (negativo):** Dado uma requisição ao plugin com nome `../../src/tutor` ou caminho absoluto, quando processada, então é recusada com erro e nenhum arquivo é escrito fora de `public/avatar/animacoes/`.
-- [ ] **CA14:** Dado um clipe `speaking` gravado no manifesto, quando o tutor responde uma pergunta, então o avatar toca o clipe com transição suave e continua com lip sync, piscadas e olhar procedurais.
-- [ ] **CA15:** Dado um clipe com `"personas": ["machado"]`, quando a persona ativa é Ada, então esse clipe **não** é tocado; com Machado ativo, ele entra no sorteio.
+- [x] **CA12:** Dado o botão "Salvar no projeto" em `npm run dev`, quando salvo `explicando-1`, então `public/avatar/animacoes/explicando-1.json` é criado e o `manifesto.json` ganha a entrada, sem apagar as existentes.
+- [x] **CA13 (negativo):** Dado uma requisição ao plugin com nome `../../src/tutor` ou caminho absoluto, quando processada, então é recusada com erro e nenhum arquivo é escrito fora de `public/avatar/animacoes/`.
+- [x] **CA14:** Dado um clipe `speaking` gravado no manifesto, quando o tutor responde uma pergunta, então o avatar toca o clipe com transição suave e continua com lip sync, piscadas e olhar procedurais.
+- [x] **CA15:** Dado um clipe com `"personas": ["machado"]`, quando a persona ativa é Ada, então esse clipe **não** é tocado; com Machado ativo, ele entra no sorteio.
 - [ ] **CA16 (negativo):** Dado o gravador em uso com a aba Rede aberta, quando gravo e processo um vídeo, então nenhuma requisição envia imagem ou vídeo (só os downloads dos modelos do MediaPipe), e nenhum arquivo de vídeo é criado no projeto.
 
 ## O que a atividade não inclui
@@ -137,7 +138,7 @@
 | CT02 | Fora do build | integração | CA02 | `npm run build`; procurar "tasks-vision" e `gravador.html` em `dist/` | Nada encontrado |
 | CT03 | Vídeo do iPhone | manual | CA03 | Enviar `.mp4` H.264 de 30 s; cronometrar | ≤ 60 s; linha do tempo completa |
 | CT04 | Webcam e permissão negada | manual | CA04 | Gravar com webcam; depois negar a permissão | Contagem e gravação; mensagem clara ao negar |
-| CT05 | Conversão de eixos | unit | CA05 | Pontos do MediaPipe salvos (fixture JSON) de "braço direito à frente" → conversão | Rotação do `rightUpperArm` com `x` negativo (à frente), segundo o guia de eixos |
+| CT05 | Conversão de eixos | unit | CA05 | Pontos sintéticos do MediaPipe de "braço direito à frente" → conversão | O `rightUpperArm` aponta para +Z (à frente) no espaço do avatar |
 | CT06 | Espelhar | unit | CA05 | Mesma fixture com espelho ligado | Movimento vai para o `leftUpperArm` |
 | CT07 | Filtro de tremor | unit | CA06 | Série de rotações com ruído → filtro | Nenhum salto > 25° entre quadros |
 | CT08 | Falha de detecção | unit | CA07 | Série com 2 s de confiança 0 | Última pose mantida; trecho marcado como falha |

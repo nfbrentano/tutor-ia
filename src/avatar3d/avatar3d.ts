@@ -325,6 +325,7 @@ export class Avatar3D implements ControladorAvatar {
     if (!this.vrm || this.prefereMovimentoReduzido()) return;
     const vrmAlvo = this.vrm;
     const gerenciador = new GerenciadorClipes(vrmAlvo);
+    gerenciador.definirPersona(this.persona?.id ?? null);
     const total = await gerenciador.carregar(PASTA_ANIMACOES);
     if (this.estaDestruido || this.vrm !== vrmAlvo || total === 0) {
       gerenciador.destruir();
@@ -430,13 +431,10 @@ export class Avatar3D implements ControladorAvatar {
     // 1. Pose base: clipe do Mixamo e/ou pose procedural, misturados por pesoClipe
     const usarClipe = !!this.clipes?.estaAtivo() && !this.estaApontando && !this.estaCumprimentando && !reducedMotion;
     this.pesoClipe += ((usarClipe ? 1 : 0) - this.pesoClipe) * fatorSuavizacao(5, delta);
-    if (this.clipes && this.pesoClipe > 0.001) {
-      this.clipes.atualizar(delta);
-    }
 
     const fator = fatorSuavizacao(reducedMotion ? 12 : 6, delta);
     this.interpolarPose(fator);
-    this.aplicarPoseBase(vrm, reducedMotion);
+    this.aplicarPoseBase(vrm, reducedMotion, delta);
 
     // 2. Camadas somadas (respiração, troca de peso, batidas, aceno, olhar)
     if (!reducedMotion) {
@@ -463,10 +461,13 @@ export class Avatar3D implements ControladorAvatar {
     }
   }
 
-  private readonly _quatPose = new THREE.Quaternion();
   private readonly _euler = new THREE.Euler();
+  private readonly _quatsPose = Object.fromEntries(OSSOS_POSE.map(o => [o, new THREE.Quaternion()])) as Record<
+    keyof PoseVRM,
+    THREE.Quaternion
+  >;
 
-  private aplicarPoseBase(vrm: VRM, reducedMotion: boolean): void {
+  private aplicarPoseBase(vrm: VRM, reducedMotion: boolean, delta: number): void {
     for (const osso of OSSOS_POSE) {
       const node = vrm.humanoid?.getNormalizedBoneNode(osso as VRMHumanBoneName);
       if (!node) continue;
@@ -476,13 +477,17 @@ export class Avatar3D implements ControladorAvatar {
         reducedMotion && osso !== 'head' && osso !== 'neck'
           ? POSE_IDLE[osso] || { x: 0, y: 0, z: 0 }
           : this.poseAtual[osso]!;
-      this._quatPose.setFromEuler(this._euler.set(rot.x, rot.y, rot.z));
+      node.quaternion.setFromEuler(this._euler.set(rot.x, rot.y, rot.z));
+      this._quatsPose[osso].copy(node.quaternion);
+    }
 
-      if (this.pesoClipe > 0.001 && this.clipes) {
-        // node.quaternion já tem o valor do clipe (mixer.update)
-        node.quaternion.slerp(this._quatPose, 1 - this.pesoClipe);
-      } else {
-        node.quaternion.copy(this._quatPose);
+    // O clipe entra por cima da pose: ossos que ele não anima ficam com a pose do quadro, sem
+    // herdar as camadas somadas no quadro anterior (que se acumulariam)
+    if (this.clipes && this.pesoClipe > 0.001) {
+      this.clipes.atualizar(delta);
+      for (const osso of OSSOS_POSE) {
+        const node = vrm.humanoid?.getNormalizedBoneNode(osso as VRMHumanBoneName);
+        if (node) node.quaternion.copy(this._quatsPose[osso].clone().slerp(node.quaternion, this.pesoClipe));
       }
     }
   }
@@ -559,6 +564,9 @@ export class Avatar3D implements ControladorAvatar {
         }
         curvas[i] += (alvo - curvas[i]) * fator;
       }
+
+      // Clipe gravado com dedos tem prioridade, exceto durante a contagem (gravador de gestos)
+      if (!contando && this.pesoClipe > 0.5) continue;
 
       const sinal = lado === 'right' ? 1 : -1;
       DEDOS.forEach((dedo, i) => {
@@ -1071,6 +1079,7 @@ export class Avatar3D implements ControladorAvatar {
         void this.carregarClipes();
       } else {
         this.persona = persona;
+        this.clipes?.definirPersona(persona.id);
       }
       this.atualizarRotuloAcessivel();
       if (!reducedMotion) this.cumprimentar();
