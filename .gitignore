@@ -40,3 +40,6 @@ android/.idea/
 livros/*.pdf
 !livros/catalogo.json
 
+
+# Vídeos do gravador de gestos (nunca versionar: dados pessoais)
+gravacoes/
