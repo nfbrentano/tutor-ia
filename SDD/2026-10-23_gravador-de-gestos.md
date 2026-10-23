@@ -1,6 +1,6 @@
-# [FEAT] Gravador de gestos: vídeo do professor → clipe de animação do avatar (MediaPipe + Kalidokit)
+# [FEAT] Gravador de gestos: vídeo do professor → clipe de animação do avatar (MediaPipe)
 
-> **Status:** Rascunho
+> **Status:** Em revisão
 > **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-10-23 · **Atualizada em:** 2026-10-23
 
 ## Detalhes da Atividade
@@ -11,7 +11,7 @@
   3. **Revisar:** ver o resultado no próprio avatar e cortar o trecho bom.
   4. **Salvar:** gravar como **clipe de animação** do tutor (categorias `idle`, `listening`, `thinking`, `speaking`, `apontar`, `cumprimentar`).
 
-  O clipe salvo é tocado pelo `GerenciadorClipes` que já existe (`src/avatar3d/animacoes.ts`), por todas as personas, do mesmo jeito que os clipes do Mixamo. Tudo roda no navegador, com ferramentas open source (MediaPipe e Kalidokit), sem servidor e sem custo.
+  O clipe salvo é tocado pelo `GerenciadorClipes` que já existe (`src/avatar3d/animacoes.ts`), por todas as personas, do mesmo jeito que os clipes do Mixamo. Tudo roda no navegador, com ferramenta open source (MediaPipe) e um conversor próprio, sem servidor e sem custo.
 - **Problema e evidência:**
   - A spec [2026-10-23_avatar-personas-por-materia.md](2026-10-23_avatar-personas-por-materia.md) deixou o avatar pronto para receber clipes (RF02/RF03), mas o manifesto `public/avatar/animacoes/manifesto.json` está vazio.
   - **Mixamo:** exige conta Adobe e só tem gestos genéricos, sem a cara de "professor explicando".
@@ -26,11 +26,12 @@
   - Em teste com pelo menos 5 alunos comparando o avatar com e sem os clipes gravados, 4 ou mais preferem com os clipes.
   - **0 bytes** de vídeo enviados pela rede (verificável na aba Rede).
 
-### Por que MediaPipe + Kalidokit
+### Por que MediaPipe + conversor vetorial próprio
 
 | Opção | Motivo da escolha ou descarte |
 |---|---|
-| **MediaPipe Tasks Vision (`@mediapipe/tasks-vision`) + Kalidokit (`kalidokit`)** | **Escolhida.** A licença do MediaPipe (Apache 2.0) e a do Kalidokit (MIT) permitem uso comercial. Rodam no navegador. O Kalidokit converte pontos do corpo, das mãos e do rosto em rotações de ossos VRM, e foi feito para o `three-vrm`, que o app já usa. |
+| **MediaPipe Tasks Vision (`@mediapipe/tasks-vision`) + conversor vetorial próprio** | **Escolhida (D01).** A licença do MediaPipe (Apache 2.0) permite uso comercial e ele roda no navegador. O conversor calcula a direção real de cada segmento do corpo a partir dos pontos 3D e mira o osso com `calcularRotacaoBracoParaDirecao` (`src/avatar3d/movimento.ts`), já testado no apontar para a lousa. |
+| Kalidokit (MIT) | **Descartado no protótipo da D01.** Feito para VRM 0.x e webcam espelhada, usa aproximações com fatores fixos e limites de ângulo em vez de calcular a mira. Nenhuma combinação de eixos funcionou de forma consistente com VRM 1.0 (resultados em D01). |
 | Modelos de pesquisa (WHAM, 4D-Humans, GVHMR, VIBE) | Mais precisos, mas exigem Python e GPU, e dependem do modelo de corpo **SMPL**, cuja licença **proíbe uso comercial**. |
 | FreeMoCap | Open source (AGPL), mas pede 2 ou mais câmeras calibradas. |
 | BlendArMocap (Blender) | Open source (GPL), mas exige o Blender instalado e um fluxo fora do app. Fica como alternativa. |
@@ -38,8 +39,8 @@
 
 ### Riscos conhecidos
 
-- **Kalidokit sem atualizações:** a última versão (1.1.5) é de 2022 e foi pensada para o MediaPipe Holistic antigo e para VRM 0.x. O app usa VRM 1.0 e o MediaPipe Tasks atual. Pode ser preciso inverter sinais de eixos ou adaptar o formato dos pontos detectados. Ver D01.
-- **Precisão dos dedos e da profundidade:** com uma câmera só, a profundidade (braço para a frente ou para trás) e os dedos são imprecisos. Por isso há filtro de suavização e revisão no próprio avatar antes de salvar.
+- **Profundidade com uma câmera só:** no protótipo, o antebraço apontado para a câmera foi lido como caído (erro de ~50° em "palmas abertas"), e duas poses com o braço à frente do corpo não foram detectadas. Por isso há filtro de suavização, revisão no avatar antes de salvar e o RF13.
+- **Mãos e rosto não validados:** o detector de mãos do MediaPipe não reconhece a mão do modelo de anime renderizado, então dedos e cabeça só podem ser validados com vídeo de pessoa real (CT18).
 
 ## Requisitos da Atividade
 
@@ -50,7 +51,7 @@
 | RF01 | **Página de desenvolvimento** `gravador.html` na raiz, com script em `src/gravador/`. Acessível só com `npm run dev`: fica **fora** de `build.rollupOptions.input`, do `dist/` e do APK. Não há link para ela no app. | P0 | CA01, CA02 |
 | RF02 | **Duas entradas de vídeo:** (a) webcam ao vivo (`getUserMedia`), com contagem regressiva de 3 s e botão gravar/parar; (b) arquivo de vídeo (`.mp4`/`.mov` H.264, por exemplo do iPhone em Ajustes > Câmera > Formatos > "Mais Compatível"). O vídeo é processado quadro a quadro a 30 fps fixos, independente da velocidade da máquina. | P0 | CA03, CA04 |
 | RF03 | **Detecção:** MediaPipe Tasks Vision (corpo com coordenadas 3D, as duas mãos e o rosto) em modo VIDEO, com os modelos carregados sob demanda. Cada quadro gera pontos do corpo, das mãos e do rosto com índice de confiança. | P0 | CA03 |
-| RF04 | **Conversão para VRM:** o Kalidokit (`Pose.solve`, `Hand.solve`, `Face.solve`) gera as rotações de `hips` (só rotação), `spine`, `chest`, `upperChest`, `neck`, `head`, ombros, braços, antebraços, mãos e as 3 falanges de cada dedo. Pernas ficam em repouso e o quadril não se desloca. Os eixos são adaptados para os ossos normalizados VRM 1.0 do app (guia de eixos em `src/avatar3d/poses.ts`). | P0 | CA05 |
+| RF04 | **Conversão para VRM (conversor vetorial em `src/gravador/conversor.ts`):** (a) braços e antebraços: direção ombro→cotovelo e cotovelo→punho dos pontos 3D do corpo, convertidos para o espaço do avatar (x igual, y e z invertidos) e mirados com `calcularRotacaoBracoParaDirecao`, o antebraço no espaço do braço; (b) tronco: giro e inclinação a partir da linha dos ombros e dos quadris, repartidos entre `spine` e `chest`; (c) cabeça: matriz de orientação do rosto do MediaPipe Face Landmarker (`facialTransformationMatrixes`); (d) dedos: ângulo entre as falanges dos pontos da mão, aplicado como curvatura (mesmo eixo de `aplicarDedos` do avatar). Pernas ficam em repouso e o quadril não se desloca. | P0 | CA05 |
 | RF05 | **Suavização e falhas de detecção:** filtro One Euro (ou equivalente) nas rotações, ajustável em "suave ↔ responsivo". Ossos com confiança < 0,5 mantêm a última rotação válida; mais de 0,5 s sem detecção marca o trecho como "falha" na linha do tempo. | P0 | CA06, CA07 |
 | RF06 | **Pré-visualização ao vivo:** o avatar atual (persona escolhida numa lista) repete o movimento em tempo real ao lado do vídeo. Opção **Espelhar** (padrão desligado: a mão direita da pessoa move a mão direita do avatar). | P0 | CA05, CA08 |
 | RF07 | **Edição antes de salvar:** linha do tempo com recorte de início e fim, reprodução em loop no avatar, escolha da categoria, nome do clipe e, opcionalmente, as personas a que o clipe se aplica. Opção **Loop suave** (padrão ligado em `idle`, `listening`, `thinking` e `speaking`): mistura os últimos 0,3 s com os primeiros para o loop não dar salto. | P0 | CA09, CA10 |
@@ -58,13 +59,14 @@
 | RF09 | **Salvar:** (a) botão **Baixar** gera o `.json` para colocar manualmente em `public/avatar/animacoes/`; (b) no `npm run dev`, botão **Salvar no projeto** chama um plugin do Vite só de desenvolvimento (`apply: 'serve'`), que grava o arquivo e acrescenta a entrada no `manifesto.json`. O plugin valida o nome (`[a-z0-9-]+`), recusa `..` e caminhos absolutos e só escreve dentro de `public/avatar/animacoes/`. | P0 (a) / P1 (b) | CA12, CA13 |
 | RF10 | **Tocar no tutor:** `GerenciadorClipes` e `validarManifestoClipes` aceitam arquivos `.json` no formato do RF08, além de `.fbx`. O clipe é montado com `QuaternionKeyframeTrack` nos ossos normalizados de cada persona. Entradas com `personas` só tocam nessas personas. | P0 | CA14, CA15 |
 | RF11 | **Privacidade:** o vídeo e as imagens da câmera **nunca** saem do navegador e **não** são salvos; só as rotações dos ossos vão para o clipe. A câmera é desligada ao sair da página ou ao trocar para arquivo. | P0 | CA16 |
-| RF12 | **Expressões do rosto no clipe** (`happy`, `surprised`, sobrancelhas) a partir do `Face.solve`, guardadas em `expressoes` no JSON. A boca **não** é gravada: ela continua sendo do lip sync. | P2 | — |
+| RF12 | **Expressões do rosto no clipe** (`happy`, `surprised`, sobrancelhas) a partir das 52 expressões ARKit do MediaPipe Face Landmarker, guardadas em `expressoes` no JSON. A boca **não** é gravada: ela continua sendo do lip sync. | P2 | — |
+| RF13 | **Correção de profundidade:** quando o antebraço aparece muito encurtado na imagem e a profundidade estimada é incerta, o conversor prefere o antebraço à frente do corpo (gesto de explicação) e marca o trecho como "baixa confiança" na linha do tempo, para revisão. | P1 | CA05 |
 
 ### Requisitos não-funcionais
 
 | ID | Descrição | Prioridade | CAs |
 |----|-----------|------------|-----|
-| RNF01 | `kalidokit` e `@mediapipe/tasks-vision` entram como **devDependencies**, com versão exata. Nenhum dos dois aparece no bundle de produção nem no APK. | P0 | CA02 |
+| RNF01 | `@mediapipe/tasks-vision` entra como **devDependency**, com versão exata (1.1.1 no protótipo). Não aparece no bundle de produção nem no APK. | P0 | CA02 |
 | RNF02 | Cada clipe salvo ocupa ≤ 250 KB e dura ≤ 15 s. O pacote total de animações continua ≤ 3 MB (RNF02 da spec de personas). | P0 | CA11 |
 | RNF03 | A pré-visualização ao vivo fica ≥ 20 fps num MacBook com Apple Silicon. Processar um vídeo de 30 s leva ≤ 60 s. | P1 | CA03 |
 | RNF04 | O clipe tocado no tutor mantém o desempenho da spec de personas (≥ 50 fps falando num Android intermediário). | P0 | CA14 |
@@ -73,7 +75,7 @@
 ### Dependências técnicas
 
 - `src/avatar3d/animacoes.ts` (`GerenciadorClipes`, `validarManifestoClipes`), `src/avatar3d/avatar3d.ts` (reaproveitado para a pré-visualização), `src/personas/` (lista de personas) e `vite.config.ts` (plugin de desenvolvimento).
-- Novas devDependencies: `kalidokit` (MIT, 1.1.5) e `@mediapipe/tasks-vision` (Apache 2.0; versão exata a fixar na implementação).
+- Nova devDependency: `@mediapipe/tasks-vision` (Apache 2.0, 1.1.1). O Kalidokit **não** é usado (D01).
 - Arquivos de modelo do MediaPipe (`.task`) e o WASM: baixados do CDN oficial do Google na primeira vez que o gravador é usado, só em desenvolvimento.
 - Spec anterior: [2026-10-23_avatar-personas-por-materia.md](2026-10-23_avatar-personas-por-materia.md) (RF02, RF03 e RNF02).
 
@@ -86,7 +88,7 @@
 ## Critérios de Aceitação / Entregas
 
 - [ ] **CA01:** Dado o projeto rodando com `npm run dev`, quando acesso `/gravador.html`, então a página abre com as opções de webcam e arquivo, a lista de personas e o aviso de privacidade.
-- [ ] **CA02 (negativo):** Dado `npm run build`, quando inspeciono `dist/` e o bundle, então não há `gravador.html`, nem código do Kalidokit, nem do MediaPipe.
+- [ ] **CA02 (negativo):** Dado `npm run build`, quando inspeciono `dist/` e o bundle, então não há `gravador.html` nem código do MediaPipe.
 - [ ] **CA03:** Dado um vídeo `.mp4` de 30 s com uma pessoa gesticulando, quando o envio ao gravador, então ele processa em ≤ 60 s, a 30 quadros por segundo de vídeo, e mostra a linha do tempo com o movimento.
 - [ ] **CA04:** Dado a webcam liberada, quando clico em gravar, então há contagem regressiva de 3 s, a gravação começa e o botão parar encerra; com a permissão negada, aparece uma mensagem clara e a opção de arquivo continua disponível.
 - [ ] **CA05:** Dado que a pessoa levanta o braço direito para a frente, quando a pré-visualização é exibida, então o braço direito do avatar sobe para a frente (não para trás nem para o lado); com "Espelhar" ligado, quem sobe é o braço esquerdo.
@@ -122,7 +124,7 @@
 
 | # | Dúvida | Responsável (PO/dev/design) | Bloqueante? | Resposta |
 |---|--------|-----------------------------|-------------|----------|
-| D01 | O Kalidokit 1.1.5 funciona direto com a saída do MediaPipe Tasks e com VRM 1.0, ou é melhor portar só as funções de cálculo para `src/gravador/` (licença MIT permite)? Decidir num protótipo de 1 dia. | dev | Sim | |
+| D01 | O Kalidokit 1.1.5 funciona direto com a saída do MediaPipe Tasks e com VRM 1.0, ou é melhor portar só as funções de cálculo para `src/gravador/` (licença MIT permite)? Decidir num protótipo de 1 dia. | dev | Sim | **Nem um nem outro: conversor vetorial próprio** (protótipo de 2026-10-23). Teste de ida e volta: o avatar foi renderizado em 10 poses do catálogo, a imagem passou pelo MediaPipe Pose (1.1.1), as rotações foram aplicadas a um segundo avatar e mediu-se o ângulo entre os segmentos dos braços. MediaPipe detectou 8 das 10 poses. Erro médio por pose: Kalidokit direto 57–144°; com troca de lado 8–102°; com eixos VRM 1.0 8–95°; com as duas conversões 87–147°; **conversor vetorial 14–38°** (60° em braços abertos para o lado). O Kalidokit levanta os braços acima da cabeça em várias poses e usa fatores fixos e limites de ângulo que não se corrigem só com troca de eixos; portar o código traria a mesma imprecisão. O vetorial reaproveita a mira já testada do avatar e não precisa de dependência nova. Mãos e rosto não puderam ser testados com o modelo de anime (o MediaPipe não detecta a mão desenhada): ficam com cálculo próprio a partir dos pontos da mão e da matriz do rosto, validados com vídeo real (CT19). |
 | D02 | Quem grava os gestos: o PO, um professor convidado ou os dois? Se for professor convidado, é preciso um termo simples de autorização de uso do movimento (mesmo sem guardar o vídeo). | PO | Não | |
 | D03 | Clipes por persona: gravar gestos diferentes para cada persona (ex.: Machado mais contido) ou um pacote único para todas no começo? | PO | Não | |
 | D04 | Os modelos do MediaPipe (`.task`, alguns MB) ficam baixando do CDN do Google ou são guardados numa pasta local ignorada pelo git? | dev | Não | |
@@ -132,7 +134,7 @@
 | # | Cenário | Tipo (unit/integração/e2e/manual) | Cobre | Passos | Resultado esperado |
 |---|---------|-----------------------------------|-------|--------|--------------------|
 | CT01 | Página de dev | manual | CA01 | `npm run dev`; abrir `/gravador.html` | Webcam, arquivo, personas e aviso visíveis |
-| CT02 | Fora do build | integração | CA02 | `npm run build`; procurar "kalidokit", "tasks-vision" e `gravador.html` em `dist/` | Nada encontrado |
+| CT02 | Fora do build | integração | CA02 | `npm run build`; procurar "tasks-vision" e `gravador.html` em `dist/` | Nada encontrado |
 | CT03 | Vídeo do iPhone | manual | CA03 | Enviar `.mp4` H.264 de 30 s; cronometrar | ≤ 60 s; linha do tempo completa |
 | CT04 | Webcam e permissão negada | manual | CA04 | Gravar com webcam; depois negar a permissão | Contagem e gravação; mensagem clara ao negar |
 | CT05 | Conversão de eixos | unit | CA05 | Pontos do MediaPipe salvos (fixture JSON) de "braço direito à frente" → conversão | Rotação do `rightUpperArm` com `x` negativo (à frente), segundo o guia de eixos |
@@ -147,6 +149,8 @@
 | CT14 | Clipe no tutor | manual | CA14 | Adicionar um clipe `speaking` e fazer uma pergunta | Clipe com transição; lip sync e piscadas continuam |
 | CT15 | Filtro por persona | unit | CA15 | `GerenciadorClipes` com clipe `personas: ["machado"]`, persona Ada e depois Machado | Não toca com Ada; entra no sorteio com Machado |
 | CT16 | Privacidade | manual | CA16 | Aba Rede durante gravação e processamento | Só downloads dos modelos; nenhum envio de mídia |
+| CT18 | Ida e volta com o avatar | integração | CA05 | Página de teste (como a do protótipo da D01): renderizar o avatar nas poses do catálogo, passar pelo MediaPipe e pelo conversor, medir o ângulo entre os segmentos | Erro médio por pose ≤ 25° nos braços (protótipo: 14–38°) |
+| CT19 | Vídeo de pessoa real | manual | CA05 | Gravar o PO fazendo as poses do catálogo e contando 1 a 5 nos dedos | Braços, cabeça e contagem nos dedos reconhecíveis no avatar |
 | CT17 | Preferência dos alunos | manual | — | 5 alunos veem o avatar com e sem os clipes gravados | ≥ 4 preferem com os clipes |
 
 ## URL Complementar
