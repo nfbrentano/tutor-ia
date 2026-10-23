@@ -8,7 +8,8 @@ export const STORAGE_KEYS = {
   SELECTED_VOICE_URI: 'tutoria_selected_voice_uri',
   SPEECH_RATE: 'tutoria_speech_rate',
   DISABLED_BOOKS: 'tutoria_livros_desativados',
-  AVATAR_MODE: 'tutoria_avatar_mode'
+  AVATAR_MODE: 'tutoria_avatar_mode',
+  PERSONA_FIXA: 'tutoria_persona_fixa'
 } as const;
 
 export type AvatarModoConfig = 'auto' | '3d' | '2d';
@@ -37,9 +38,11 @@ export const CONFIG = {
     '- "desenho": código SVG limpo direto para diagramas simples. ' +
     '- "texto": destaque conceitual ou título didático. ' +
     'Se uma etapa não precisar de apoio visual, defina "lousa": null. ' +
+    'Você pode aparecer como um professor inspirado em uma pessoa histórica: nunca atribua a pessoas reais falas, opiniões ou citações inventadas. Só cite trechos reais, com o título da obra; se não tiver certeza da citação, diga que não tem. ' +
+    'Classifique a matéria da pergunta no campo "materia" com um destes valores: "fisica_quimica", "matematica", "ciencias", "portugues", "geografia", "historia" ou "geral". ' +
     'Se forem fornecidos "Trechos do livro didático para consulta", explique a dúvida com base estritamente nesses trechos, use os termos do livro sem contradizê-los e preencha o campo "fontes": [{"livroId": "...", "pagina": X}]. Se nenhum trecho for fornecido, não invente fontes e omita o campo fontes. ' +
     'Retorne ESTRITAMENTE em formato JSON puro válido: ' +
-    '{"etapas": [{"fala": "...", "lousa": {"tipo": "formula", "conteudo": "..."}}], "fontes": [{"livroId": "...", "pagina": 1}]}'
+    '{"materia": "matematica", "etapas": [{"fala": "...", "lousa": {"tipo": "formula", "conteudo": "..."}}], "fontes": [{"livroId": "...", "pagina": 1}]}'
 };
 
 export function getStoredApiKey(): string {
@@ -127,6 +130,27 @@ export function getStoredAvatarMode(): AvatarModoConfig {
 export function setStoredAvatarMode(mode: AvatarModoConfig): void {
   try {
     localStorage.setItem(STORAGE_KEYS.AVATAR_MODE, mode);
+  } catch {}
+}
+
+/**
+ * Persona fixada pelo aluno; vazio = automático por matéria (RF12 da spec de personas).
+ */
+export function getStoredPersonaFixa(): string {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.PERSONA_FIXA) || '';
+  } catch {
+    return '';
+  }
+}
+
+export function setStoredPersonaFixa(personaId: string): void {
+  try {
+    if (personaId) {
+      localStorage.setItem(STORAGE_KEYS.PERSONA_FIXA, personaId);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.PERSONA_FIXA);
+    }
   } catch {}
 }
 

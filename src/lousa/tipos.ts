@@ -49,5 +49,7 @@ export interface RespostaDidatica {
   texto: string; // retrocompatibilidade com código existente e testes
   imagem_url?: string | null;
   fontes?: Array<{ livroId: string; tituloLivro?: string; pagina: number; trechoId?: string }>;
+  /** Matéria classificada pelo Gemini, usada na próxima escolha de persona (RF13). */
+  materia?: string;
 }
 

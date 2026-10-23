@@ -1,6 +1,6 @@
 # [FEAT] Avatar 3D mais humano: animações Mixamo e personas por matéria
 
-> **Status:** Rascunho
+> **Status:** Em andamento
 > **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-10-23 · **Atualizada em:** 2026-10-23
 
 ## Detalhes da Atividade
@@ -62,11 +62,11 @@ O personagem é sempre uma **interpretação estilizada** (cartoon, tipo animaç
 | ID | Descrição | Prioridade | CAs |
 |----|-----------|------------|-----|
 | RF01 | **Correção de bugs de movimento:** (a) respiração e balanço da cabeça somam à pose, sem ser sobrescritos; (b) suavização independente do fps (`1 - exp(-k·delta)`); (c) o olhar alterna entre câmera e lousa (RF09 da spec anterior); (d) `apontarParaLousa` usa a posição real de `elementoAlvo` na tela. | P0 | CA01, CA02, CA09 |
-| RF02 | **Biblioteca de clipes de animação** convertidos do Mixamo para VRM, guardados como `.vrma` (ou JSON de tracks) em `public/avatar/animacoes/`. Conjunto mínimo: 2 de repouso (respirando, troca de peso), 1 de escuta (aceno leve), 2 de pensando (mão no queixo, olhar ao redor), ≥ 5 de fala/explicação, 1 de apontar (lado e frente), 1 de cumprimento. Cada clipe é independente da persona. | P0 | CA03, CA04 |
+| RF02 | **Biblioteca de clipes de animação** do Mixamo (FBX "Without Skin", 30 fps), listados em `public/avatar/animacoes/manifesto.json` e convertidos para o esqueleto VRM em tempo de execução, dentro do chunk 3D. Sem manifesto, o avatar usa só o movimento procedural. Conjunto mínimo: 2 de repouso (respirando, troca de peso), 1 de escuta (aceno leve), 2 de pensando (mão no queixo, olhar ao redor), ≥ 5 de fala/explicação, 1 de apontar (lado e frente), 1 de cumprimento. Cada clipe é independente da persona. | P0 | CA03, CA04 |
 | RF03 | **Mixer de animação:** cada estado (`idle`, `listening`, `thinking`, `speaking`) tem uma lista de clipes. A troca usa transição suave de 300–500 ms. Na fala, um clipe novo por frase, sorteado sem repetir o anterior (reaproveita `sortearProximoGesto`). Em repouso, variações a cada 6–12 s. Nunca há "salto" de pose. | P0 | CA03, CA04, CA05 |
 | RF04 | **Camadas procedurais sobre o clipe:** olhar (`lookAt`), piscada, micro-movimentos de cabeça, respiração extra no peito e dedos de `contar-dedos` (1, 2, 3 conforme o item falado). Essas camadas somam ao clipe nos ossos que ele não usa ou com peso definido, sem apagá-lo. | P0 | CA02, CA06 |
 | RF05 | **Lip sync por sílaba:** cada palavra é quebrada em sílabas aproximadas. As formas de boca (`aa`, `ih`, `ou`, `ee`, `oh` e boca fechada para `p`/`b`/`m`) são distribuídas ao longo da duração estimada da palavra, com transição suave. Quando a fala para, a boca fecha em ≤ 150 ms. | P0 | CA07, CA08 |
-| RF06 | **Registro de personas** em `src/avatar3d/personas.ts`. Cada persona tem: `id`, nome exibido, matérias, caminho do modelo, ajuste de câmera, preferências de voz (gênero, `pitch`, `rate`), pesos de gestos e texto de crédito ("Inspirado em …"). | P0 | CA10 |
+| RF06 | **Registro de personas** em `src/personas/` (fora do chunk 3D, para não pesar o JS inicial). Cada persona tem: `id`, nome exibido, matérias, caminho do modelo, ajuste de câmera, preferências de voz (gênero, `pitch`, `rate`), pesos de gestos e texto de crédito ("Inspirado em …"). | P0 | CA10 |
 | RF07 | **Escolha automática de persona:** a matéria vem de `detectarTema` (`src/espera/temas.ts`); sem matéria detectada, mantém a persona atual (ou `geral` na primeira pergunta). A troca só acontece **entre** respostas, nunca no meio da fala: a persona atual sai com um gesto de despedida, a nova entra com transição de ≤ 600 ms e cumprimenta. | P0 | CA10, CA11 |
 | RF08 | **Carregamento sob demanda:** só o `.vrm` da persona ativa é baixado. A próxima persona provável (mesma matéria da pergunta digitada) pode ser pré-carregada enquanto o tutor pensa. Modelos já carregados ficam em cache (máx. 2 em memória). Se o modelo novo falhar, a persona atual continua. | P0 | CA12, CA13 |
 | RF09 | **Cientista original de química (Prof. Átomo):** modelo próprio no arquétipo do cientista genial. Não pode usar o nome, a assinatura nem traços que reproduzam o rosto de Albert Einstein, e precisa passar pela revisão de semelhança do RNF06. Gestos próprios: ajustar os óculos, contar nos dedos, "eureka" com o dedo para cima. | P0 | CA14 |
@@ -91,8 +91,8 @@ O personagem é sempre uma **interpretação estilizada** (cartoon, tipo animaç
 
 ### Dependências técnicas
 
-- `three`, `@pixiv/three-vrm` (já instalados). Novo: `@pixiv/three-vrm-animation` para clipes `.vrma`.
-- Script de build `scripts/converter-mixamo.ts`: FBX do Mixamo → `.vrma`/JSON, usando o mapeamento de ossos Mixamo → VRM do exemplo oficial do three-vrm. Os FBX originais ficam fora do bundle.
+- `three`, `@pixiv/three-vrm` (já instalados). Nenhuma dependência nova: o `FBXLoader` já vem no pacote `three`.
+- Conversão Mixamo → VRM em tempo de execução (`src/avatar3d/animacoes.ts`), com o mapeamento de ossos do exemplo oficial do three-vrm e o `FBXLoader` do three.js, carregados só no chunk 3D.
 - `src/avatar3d/` (mixer, camadas, personas), `src/avatar/gestos.ts` (sorteio sem repetição), `src/espera/temas.ts` (`detectarTema`), `src/voz/` (voz por persona), `src/gemini.ts` (campo `materia` e regra de não inventar citações), `src/configuracoes.ts` e `src/armazenamento.ts`.
 - Specs anteriores: [DONE/2026-10-16_avatar-3d.md](DONE/2026-10-16_avatar-3d.md) e [DONE/2026-10-16_avatar-com-movimentos-humanos.md](DONE/2026-10-16_avatar-com-movimentos-humanos.md).
 
@@ -103,6 +103,10 @@ O personagem é sempre uma **interpretação estilizada** (cartoon, tipo animaç
 - Retratos de referência em domínio público no Wikimedia Commons, para o modelador (ver URL Complementar).
 - Busca de marca no INPI para os nomes "Ada Lovelace", "Oswaldo Cruz", "Machado de Assis", "Humboldt" e "Heródoto" nas classes 9 e 41.
 - Android intermediário físico; 5 alunos para o teste de preferência; 3 pessoas para a revisão de semelhança do Prof. Átomo.
+
+**Como adicionar os assets (sem mudar código):**
+- **Clipe do Mixamo:** baixar em FBX, "Without Skin", 30 fps, salvar em `public/avatar/animacoes/` e listar em `public/avatar/animacoes/manifesto.json` como `{ "arquivo": "falando-1.fbx", "categoria": "speaking" }`. Categorias: `idle`, `listening`, `thinking`, `speaking`, `apontar`, `cumprimentar`; use `"loop": false` em clipes de um disparo.
+- **Modelo de persona:** salvar o `.vrm` em `public/avatar/personas/<id>.vrm`, preencher `modelo` da persona em `src/personas/catalogo.ts` e completar a linha dela em `public/avatar/CREDITOS.md`. Se o enquadramento ficar ruim, ajustar `camera` da persona.
 
 ## Critérios de Aceitação / Entregas
 
@@ -149,10 +153,10 @@ O personagem é sempre uma **interpretação estilizada** (cartoon, tipo animaç
 
 | # | Dúvida | Responsável (PO/dev/design) | Bloqueante? | Resposta |
 |---|--------|-----------------------------|-------------|----------|
-| D01 | As personas da tabela estão aprovadas? Alternativas: História → Dom Pedro II (†1891, mais conhecido dos alunos, porém figura política); Matemática → Pitágoras ou Euler; Química → Lavoisier (†1794) em vez do cientista original. | PO | Sim | |
+| D01 | As personas da tabela estão aprovadas? Alternativas: História → Dom Pedro II (†1891, mais conhecido dos alunos, porém figura política); Matemática → Pitágoras ou Euler; Química → Lavoisier (†1794) em vez do cientista original. | PO | Sim | **Aprovadas todas as personas da tabela** (PO, 2026-10-23). |
 | D02 | Quem produz os 7 modelos: alguém do time em Blender sobre base Rocketbox, ou encomenda a modelador (custo e prazo)? | PO | Sim | |
 | D03 | Estilo visual: cartoon estilizado tipo animação 3D (recomendado) ou semi-realista? | PO / design | Sim | |
-| D04 | Entrega em fases? Sugestão: fase 1 = RF01–RF05 + Lia + Prof. Átomo; fase 2 = demais personas. | PO / dev | Não | |
+| D04 | Entrega em fases? Sugestão: fase 1 = RF01–RF05 + Lia + Prof. Átomo; fase 2 = demais personas. | PO / dev | Não | **Código primeiro, assets depois:** todo o código (RF01–RF13) entra já, com o modelo atual como provisório para todas as personas. Cada modelo `.vrm` e os clipes do Mixamo entram em PRs de assets, sem mudar código (só o catálogo). RF14 é concluído quando o modelo da Lia chegar. |
 | D05 | O nome "Prof. Átomo" está bom ou o PO prefere outro? | PO | Não | |
 | D06 | A busca no INPI encontrou marca registrada para algum dos nomes? Se sim, a persona usa só o primeiro nome ou é trocada. | dev | Sim (para liberar) | |
 

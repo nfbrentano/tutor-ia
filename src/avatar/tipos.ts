@@ -19,6 +19,8 @@ export interface AvatarElementos {
  * Interface unificada para controladores de Avatar (2D SVG e 3D VRM/WebGL).
  * Permite que a tela do Tutor seja desacoplada da implementação visual específica (RF01, CA01).
  */
+import type { Persona } from '../personas/tipos';
+
 export interface ControladorAvatar {
   definirEstado(novoEstado: AvatarEstado, mensagemCustomizada?: string | null): void;
   obterEstado(): AvatarEstado;
@@ -30,6 +32,8 @@ export interface ControladorAvatar {
   pararCicloGestosEspera(): void;
   aplicarProximoGestoEspera(): void;
   destruir(): void;
+  /** Troca o personagem (só o 3D tem personas; o 2D ignora). */
+  definirPersona?(persona: Persona): Promise<void> | void;
 }
 
 export interface AvatarConfig {

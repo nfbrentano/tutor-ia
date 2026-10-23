@@ -174,6 +174,14 @@ export function extrairEValidarFontes(
 }
 
 /**
+ * Extrai o campo "materia" da resposta (RF13 da spec de personas), mesmo de JSON incompleto.
+ */
+export function extrairMateria(rawText: string): string | undefined {
+  const match = /"materia"\s*:\s*"([^"]{1,40})"/.exec(rawText || '');
+  return match ? match[1].trim() : undefined;
+}
+
+/**
  * Faz o parser e sanitização da resposta do Gemini, aceitando o novo formato de etapas,
  * NDJSON por linha, formato legado { texto, imagem_url } ou texto puro (RF02, RF09, CA03, CA09, CA11, CT03).
  */
@@ -510,7 +518,8 @@ export async function callGeminiApi(
             modeloUsado: model,
             texto: textoCompleto,
             imagem_url: null,
-            fontes: fontesValidadas
+            fontes: fontesValidadas,
+            materia: extrairMateria(rawBuffer)
           };
         }
 
@@ -521,7 +530,8 @@ export async function callGeminiApi(
         }
         return {
           ...parsedFinal,
-          modeloUsado: model
+          modeloUsado: model,
+          materia: extrairMateria(rawBuffer)
         };
       }
 
@@ -541,7 +551,8 @@ export async function callGeminiApi(
 
       return {
         ...result,
-        modeloUsado: model
+        modeloUsado: model,
+        materia: extrairMateria(rawContent)
       };
     } catch (err: any) {
       lastError = err instanceof Error ? err : new Error(String(err));
