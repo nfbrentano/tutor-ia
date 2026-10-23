@@ -2,8 +2,10 @@
  * TUTORIA - Ponto de Entrada do Módulo Avatar 3D
  */
 
+export * from './animacoes';
 export * from './avatar3d';
 export * from './lipSync';
+export * from './movimento';
 export * from './poses';
 export * from './tipos';
 

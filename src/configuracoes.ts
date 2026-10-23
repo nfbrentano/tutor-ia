@@ -7,12 +7,14 @@ import {
   getStoredApiKey,
   getStoredAvatarMode,
   getStoredDisabledBookIds,
+  getStoredPersonaFixa,
   getStoredSpeechRate,
   getStoredVoiceUri,
   removeStoredApiKey,
   setStoredApiKey,
   setStoredAvatarMode,
   setStoredBookDisabled,
+  setStoredPersonaFixa,
   setStoredSpeechRate,
   setStoredVoiceUri,
   AvatarModoConfig
@@ -20,6 +22,7 @@ import {
 import { LivroCatalogo } from './conhecimento/tipos';
 import { DiagnosticoAudioVU, verificarProtocolo, verificarSuporteReconhecimentoWeb } from './diagnostico';
 import { callGeminiApi } from './gemini';
+import { descreverPersona, PERSONAS } from './personas';
 import { obterServicoVoz } from './voz';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -355,6 +358,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     selectAvatarMode.addEventListener('change', () => {
       const novoModo = selectAvatarMode.value as AvatarModoConfig;
       setStoredAvatarMode(novoModo);
+    });
+  }
+
+  // Professor fixo ou automático por matéria (RF12 da spec de personas)
+  const selectPersona = document.getElementById('select-persona') as HTMLSelectElement | null;
+  if (selectPersona) {
+    for (const persona of PERSONAS) {
+      const opcao = document.createElement('option');
+      opcao.value = persona.id;
+      opcao.textContent = descreverPersona(persona);
+      selectPersona.appendChild(opcao);
+    }
+    selectPersona.value = getStoredPersonaFixa();
+    selectPersona.addEventListener('change', () => {
+      setStoredPersonaFixa(selectPersona.value);
     });
   }
 });

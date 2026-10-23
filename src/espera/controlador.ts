@@ -15,7 +15,7 @@ export interface EsperaCallbacks {
   avatar: ControladorAvatar;
   lousa: LousaControlador;
   servicoVoz: ServicoVoz;
-  obterConfigVoz: () => { voiceUri?: string; rate?: number };
+  obterConfigVoz: () => { voiceUri?: string; rate?: number; pitch?: number };
 }
 
 export class ControladorEspera {
@@ -128,7 +128,7 @@ export class ControladorEspera {
     if (!this.ativa) return;
 
     this.estaFalandoReacao = true;
-    const { voiceUri, rate } = this.callbacks.obterConfigVoz();
+    const { voiceUri, rate, pitch } = this.callbacks.obterConfigVoz();
 
     const falaPromise = new Promise<void>((resolve) => {
       this.resolverFalaReacao = resolve;
@@ -155,7 +155,7 @@ export class ControladorEspera {
             resolve();
           }
         },
-        { voiceUri, rate }
+        { voiceUri, rate, pitch }
       );
     });
 

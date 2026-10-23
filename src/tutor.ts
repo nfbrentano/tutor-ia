@@ -7,6 +7,7 @@ import {
   getStoredApiKey,
   getStoredAvatarMode,
   getStoredDisabledBookIds,
+  getStoredPersonaFixa,
   getStoredSpeechRate,
   getStoredVoiceUri,
   hasApiKey
@@ -23,6 +24,17 @@ import {
 import { ControladorEspera } from './espera';
 import { callGeminiApi, EtapaExplicacao } from './gemini';
 import { LousaControlador } from './lousa';
+import {
+  ajustarPitchPersona,
+  descreverPersona,
+  detectarMateria,
+  escolherVozParaPersona,
+  normalizarMateria,
+  obterPersonaPorMateria,
+  Persona,
+  resolverPersona,
+  VozDisponivel
+} from './personas';
 import { obterServicoVoz } from './voz';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -35,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const textInput = document.getElementById('text-fallback-input') as HTMLInputElement | null;
   const btnSendText = document.getElementById('btn-send-text') as HTMLButtonElement | null;
   const blockingBanner = document.getElementById('blocking-banner');
+  const personaCredito = document.getElementById('persona-credito');
 
   // Status no Header
   const statusIndicator = document.getElementById('status-indicator');
@@ -64,6 +77,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const servicoVoz = obterServicoVoz();
 
+  // Persona do tutor por matéria (RF06, RF07, RF11, RF12 da spec de personas)
+  let personaAtual: Persona = resolverPersona(null, null, getStoredPersonaFixa());
+  let personaSugeridaPeloGemini: Persona | null = null;
+  let vozesDisponiveis: VozDisponivel[] = [];
+
+  function atualizarListaVozes(): void {
+    servicoVoz
+      .obterVozes()
+      .then(vozes => {
+        if (vozes.length > 0) vozesDisponiveis = vozes;
+      })
+      .catch(() => {});
+  }
+  atualizarListaVozes();
+
+  function obterOpcoesVoz(): { voiceUri?: string; rate: number; pitch: number } {
+    if (vozesDisponiveis.length === 0) atualizarListaVozes();
+    const vozFixa = getStoredVoiceUri();
+    const voiceUri = vozFixa || escolherVozParaPersona(vozesDisponiveis, personaAtual);
+    const nomeVoz = vozesDisponiveis.find(v => v.id === voiceUri)?.name;
+    return {
+      voiceUri: voiceUri || undefined,
+      rate: getStoredSpeechRate() * personaAtual.voz.rate,
+      pitch: ajustarPitchPersona(personaAtual, nomeVoz)
+    };
+  }
+
+  function exibirCreditoPersona(): void {
+    if (personaCredito) personaCredito.textContent = descreverPersona(personaAtual);
+  }
+  exibirCreditoPersona();
+
+  function aplicarPersona(nova: Persona): void {
+    if (nova.id === personaAtual.id) return;
+    personaAtual = nova;
+    exibirCreditoPersona();
+    avatar.definirPersona?.(nova);
+  }
+
   // Função para abrir imagem no lightbox em tela cheia (RF07, CA11)
   function abrirLightbox(url: string, legenda?: string): void {
     if (!lightboxOverlay || !lightboxImg) return;
@@ -89,10 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
     avatar,
     lousa,
     servicoVoz,
-    obterConfigVoz: () => ({
-      voiceUri: getStoredVoiceUri(),
-      rate: getStoredSpeechRate()
-    })
+    obterConfigVoz: () => obterOpcoesVoz()
   });
 
   // Carregamento Progressivo do Avatar 3D sob demanda (RF02, RF03, CA02, CA03, CA04, CA05, RNF01)
@@ -102,13 +151,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (canvas3D) {
       import('./avatar3d')
         .then(async ({ carregarAvatar3D }) => {
-          const avatar3DInstancia = await carregarAvatar3D({
-            canvasElemento: canvas3D,
-            moduloElemento: avatarModule,
-            statusTextoElemento: statusText,
-            micBotaoElemento: btnMic,
-            micDicaElemento: micTip
-          });
+          const avatar3DInstancia = await carregarAvatar3D(
+            {
+              canvasElemento: canvas3D,
+              moduloElemento: avatarModule,
+              statusTextoElemento: statusText,
+              micBotaoElemento: btnMic,
+              micDicaElemento: micTip
+            },
+            { persona: personaAtual }
+          );
 
           if (avatar3DInstancia) {
             // Preserva estado atual da interação (ouvindo, falando, etc.)
@@ -117,6 +169,11 @@ document.addEventListener('DOMContentLoaded', () => {
             avatar.definirEstado(estadoAtual);
             controladorEspera.definirAvatar(avatar);
             avatar2D.destruir();
+            // A persona pode ter mudado enquanto o modelo carregava
+            avatar.definirPersona?.(personaAtual);
+            if (import.meta.env.DEV) {
+              (window as any).__tutorAvatar = avatar3DInstancia;
+            }
           }
         })
         .catch((err) => {
@@ -221,8 +278,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 100);
 
   // Ouve evento disparado pela lousa para fazer o avatar apontar (RF09, CA13)
-  document.addEventListener('lousa:item-exibido', () => {
-    avatar.apontarParaLousa(1800);
+  document.addEventListener('lousa:item-exibido', (evento) => {
+    const elemento = (evento as CustomEvent<{ elemento?: HTMLElement }>).detail?.elemento ?? null;
+    avatar.apontarParaLousa(1800, elemento);
   });
 
   // Atualiza estado visual da chave
@@ -285,6 +343,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Limpa a lousa ao chegar uma nova pergunta (RF10, CA14)
     lousa.limpar();
 
+    // Escolhe a persona antes de responder: a fala anterior já foi interrompida (RF07)
+    const materiaDetectada = detectarMateria(textoLimpo);
+    const personaFixaId = getStoredPersonaFixa();
+    aplicarPersona(
+      materiaDetectada || personaFixaId
+        ? resolverPersona(materiaDetectada, personaAtual, personaFixaId)
+        : personaSugeridaPeloGemini || personaAtual
+    );
+    personaSugeridaPeloGemini = null;
+
     // 1. Adiciona a mensagem do aluno no chat
     chat.adicionarMensagem('student', textoLimpo);
 
@@ -308,8 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           if (etapa.fala && etapa.fala.trim()) {
             avatar.definirEstado('speaking');
-            const voiceUri = getStoredVoiceUri();
-            const rate = getStoredSpeechRate();
+            const opcoesVoz = obterOpcoesVoz();
             await servicoVoz.falar(
               etapa.fala,
               {
@@ -332,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   }
                 }
               },
-              { voiceUri, rate }
+              opcoesVoz
             );
           }
         }
@@ -393,8 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (etapa.fala && etapa.fala.trim()) {
           avatar.definirEstado('speaking');
 
-          const voiceUri = getStoredVoiceUri();
-          const rate = getStoredSpeechRate();
+          const opcoesVoz = obterOpcoesVoz();
 
           await servicoVoz.falar(
             etapa.fala,
@@ -422,7 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
               }
             },
-            { voiceUri, rate }
+            opcoesVoz
           );
         }
       }
@@ -457,6 +523,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Salva a resposta gerada no cache de execução (IndexedDB) para reaproveitamento (RF08, CA09)
       gerenciadorCache.salvarNoCacheExecucao(textoLimpo, resposta);
+
+      // Matéria vinda do Gemini vale para a próxima pergunta sem matéria detectada (RF13)
+      if (!materiaDetectada) {
+        personaSugeridaPeloGemini = obterPersonaPorMateria(normalizarMateria(resposta.materia));
+      }
 
       // Se nenhuma etapa foi emitida via stream (fallback de formato único RF09 / CA11)
       if (!primeiraEtapaIniciada) {
@@ -508,7 +579,7 @@ document.addEventListener('DOMContentLoaded', () => {
           avatar.pararFala();
           avatar.definirEstado('idle');
         }
-      });
+      }, obterOpcoesVoz());
     }
   }
 

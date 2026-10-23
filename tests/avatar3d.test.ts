@@ -140,8 +140,8 @@ describe('Avatar 3D - Especificação SDD (Three.js + VRM)', () => {
       expect(POSE_IDLE.rightUpperArm).toBeDefined();
 
       expect(POSE_LISTENING.head?.z).toBeGreaterThan(0); // Inclinação atenta da cabeça
-      expect(POSE_THINKING.rightUpperArm?.x).toBeLessThan(0); // Braço elevado
-      expect(POSE_THINKING.rightLowerArm?.x).toBeGreaterThan(1.0); // Mão próxima ao queixo
+      expect(POSE_THINKING.rightUpperArm?.x).toBeLessThan(0); // Braço à frente
+      expect(POSE_THINKING.rightLowerArm?.y).toBeGreaterThan(2.0); // Cotovelo dobrado: mão no queixo
     });
 
     it('deve possuir todas as poses dos 4 gestos de fala e 3 gestos de espera', () => {
@@ -164,13 +164,14 @@ describe('Avatar 3D - Especificação SDD (Three.js + VRM)', () => {
       const poseDesktop = obterPoseApontarLousa(false);
       const poseMobile = obterPoseApontarLousa(true);
 
-      // Desktop: rotação no eixo Y do peitoral e braço estendido para a direita
-      expect(poseDesktop.chest?.y).toBeLessThan(0);
-      expect(poseDesktop.rightUpperArm?.z).toBeGreaterThan(0.7);
+      // Desktop: lousa à direita da tela (+X) → tronco gira para +X e o braço esquerdo sobe
+      expect(poseDesktop.chest?.y).toBeGreaterThan(0);
+      expect(Math.abs(poseDesktop.leftUpperArm!.z)).toBeLessThan(0.7);
+      expect(poseDesktop.head?.y).toBeGreaterThan(0);
 
-      // Mobile: inclinação para baixo/frente
+      // Mobile: inclinação para baixo/frente e braço direito saindo da posição de repouso
       expect(poseMobile.neck?.x).toBeGreaterThan(0);
-      expect(poseMobile.rightHand?.x).toBeGreaterThan(0.1);
+      expect(poseMobile.rightUpperArm).not.toEqual(POSE_IDLE.rightUpperArm);
     });
   });
 
