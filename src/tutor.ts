@@ -37,6 +37,31 @@ import {
 } from './personas';
 import { obterServicoVoz } from './voz';
 
+/**
+ * Fecha o lightbox de imagem ampliada ou o modal de trecho de livro ao pressionar Escape (RF07a, CA09).
+ */
+export function configurarFechamentoModaisEscape(
+  lightboxOverlay: HTMLElement | null,
+  modalFonteOverlay: HTMLElement | null,
+  fecharFonte?: () => void
+): () => void {
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape') return;
+    if (lightboxOverlay?.classList.contains('active')) {
+      lightboxOverlay.classList.remove('active');
+    }
+    if (modalFonteOverlay && !modalFonteOverlay.classList.contains('hidden')) {
+      if (fecharFonte) {
+        fecharFonte();
+      } else {
+        modalFonteOverlay.classList.add('hidden');
+      }
+    }
+  };
+  document.addEventListener('keydown', onKeyDown);
+  return () => document.removeEventListener('keydown', onKeyDown);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Elementos do DOM
   const avatarModule = document.getElementById('avatar-module');
@@ -88,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(vozes => {
         if (vozes.length > 0) vozesDisponiveis = vozes;
       })
-      .catch(() => {});
+      .catch(() => { });
   }
   atualizarListaVozes();
 
@@ -360,9 +385,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Funciona inclusive offline (RNF01)
     controladorEspera.iniciarEspera(textoLimpo);
 
-    // 3. Consulta ao Cache (Pré-construído e IndexedDB) (RF07, RF08, RNF06, CA07, CA08, CA09)
+    // 3. Consulta ao Cache (Pré-construído e IndexedDB) respeitando livros desativados (RF05, CA07)
+    const livrosDesativados = getStoredDisabledBookIds();
     try {
-      const respostaEmCache = await gerenciadorCache.buscarEmCache(textoLimpo);
+      const respostaEmCache = await gerenciadorCache.buscarEmCache(textoLimpo, { livrosDesativados });
       if (respostaEmCache) {
         if (speechSequenceId !== currentSequence || currentSignal.aborted) return;
 
@@ -422,7 +448,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 4. Busca trechos relevantes nos livros escolares via BM25 (RF04, RF05, RF06, CA04, CA05, CA11)
-    const livrosDesativados = getStoredDisabledBookIds();
     const resultadosBusca = buscarTrechosRelevantes(textoLimpo, indiceConhecimento, { livrosDesativados });
     const trechosContexto = resultadosBusca.map(r => r.trecho);
 
@@ -508,12 +533,8 @@ document.addEventListener('DOMContentLoaded', () => {
         trechosContexto: trechosContexto.length > 0 ? trechosContexto : undefined,
         onEtapaRecebida: (novaEtapa) => {
           if (speechSequenceId !== currentSequence || currentSignal.aborted) return;
-          if (!primeiraEtapaIniciada) {
-            primeiraEtapaIniciada = true;
-            controladorEspera.notificarPrimeiraEtapaChegou();
-          }
           filaEtapas.push(novaEtapa);
-          consumirFilaEtapas();
+          void consumirFilaEtapas();
         }
       });
 
@@ -530,138 +551,137 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // Se nenhuma etapa foi emitida via stream (fallback de formato único RF09 / CA11)
-      if (!primeiraEtapaIniciada) {
-        primeiraEtapaIniciada = true;
-        await controladorEspera.notificarPrimeiraEtapaChegou();
-        resposta.etapas.forEach(e => filaEtapas.push(e));
-        consumirFilaEtapas();
-      } else if (filaEtapas.length > 0) {
-        consumirFilaEtapas();
-      } else if (!servicoVoz.estaFalando() && speechSequenceId === currentSequence) {
-        avatar.pararFala();
-        avatar.definirEstado('idle');
-      }
-
-      // 7. Exibe a resposta completa no chat com fontes (RF02, RF09, CA06, CA10, CA12)
-      if (!bolhaChatCriada) {
-        bolhaChatCriada = true;
-        chat.adicionarMensagem(
-          'tutor',
-          resposta.textoCompleto,
-          resposta.itensLousa.length > 0 ? resposta.itensLousa : null,
-          resposta.imagem_url,
-          resposta.fontes
-        );
-      }
-
-      // Se a resposta final não contiver itens de lousa e nada estiver aberto, fecha
-      if (resposta.itensLousa.length === 0 && lousa.obterItensAtuais().length === 0) {
-        lousa.fechar();
-      }
-    } catch (erro: any) {
-      if (speechSequenceId !== currentSequence || currentSignal.aborted) return;
-
-      controladorEspera.notificarErro();
-
-      console.error('Erro ao processar dúvida escolar:', erro);
-      const mensagemErro =
-        'Desculpe, ocorreu uma instabilidade ao buscar sua resposta. Por favor, verifique sua API Key nas Configurações.';
-      chat.adicionarMensagem('tutor', mensagemErro);
-      avatar.definirEstado('idle', 'Ocorreu um erro.');
-
-      await servicoVoz.falar(mensagemErro, {
-        onBoundary: (_charIndex, word) => avatar.notificarPalavraFalada(word),
-        onEnd: () => {
-          avatar.pararFala();
-          avatar.definirEstado('idle');
-        },
-        onError: () => {
+        if (!primeiraEtapaIniciada && filaEtapas.length === 0) {
+          resposta.etapas.forEach(e => filaEtapas.push(e));
+          void consumirFilaEtapas();
+        } else if (filaEtapas.length > 0) {
+          void consumirFilaEtapas();
+        } else if (!processandoFila && !servicoVoz.estaFalando() && speechSequenceId === currentSequence) {
           avatar.pararFala();
           avatar.definirEstado('idle');
         }
-      }, obterOpcoesVoz());
+
+        // 7. Exibe a resposta completa no chat com fontes (RF02, RF09, CA06, CA10, CA12)
+        if (!bolhaChatCriada) {
+          bolhaChatCriada = true;
+          chat.adicionarMensagem(
+            'tutor',
+            resposta.textoCompleto,
+            resposta.itensLousa.length > 0 ? resposta.itensLousa : null,
+            resposta.imagem_url,
+            resposta.fontes
+          );
+        }
+
+        // Se a resposta final não contiver itens de lousa e nada estiver aberto, fecha
+        if (resposta.itensLousa.length === 0 && lousa.obterItensAtuais().length === 0) {
+          lousa.fechar();
+        }
+      } catch (erro: any) {
+        if (speechSequenceId !== currentSequence || currentSignal.aborted) return;
+
+        controladorEspera.notificarErro();
+
+        console.error('Erro ao processar dúvida escolar:', erro);
+        const mensagemErro =
+          'Desculpe, ocorreu uma instabilidade ao buscar sua resposta. Por favor, verifique sua API Key nas Configurações.';
+        chat.adicionarMensagem('tutor', mensagemErro);
+        avatar.definirEstado('idle', 'Ocorreu um erro.');
+
+        await servicoVoz.falar(mensagemErro, {
+          onBoundary: (_charIndex, word) => avatar.notificarPalavraFalada(word),
+          onEnd: () => {
+            avatar.pararFala();
+            avatar.definirEstado('idle');
+          },
+          onError: () => {
+            avatar.pararFala();
+            avatar.definirEstado('idle');
+          }
+        }, obterOpcoesVoz());
+      }
     }
-  }
 
   // Interrupção e Controle do Microfone (voz) (RF11, CA13)
   if (btnMic) {
-    btnMic.addEventListener('click', async () => {
-      if (!hasApiKey()) {
-        window.location.href = './configuracoes.html?origem=tutor';
-        return;
-      }
-
-      // Se estiver falando ou esperando, cancela imediatamente (RF11, CA13)
-      if (servicoVoz.estaFalando() || controladorEspera.estaAtiva()) {
-        speechSequenceId++;
-        if (activeAbortController) {
-          activeAbortController.abort();
-          activeAbortController = null;
+      btnMic.addEventListener('click', async () => {
+        if (!hasApiKey()) {
+          window.location.href = './configuracoes.html?origem=tutor';
+          return;
         }
-        controladorEspera.cancelarEspera();
-        await servicoVoz.pararDeFalar();
-        avatar.pararFala();
-        avatar.definirEstado('idle');
-        return;
-      }
 
-      if (servicoVoz.estaOuvindo()) {
-        await servicoVoz.pararDeOuvir();
-        avatar.definirEstado('idle');
-        return;
-      }
-
-      await servicoVoz.ouvir({
-        onStart: () => {
-          avatar.definirEstado('listening', 'Estou ouvindo... pode falar!');
-        },
-        onInterim: (interimTexto) => {
-          avatar.atualizarMensagem(`"${interimTexto}..."`);
-        },
-        onFinal: (finalTexto) => {
-          avatar.atualizarMensagem(`"${finalTexto}"`);
-          processarPergunta(finalTexto);
-        },
-        onError: (erroMsg) => {
-          avatar.definirEstado('idle', erroMsg);
-          chat.adicionarMensagem('tutor', `⚠️ ${erroMsg}`);
-        },
-        onEnd: () => {
-          if (avatar.obterEstado() === 'listening') {
-            avatar.definirEstado('idle');
+        // Se estiver falando ou esperando, cancela imediatamente (RF11, CA13)
+        if (servicoVoz.estaFalando() || controladorEspera.estaAtiva()) {
+          speechSequenceId++;
+          if (activeAbortController) {
+            activeAbortController.abort();
+            activeAbortController = null;
           }
+          controladorEspera.cancelarEspera();
+          await servicoVoz.pararDeFalar();
+          avatar.pararFala();
+          avatar.definirEstado('idle');
+          return;
+        }
+
+        if (servicoVoz.estaOuvindo()) {
+          await servicoVoz.pararDeOuvir();
+          avatar.definirEstado('idle');
+          return;
+        }
+
+        await servicoVoz.ouvir({
+          onStart: () => {
+            avatar.definirEstado('listening', 'Estou ouvindo... pode falar!');
+          },
+          onInterim: (interimTexto) => {
+            avatar.atualizarMensagem(`"${interimTexto}..."`);
+          },
+          onFinal: (finalTexto) => {
+            avatar.atualizarMensagem(`"${finalTexto}"`);
+            processarPergunta(finalTexto);
+          },
+          onError: (erroMsg) => {
+            avatar.definirEstado('idle', erroMsg);
+            chat.adicionarMensagem('tutor', `⚠️ ${erroMsg}`);
+          },
+          onEnd: () => {
+            if (avatar.obterEstado() === 'listening') {
+              avatar.definirEstado('idle');
+            }
+          }
+        });
+      });
+    }
+
+    // Interação do Fallback de Texto
+    function dispararEnvioTexto(): void {
+      if (!textInput) return;
+      const val = textInput.value.trim();
+      if (val) {
+        textInput.value = '';
+        processarPergunta(val);
+      }
+    }
+
+    if (btnSendText) {
+      btnSendText.addEventListener('click', dispararEnvioTexto);
+    }
+
+    if (textInput) {
+      textInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          dispararEnvioTexto();
         }
       });
-    });
-  }
-
-  // Interação do Fallback de Texto
-  function dispararEnvioTexto(): void {
-    if (!textInput) return;
-    const val = textInput.value.trim();
-    if (val) {
-      textInput.value = '';
-      processarPergunta(val);
     }
-  }
 
-  if (btnSendText) {
-    btnSendText.addEventListener('click', dispararEnvioTexto);
-  }
-
-  if (textInput) {
-    textInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        dispararEnvioTexto();
-      }
-    });
-  }
-
-  // Lightbox overlay para fechar ao clicar
-  if (lightboxOverlay) {
-    lightboxOverlay.addEventListener('click', () => {
-      lightboxOverlay.classList.remove('active');
-    });
-  }
-});
+    // Lightbox overlay para fechar ao clicar e modais fecham com Escape (RF07a, CA09)
+    if (lightboxOverlay) {
+      lightboxOverlay.addEventListener('click', () => {
+        lightboxOverlay.classList.remove('active');
+      });
+    }
+    configurarFechamentoModaisEscape(lightboxOverlay, modalFonteOverlay, fecharModalFonte);
+  });

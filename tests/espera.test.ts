@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CONFIG_ESPERA,
   ControladorEspera,
@@ -10,12 +10,15 @@ import {
 } from '../src/espera';
 import {
   callGeminiApi,
+  EstadoParserIncremental,
   limparCacheModelos,
   obterModelosOrdenados,
   parseGeminiResponse,
+  processarBufferIncremental,
   registrarModelo404,
   registrarModeloSucesso
 } from '../src/gemini';
+import { WebServicoVoz } from '../src/voz/web';
 
 describe('Espera Ativa - Banco de Frases e Sorteio (RF01, CA01, CA02, CA16, RNF06)', () => {
   it('CT15 / CA16: banco de frases deve ter pelo menos 15 frases sem afirmar conteúdo de matéria', () => {
@@ -223,5 +226,179 @@ describe('Gemini - Modelo Lembrado e Streaming (RF08 - RF10, CA09 - CA12)', () =
     expect(parsed.etapas[0].fala).toBe('Passo 1');
     expect(parsed.etapas[1].fala).toBe('Passo 2');
     expect(parsed.itensLousa.length).toBe(1);
+  });
+
+  it('CT08 / CA08: processarBufferIncremental emite cada etapa exatamente 1 vez sem reprocessar anteriores', () => {
+    const emitidas: Array<{ fala: string; lousa: unknown }> = [];
+    const recebidas: Array<{ fala: string; lousa: unknown }> = [];
+    const callback = vi.fn((e) => recebidas.push(e));
+    const estado: EstadoParserIncremental = {
+      cursorNdjson: 0,
+      cursorArrayEtapas: 0,
+      objetosProcessadosNoArray: 0
+    };
+
+    const jsonCompleto =
+      '{"materia":"matematica","etapas":[' +
+      '{"fala":"Primeiro passo.","lousa":{"tipo":"texto","conteudo":"1"}},' +
+      '{"fala":"Segundo passo.","lousa":{"tipo":"formula","conteudo":"x = 2"}},' +
+      '{"fala":"Terceiro passo.","lousa":null}' +
+      ']}';
+
+    const chunks = [
+      jsonCompleto.slice(0, 40),
+      jsonCompleto.slice(40, 110),
+      jsonCompleto.slice(110, 180),
+      jsonCompleto.slice(180)
+    ];
+
+    let buffer = '';
+    for (const chunk of chunks) {
+      buffer += chunk;
+      processarBufferIncremental(buffer, emitidas as any, callback, estado);
+    }
+
+    expect(callback).toHaveBeenCalledTimes(3);
+    expect(emitidas.map(e => e.fala)).toEqual(['Primeiro passo.', 'Segundo passo.', 'Terceiro passo.']);
+    expect(recebidas.map(e => e.fala)).toEqual(['Primeiro passo.', 'Segundo passo.', 'Terceiro passo.']);
+  });
+});
+
+describe('WebServicoVoz e Passagem de Vez (CT01 - CT03, CA01 - CA03)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('CT01 / CA01: WebServicoVoz.falar aguarda utterance.onend antes de resolver a Promise', async () => {
+    vi.useRealTimers();
+    let ultimaUtterance: any = null;
+    class MockUtterance {
+      text: string;
+      lang = '';
+      rate = 1;
+      pitch = 1;
+      voice: any = null;
+      onstart: (() => void) | null = null;
+      onboundary: ((e: any) => void) | null = null;
+      onend: (() => void) | null = null;
+      onerror: ((e: any) => void) | null = null;
+      constructor(text: string) {
+        this.text = text;
+      }
+    }
+
+    const mockSpeechSynthesis = {
+      getVoices: vi.fn(() => []),
+      cancel: vi.fn(),
+      speak: vi.fn((u: any) => {
+        ultimaUtterance = u;
+        u.onstart?.();
+      })
+    };
+
+    vi.stubGlobal('SpeechSynthesisUtterance', MockUtterance);
+    Object.defineProperty(window, 'speechSynthesis', { value: mockSpeechSynthesis, configurable: true });
+
+    const servico = new WebServicoVoz();
+    let resolveu = false;
+    const promessa = servico.falar('Primeira etapa').then(() => {
+      resolveu = true;
+    });
+
+    await new Promise(r => setTimeout(r, 40));
+    expect(resolveu).toBe(false);
+    expect(servico.estaFalando()).toBe(true);
+
+    ultimaUtterance.onend();
+    await promessa;
+    expect(resolveu).toBe(true);
+    expect(servico.estaFalando()).toBe(false);
+  });
+
+  it('CT02 / CA02: pararDeFalar resolve imediatamente (<= 50 ms) Promise pendente de falar()', async () => {
+    vi.useRealTimers();
+    class MockUtterance {
+      onend: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      constructor(public text: string) { }
+    }
+
+    const mockSpeechSynthesis = {
+      getVoices: vi.fn(() => []),
+      cancel: vi.fn(),
+      speak: vi.fn()
+    };
+
+    vi.stubGlobal('SpeechSynthesisUtterance', MockUtterance);
+    Object.defineProperty(window, 'speechSynthesis', { value: mockSpeechSynthesis, configurable: true });
+
+    const servico = new WebServicoVoz();
+    const promessa = servico.falar('Texto longo que será interrompido');
+
+    const inicio = performance.now();
+    await servico.pararDeFalar();
+    await promessa;
+    const duracao = performance.now() - inicio;
+
+    expect(duracao).toBeLessThanOrEqual(50);
+    expect(mockSpeechSynthesis.cancel).toHaveBeenCalled();
+    expect(servico.estaFalando()).toBe(false);
+  });
+
+  it('CT03 / CA03: notificarPrimeiraEtapaChegou aguarda término da frase de espera antes de iniciar etapa 1', async () => {
+    vi.useFakeTimers();
+    let finalizarReacao: (() => void) | null = null;
+    const mockAvatar: any = {
+      definirEstado: vi.fn(),
+      apontarParaLousa: vi.fn(),
+      notificarPalavraFalada: vi.fn(),
+      pararFala: vi.fn(),
+      pararCicloGestosEspera: vi.fn()
+    };
+    const mockLousa: any = {
+      limpar: vi.fn(),
+      adicionarItem: vi.fn().mockResolvedValue(document.createElement('div')),
+      fechar: vi.fn()
+    };
+    const mockServicoVoz: any = {
+      falar: vi.fn((_texto, cbs) => {
+        cbs?.onStart?.();
+        return new Promise<void>((resolve) => {
+          finalizarReacao = () => {
+            cbs?.onEnd?.();
+            resolve();
+          };
+        });
+      }),
+      pararDeFalar: vi.fn().mockResolvedValue(undefined),
+      estaFalando: vi.fn().mockReturnValue(false)
+    };
+
+    const controlador = new ControladorEspera({
+      avatar: mockAvatar,
+      lousa: mockLousa,
+      servicoVoz: mockServicoVoz,
+      obterConfigVoz: () => ({})
+    });
+
+    controlador.iniciarEspera('Como funciona a fotossíntese?');
+    // Avança para disparar a frase de reação inicial
+    await vi.advanceTimersByTimeAsync(CONFIG_ESPERA.tempoReacaoInicialMs + 5);
+    expect(mockServicoVoz.falar).toHaveBeenCalledTimes(1);
+
+    let etapa1Liberada = false;
+    const passagemPromise = controlador.notificarPrimeiraEtapaChegou().then(() => {
+      etapa1Liberada = true;
+    });
+
+    await Promise.resolve();
+    expect(etapa1Liberada).toBe(false);
+
+    // Quando a frase de reação termina (antes do teto de 1.5s), a etapa 1 é liberada
+    finalizarReacao!();
+    await passagemPromise;
+    expect(etapa1Liberada).toBe(true);
   });
 });

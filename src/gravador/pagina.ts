@@ -58,6 +58,14 @@ let cabecaNeutra: Quat | undefined;
 let ultimaCabecaBruta: Quat | undefined;
 let quadros: QuadroGravado[] = [];
 let tocando: number | null = null;
+let urlVideoObjeto: string | null = null;
+
+function revogarUrlVideoObjeto(): void {
+  if (urlVideoObjeto) {
+    URL.revokeObjectURL(urlVideoObjeto);
+    urlVideoObjeto = null;
+  }
+}
 
 function mostrarMensagem(texto: string, tipo: 'ok' | 'erro' | '' = ''): void {
   mensagem.textContent = texto;
@@ -102,6 +110,7 @@ function processarQuadroAtual(timestampMs: number, dt: number): { rotacoes: Rota
    WEBCAM (RF02a)
    ========================================================================== */
 function pararCamera(): void {
+  revogarUrlVideoObjeto();
   stream?.getTracks().forEach(t => t.stop());
   stream = null;
   btnGravar.disabled = true;
@@ -198,7 +207,9 @@ function selecionarArquivo(): void {
   if (!arquivo) return;
   pararCamera();
   video.srcObject = null;
-  video.src = URL.createObjectURL(arquivo);
+  revogarUrlVideoObjeto();
+  urlVideoObjeto = URL.createObjectURL(arquivo);
+  video.src = urlVideoObjeto;
   video.load();
   btnProcessar.disabled = false;
   mostrarMensagem('');

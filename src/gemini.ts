@@ -29,7 +29,7 @@ export function limparCacheModelos(): void {
       localStorage.removeItem(CHAVE_MODELO_SUCESSO);
       localStorage.removeItem(CHAVE_MODELOS_404);
     }
-  } catch {}
+  } catch { }
 }
 
 export function registrarModeloSucesso(modelo: string): void {
@@ -41,7 +41,7 @@ export function registrarModeloSucesso(modelo: string): void {
       localStorage.setItem(CHAVE_MODELO_SUCESSO, JSON.stringify(memoriaModeloSucesso));
       localStorage.setItem(CHAVE_MODELOS_404, JSON.stringify(memoriaModelos404));
     }
-  } catch {}
+  } catch { }
 }
 
 export function registrarModelo404(modelo: string): void {
@@ -55,7 +55,7 @@ export function registrarModelo404(modelo: string): void {
       localStorage.setItem(CHAVE_MODELOS_404, JSON.stringify(memoriaModelos404));
       localStorage.removeItem(CHAVE_MODELO_SUCESSO);
     }
-  } catch {}
+  } catch { }
 }
 
 export function obterModelosOrdenados(customModels?: string[]): string[] {
@@ -86,7 +86,7 @@ export function obterModelosOrdenados(customModels?: string[]): string[] {
         }
       }
     }
-  } catch {}
+  } catch { }
 
   // Pula modelos que deram 404 dentro do período de 24h
   const modelosDisponiveis = modelosBase.filter(m => {
@@ -113,16 +113,61 @@ export function obterModelosOrdenados(customModels?: string[]): string[] {
 }
 
 /**
- * Remove formatações markdown e referências textuais antes da síntese de voz.
+ * Remove formatações markdown, comandos LaTeX e referências textuais antes da síntese de voz (RF04, CA06).
  */
 export function cleanTextForSpeech(text: string): string {
   if (!text) return '';
-  return text
+  let limpo = text
     .replace(/```[\s\S]*?```/g, '') // Blocos de código
     .replace(/`([^`]+)`/g, '$1') // Código inline
     .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Links markdown
-    .replace(/[*_#~>]/g, '') // Caracteres markdown
-    .replace(/https?:\/\/\S+/g, '') // URLs
+    .replace(/https?:\/\/\S+/g, ''); // URLs
+
+  // Remove delimitadores LaTeX e modificadores de tamanho
+  limpo = limpo
+    .replace(/\$\$?/g, '')
+    .replace(/\\(?:left|right)(?![a-zA-Z])/g, '')
+    .replace(/\\(?:text|mathrm)\{([^{}]*)\}/g, '$1');
+
+  // Frações e raízes em leitura natural
+  for (let i = 0; i < 2; i++) {
+    limpo = limpo.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '$1 sobre $2');
+  }
+  limpo = limpo
+    .replace(/\\sqrt\[([^\]]+)\]\{([^{}]+)\}/g, 'raiz $1 de $2')
+    .replace(/\\sqrt\{([^{}]+)\}/g, 'raiz quadrada de $1');
+
+  // Setas, operadores e comparações matemáticas/químicas
+  limpo = limpo
+    .replace(/\\(?:to|rightarrow|longrightarrow)(?![a-zA-Z])/g, ' gera ')
+    .replace(/\\(?:leftarrow|longleftarrow)(?![a-zA-Z])/g, ' vem de ')
+    .replace(/\\(?:leftrightarrow|rightleftharpoons)(?![a-zA-Z])/g, ' em equilíbrio com ')
+    .replace(/\s*->\s*/g, ' gera ')
+    .replace(/→/g, ' gera ')
+    .replace(/\\(?:times|cdot)(?![a-zA-Z])/g, ' vezes ')
+    .replace(/\\div(?![a-zA-Z])/g, ' dividido por ')
+    .replace(/\\pm(?![a-zA-Z])/g, ' mais ou menos ')
+    .replace(/\\(?:neq|ne)(?![a-zA-Z])/g, ' diferente de ')
+    .replace(/\\(?:leq|le)(?![a-zA-Z])/g, ' menor ou igual a ')
+    .replace(/\\(?:geq|ge)(?![a-zA-Z])/g, ' maior ou igual a ')
+    .replace(/\\approx(?![a-zA-Z])/g, ' aproximadamente ')
+    .replace(/\\pi(?![a-zA-Z])/g, ' pi ')
+    .replace(/\\Delta(?![a-zA-Z])/g, ' delta ');
+
+  // Subscritos (ex.: H_2O -> H2O, C_6H_{12}O_6 -> C6H12O6) e sobrescritos (ex.: x^2 -> x ao quadrado)
+  limpo = limpo
+    .replace(/_\{([^{}]+)\}/g, '$1')
+    .replace(/_([0-9a-zA-Z]+)/g, '$1')
+    .replace(/\^\{?2\}?(?![0-9a-zA-Z])/g, ' ao quadrado')
+    .replace(/\^\{?3\}?(?![0-9a-zA-Z])/g, ' ao cubo')
+    .replace(/\^\{([^{}]+)\}/g, ' elevado a $1')
+    .replace(/\^([0-9a-zA-Z]+)/g, ' elevado a $1');
+
+  // Remove comandos LaTeX residuais, chaves e caracteres markdown
+  return limpo
+    .replace(/\\[a-zA-Z]+/g, ' ')
+    .replace(/[{}]/g, '')
+    .replace(/[*_#~>]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -459,6 +504,11 @@ export async function callGeminiApi(
       if (querStreaming && response.body && typeof (response.body as any).getReader === 'function') {
         const reader = (response.body as any).getReader();
         const decoder = new TextDecoder();
+        const rawBufferState = {
+          cursorNdjson: 0,
+          cursorArrayEtapas: 0,
+          objetosProcessadosNoArray: 0
+        };
         let rawBuffer = '';
         let sseLineBuffer = '';
         const etapasEmitidas: EtapaExplicacao[] = [];
@@ -486,7 +536,7 @@ export async function callGeminiApi(
                   if (parte) {
                     rawBuffer += parte;
                     // Verifica se linhas completas de etapa surgiram no buffer
-                    processarBufferIncremental(rawBuffer, etapasEmitidas, opcoes.onEtapaRecebida);
+                    processarBufferIncremental(rawBuffer, etapasEmitidas, opcoes.onEtapaRecebida, rawBufferState);
                   }
                 } catch {
                   // Linha sse parcial, aguarda próximo chunk
@@ -509,7 +559,7 @@ export async function callGeminiApi(
           try {
             const parsedBuffer = JSON.parse(rawBuffer);
             fontesValidadas = extrairEValidarFontes(parsedBuffer.fontes, opcoes.trechosContexto);
-          } catch {}
+          } catch { }
 
           return {
             etapas: etapasEmitidas,
@@ -572,101 +622,123 @@ export async function callGeminiApi(
   throw lastError || new Error('Não foi possível obter resposta dos modelos do Gemini.');
 }
 
-/**
- * Extrai etapas completas do buffer acumulado conforme chegam durante o streaming (RF08, CA09, CA10).
- * Utiliza balanceamento de chaves e strings para suportar estruturas aninhadas sem quebrar (tabelas, listas, fórmulas).
- */
-function processarBufferIncremental(
-  buffer: string,
-  etapasEmitidas: EtapaExplicacao[],
-  callback?: (etapa: EtapaExplicacao) => void
-): void {
-  if (!callback) return;
-
-  // 1. Tenta extrair linhas completas NDJSON
-  const lines = buffer.split('\n');
-  for (let i = 0; i < lines.length - 1; i++) {
-    const line = lines[i].trim().replace(/^,|,$/g, '');
-    if (!line) continue;
-    try {
-      const obj = JSON.parse(line);
-      if (obj && typeof obj.fala === 'string' && obj.fala.trim()) {
-        const jaEmitida = etapasEmitidas.some(e => e.fala === obj.fala.trim());
-        if (!jaEmitida) {
-          const novaEtapa: EtapaExplicacao = {
-            fala: obj.fala.trim(),
-            lousa: obj.lousa || null
-          };
-          etapasEmitidas.push(novaEtapa);
-          callback(novaEtapa);
-        }
-      }
-    } catch {
-      // Linha parcial, continua
-    }
-  }
-
-  // 2. Parser robusto de objetos no array "etapas": [ ... ]
-  const etapasIndex = buffer.indexOf('"etapas"');
-  if (etapasIndex !== -1) {
-    const startIndex = buffer.indexOf('[', etapasIndex);
-    if (startIndex !== -1) {
-      let depth = 0;
-      let inString = false;
-      let escape = false;
-      let objStart = -1;
-
-      for (let i = startIndex + 1; i < buffer.length; i++) {
-        const char = buffer[i];
-
-        if (escape) {
-          escape = false;
-          continue;
-        }
-
-        if (char === '\\') {
-          escape = true;
-          continue;
-        }
-
-        if (char === '"') {
-          inString = !inString;
-          continue;
-        }
-
-        if (inString) continue;
-
-        if (char === '{') {
-          if (depth === 0) {
-            objStart = i;
-          }
-          depth++;
-        } else if (char === '}') {
-          depth--;
-          if (depth === 0 && objStart !== -1) {
-            const jsonStr = buffer.slice(objStart, i + 1);
-            try {
-              const obj = JSON.parse(jsonStr);
-              if (obj && typeof obj.fala === 'string' && obj.fala.trim()) {
-                const jaEmitida = etapasEmitidas.some(e => e.fala === obj.fala.trim());
-                if (!jaEmitida) {
-                  const novaEtapa: EtapaExplicacao = {
-                    fala: obj.fala.trim(),
-                    lousa: obj.lousa || null
-                  };
-                  etapasEmitidas.push(novaEtapa);
-                  callback(novaEtapa);
-                }
-              }
-            } catch {
-              // Objeto com erro sintático parcial
-            }
-            objStart = -1;
-          }
-        } else if (char === ']' && depth === 0) {
-          break;
-        }
-      }
-    }
-  }
+export interface EstadoParserIncremental {
+  cursorNdjson: number;
+  cursorArrayEtapas: number;
+  objetosProcessadosNoArray: number;
 }
+
+const MAX_ETAPAS_EXPLICACAO = 8;
+
+/**
+ * Extrai etapas completas do buffer acumulado conforme chegam durante o streaming (RF06, RF08, CA08, CA09, CA10).
+ * Usa cursores incrementais no estado para não reprocessar etapas já entregues a cada chunk SSE.
+ */
+  export function processarBufferIncremental(
+    buffer: string,
+    etapasEmitidas: EtapaExplicacao[],
+  callback?: (etapa: EtapaExplicacao) => void,
+    estado?: EstadoParserIncremental
+  ): void {
+  if (!callback || etapasEmitidas.length >= MAX_ETAPAS_EXPLICACAO) return;
+
+      // 1. Parser incremental no array "etapas": [ ... ]
+      const matchEtapas = /"etapas"\s*:\s*\[/.exec(buffer);
+      if (matchEtapas) {
+        const startIndex = matchEtapas.index + matchEtapas[0].length - 1;
+        const inicioVarredura = Math.max(startIndex + 1, estado?.cursorArrayEtapas ?? 0);
+        let depth = 0;
+        let inString = false;
+        let escape = false;
+        let objStart = -1;
+        let indiceObjeto = estado ? estado.objetosProcessadosNoArray : 0;
+
+          for (let i = inicioVarredura; i < buffer.length; i++) {
+            const char = buffer[i];
+
+            if (escape) {
+              escape = false;
+              continue;
+            }
+
+            if (char === '\\') {
+              escape = true;
+              continue;
+            }
+
+            if (char === '"') {
+              inString = !inString;
+              continue;
+            }
+
+            if (inString) continue;
+
+            if (char === '{') {
+              if (depth === 0) {
+                objStart = i;
+              }
+              depth++;
+            } else if (char === '}') {
+              depth--;
+              if (depth === 0 && objStart !== -1) {
+                      const deveProcessar = estado ? true : indiceObjeto >= etapasEmitidas.length;
+                      indiceObjeto++;
+                      if (estado) {
+                        estado.cursorArrayEtapas = i + 1;
+                        estado.objetosProcessadosNoArray = indiceObjeto;
+                      }
+                      if (deveProcessar && etapasEmitidas.length < MAX_ETAPAS_EXPLICACAO) {
+                        const jsonStr = buffer.slice(objStart, i + 1);
+                        try {
+                          const obj = JSON.parse(jsonStr);
+                          if (obj && typeof obj.fala === 'string' && obj.fala.trim()) {
+                            const novaEtapa: EtapaExplicacao = {
+                              fala: obj.fala.trim(),
+                              lousa: obj.lousa || null
+                            };
+                            etapasEmitidas.push(novaEtapa);
+                            callback(novaEtapa);
+                          }
+                        } catch {
+                          // Objeto com erro sintático parcial
+                        }
+                      }
+                      objStart = -1;
+                      if (etapasEmitidas.length >= MAX_ETAPAS_EXPLICACAO) break;
+                    }
+                  } else if (char === ']' && depth === 0) {
+                    if (estado) {
+                      estado.cursorArrayEtapas = i + 1;
+                    }
+                    break;
+                  }
+                }
+    return;
+              }
+
+              // 2. Fallback para formato NDJSON (uma etapa por linha) enquanto não houver chave "etapas"
+              let cursor = estado?.cursorNdjson ?? 0;
+              let novaLinhaIdx = buffer.indexOf('\n', cursor);
+              while (novaLinhaIdx !== -1 && etapasEmitidas.length < MAX_ETAPAS_EXPLICACAO) {
+                const line = buffer.slice(cursor, novaLinhaIdx).trim().replace(/^,|,$/g, '');
+                cursor = novaLinhaIdx + 1;
+                if (estado) estado.cursorNdjson = cursor;
+
+                if (line) {
+                  try {
+                    const obj = JSON.parse(line);
+                    if (obj && typeof obj.fala === 'string' && obj.fala.trim()) {
+                      const novaEtapa: EtapaExplicacao = {
+                        fala: obj.fala.trim(),
+                        lousa: obj.lousa || null
+                      };
+                      etapasEmitidas.push(novaEtapa);
+                      callback(novaEtapa);
+                    }
+                  } catch {
+                    // Linha parcial ou cabeçalho não-etapa
+                  }
+                }
+                novaLinhaIdx = buffer.indexOf('\n', cursor);
+              }
+            }

@@ -205,14 +205,17 @@ describe('Avatar 3D - Especificação SDD (Three.js + VRM)', () => {
     });
   });
 
-  describe('CT13 / CA13: Validação do Modelo VRM Oficial (public/avatar/tutor.vrm)', () => {
-    it('o arquivo tutor.vrm deve existir, ter tamanho adequado e esqueleto humanoide completo com expressões', () => {
-      const vrmPath = path.resolve(__dirname, '../public/avatar/tutor.vrm');
+  describe('CT13 / CA12, RF14: Validação do Modelo VRM Padrão (public/avatar/personas/lia.vrm)', () => {
+    it('o arquivo tutor.vrm provisório não deve mais existir e lia.vrm deve cumprir os limites do RNF01', () => {
+      const provisorioPath = path.resolve(__dirname, '../public/avatar/tutor.vrm');
+      expect(fs.existsSync(provisorioPath)).toBe(false);
+
+      const vrmPath = path.resolve(__dirname, '../public/avatar/personas/lia.vrm');
       expect(fs.existsSync(vrmPath)).toBe(true);
 
       const stats = fs.statSync(vrmPath);
       const tamanhoMB = stats.size / (1024 * 1024);
-      expect(tamanhoMB).toBeLessThanOrEqual(25.0);
+      expect(tamanhoMB).toBeLessThanOrEqual(6.0);
 
       const buffer = fs.readFileSync(vrmPath);
       const magic = buffer.readUInt32LE(0);
@@ -222,7 +225,7 @@ describe('Avatar 3D - Especificação SDD (Three.js + VRM)', () => {
       const jsonBuffer = buffer.subarray(20, 20 + chunkLength);
       const gltf = JSON.parse(jsonBuffer.toString('utf8'));
 
-      // Verifica triângulos
+      // Verifica triângulos (RNF01: ≤ 30 mil) e materiais (≤ 4)
       let totalTriangulos = 0;
       for (const mesh of gltf.meshes || []) {
         for (const prim of mesh.primitives || []) {
@@ -232,20 +235,21 @@ describe('Avatar 3D - Especificação SDD (Three.js + VRM)', () => {
           }
         }
       }
-      expect(totalTriangulos).toBeLessThanOrEqual(50000);
+      expect(totalTriangulos).toBeGreaterThan(500);
+      expect(totalTriangulos).toBeLessThanOrEqual(30000);
+      expect((gltf.materials || []).length).toBeLessThanOrEqual(4);
 
-      // Verifica esqueleto humanoide (VRM 0.x array ou VRM 1.0 object)
-      const bones = gltf.extensions?.VRM?.humanoid?.humanBones || gltf.extensions?.VRMC_vrm?.humanoid?.humanBones;
+      // Verifica esqueleto humanoide VRM 1.0 completo (inclui dedos)
+      const bones = gltf.extensions?.VRMC_vrm?.humanoid?.humanBones;
       expect(bones).toBeDefined();
-      const bonesCount = Array.isArray(bones) ? bones.length : Object.keys(bones).length;
-      expect(bonesCount).toBeGreaterThan(15);
+      expect(Object.keys(bones).length).toBeGreaterThanOrEqual(54);
 
-      // Verifica metadados de licença aberta (VRM Public License ou Creative Commons)
-      const vrmMeta = gltf.extensions?.VRM?.meta || gltf.extensions?.VRMC_vrm?.meta;
+      // Verifica metadados de licença aberta (VRM Public License)
+      const vrmMeta = gltf.extensions?.VRMC_vrm?.meta;
       expect(vrmMeta).toBeDefined();
-      const license = (vrmMeta?.licenseName || vrmMeta?.licenseUrl || '').toLowerCase();
+      const license = (vrmMeta?.licenseUrl || '').toLowerCase();
       const redistribuicaoPermitida = vrmMeta?.allowRedistribution === true || vrmMeta?.commercialUsage === 'corporation';
-      expect(license.includes('cc') || license.includes('vrm.dev') || redistribuicaoPermitida).toBeTruthy();
+      expect(license.includes('vrm.dev') || redistribuicaoPermitida).toBeTruthy();
     });
   });
 

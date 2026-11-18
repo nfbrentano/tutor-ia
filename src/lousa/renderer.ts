@@ -42,8 +42,9 @@ export function renderizarItemLousa(
       ol.className = 'lousa-conteudo-passos';
       passos.forEach((p, idx) => {
         const li = document.createElement('li');
+        const textoSemPrefixo = String(p).replace(/^\s*\d+[\.\)\-]\s*/, '');
         li.innerHTML = `<span class="passo-numero">${idx + 1}</span><div class="passo-corpo">${formatarFormula(
-          String(p)
+          textoSemPrefixo
         )}</div>`;
         ol.appendChild(li);
       });

@@ -7,6 +7,7 @@ import {
   renderizarItemLousa,
   sanitizarSvg
 } from '../src/lousa';
+import { configurarFechamentoModaisEscape } from '../src/tutor';
 
 describe('Lousa - Sanitização e Formatação', () => {
   it('CT04: deve formatar fórmulas com sobrescritos e subscritos', () => {
@@ -14,6 +15,26 @@ describe('Lousa - Sanitização e Formatação', () => {
     expect(formatarFormula('H_2O + CO_2')).toBe('H<sub>2</sub>O + CO<sub>2</sub>');
     expect(formatarFormula('E = mc^2')).toBe('E = mc<sup>2</sup>');
     expect(formatarFormula('a_n = a_1 + (n - 1)r')).toBe('a<sub>n</sub> = a<sub>1</sub> + (n - 1)r');
+  });
+
+  it('CT04 / CA04 / RNF01: deve converter LaTeX comum mantendo proteção contra XSS', () => {
+    const htmlFrac = formatarFormula('\\frac{1}{2} + \\frac{1}{3} = \\frac{5}{6}');
+    expect(htmlFrac).not.toContain('\\frac');
+    expect(htmlFrac).toContain('<sup>1</sup>');
+    expect(htmlFrac).toContain('<sub>2</sub>');
+
+    const htmlQuim = formatarFormula('6 CO_2 + 6 H_2O + Luz \\to C_6H_{12}O_6 + 6 O_2');
+    expect(htmlQuim).not.toContain('\\to');
+    expect(htmlQuim).toContain('→');
+    expect(htmlQuim).toContain('H<sub>2</sub>O');
+    expect(htmlQuim).toContain('H<sub>12</sub>');
+
+    const htmlSqrt = formatarFormula('\\sqrt{9} \\times 2 \\neq 5');
+    expect(htmlSqrt).toBe('√(9) × 2 ≠ 5');
+
+    const htmlXss = formatarFormula('\\frac{<script>alert(1)</script>}{2}');
+    expect(htmlXss).not.toContain('<script>');
+    expect(htmlXss).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
   });
 
   it('CT08: deve sanitizar SVG contra XSS (script e onload) mantendo elementos válidos', () => {
@@ -68,6 +89,16 @@ describe('Lousa - Renderização de Tipos de Item (RF03, RF06, CA04, CA08)', () 
     expect(lis?.length).toBe(3);
     expect(lis?.[0].querySelector('.passo-corpo')?.textContent).toBe('Isole o x');
     expect(lis?.[0].querySelector('.passo-numero')?.textContent).toBe('1');
+  });
+
+  it('CT05 / CA05: deve remover numeração duplicada nos itens de passos', () => {
+    const item: ItemLousa = {
+      tipo: 'passos',
+      conteudo: ['1. Calcular o MMC', '2) Somar numeradores', '3- Simplificar']
+    };
+    const el = renderizarItemLousa(item);
+    const corpos = Array.from(el!.querySelectorAll('.passo-corpo')).map(n => n.textContent);
+    expect(corpos).toEqual(['Calcular o MMC', 'Somar numeradores', 'Simplificar']);
   });
 
   it('deve renderizar item do tipo lista', () => {
@@ -246,5 +277,19 @@ describe('LousaControlador - Ciclo de Vida e Eventos (RF01, RF09, RF10, CA13, CA
     expect(controlador.estaAberta()).toBe(true);
     expect(controlador.obterItensAtuais().length).toBe(2);
     expect(corpo.children.length).toBe(2);
+  });
+
+  it('CT09 / CA09: deve fechar lightbox e modal de fonte ao pressionar Escape', () => {
+    const lightbox = document.createElement('div');
+    lightbox.className = 'lightbox-overlay active';
+    const modalFonte = document.createElement('div');
+    modalFonte.className = 'modal-fonte-overlay';
+
+    const remover = configurarFechamentoModaisEscape(lightbox, modalFonte);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+    expect(lightbox.classList.contains('active')).toBe(false);
+    expect(modalFonte.classList.contains('hidden')).toBe(true);
+    remover();
   });
 });

@@ -184,6 +184,12 @@
   vertical-align: sub;
 }
 
+.formula-frac {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+}
+
 /* Tipo: Passos Numerados */
 .lousa-conteudo-passos {
   list-style: none;

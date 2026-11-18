@@ -17,28 +17,58 @@ export function escapeHtml(texto: string): string {
 }
 
 /**
- * Converte notações matemáticas simples de sobrescrito e subscrito em HTML seguro.
- * Exemplos:
- * x^2 -> x<sup>2</sup>
- * x^{n+1} -> x<sup>n+1</sup>
- * H_2O -> H<sub>2</sub>O
- * a_n -> a<sub>n</sub>
+ * Converte notações matemáticas LaTeX comuns, sobrescritos e subscritos em HTML seguro.
+ * Toda conversão opera após `escapeHtml()` para impedir injeção de HTML/XSS (RF03, RNF01).
  */
 export function formatarFormula(formula: string): string {
   if (!formula) return '';
   const escapado = escapeHtml(formula);
 
+  // Remove delimitadores LaTeX ($...$, $$...$$) e modificadores de tamanho (\left, \right)
+  let processado = escapado
+    .replace(/\$\$?/g, '')
+    .replace(/\\(?:left|right)(?![a-zA-Z])/g, '');
+
+  // Texto e raízes em LaTeX
+  processado = processado
+    .replace(/\\(?:text|mathrm)\{([^{}]*)\}/g, '$1')
+    .replace(/\\sqrt\[([^\]]+)\]\{([^{}]+)\}/g, '<sup>$1</sup>√($2)')
+    .replace(/\\sqrt\{([^{}]+)\}/g, '√($1)');
+
+  // Frações \frac{a}{b} (duas passadas para suportar frações aninhadas simples)
+  for (let i = 0; i < 2; i++) {
+    processado = processado.replace(
+      /\\frac\{([^{}]+)\}\{([^{}]+)\}/g,
+      '<span class="formula-frac"><sup>$1</sup>⁄<sub>$2</sub></span>'
+    );
+  }
+
+  // Setas, operadores e símbolos matemáticos/químicos
+  processado = processado
+    .replace(/\\(?:to|rightarrow|longrightarrow)(?![a-zA-Z])/g, '→')
+    .replace(/\\(?:leftarrow|longleftarrow)(?![a-zA-Z])/g, '←')
+    .replace(/\\(?:leftrightarrow|rightleftharpoons)(?![a-zA-Z])/g, '⇄')
+    .replace(/\\(?:times|cdot)(?![a-zA-Z])/g, '×')
+    .replace(/\\div(?![a-zA-Z])/g, '÷')
+    .replace(/\\pm(?![a-zA-Z])/g, '±')
+    .replace(/\\(?:neq|ne)(?![a-zA-Z])/g, '≠')
+    .replace(/\\(?:leq|le)(?![a-zA-Z])/g, '≤')
+    .replace(/\\(?:geq|ge)(?![a-zA-Z])/g, '≥')
+    .replace(/\\approx(?![a-zA-Z])/g, '≈')
+    .replace(/\\pi(?![a-zA-Z])/g, 'π')
+    .replace(/\\Delta(?![a-zA-Z])/g, 'Δ');
+
   // Sobrescrito com chaves: ^{...}
-  let processado = escapado.replace(/\^{([^}]+)}/g, '<sup>$1</sup>');
+  processado = processado.replace(/\^\{([^}]+)\}/g, '<sup>$1</sup>');
   // Sobrescrito simples: ^2, ^x, ^12 (números ou letra única)
   processado = processado.replace(/\^([0-9]+|[a-zA-Z])/g, '<sup>$1</sup>');
 
   // Subscrito com chaves: _{...}
-  processado = processado.replace(/_{([^}]+)}/g, '<sub>$1</sub>');
+  processado = processado.replace(/_\{([^}]+)\}/g, '<sub>$1</sub>');
   // Subscrito simples: _2, _n, _12 (números ou letra única)
   processado = processado.replace(/_([0-9]+|[a-zA-Z])/g, '<sub>$1</sub>');
 
-  return processado;
+  return processado.replace(/\s{2,}/g, ' ').trim();
 }
 
 const TAGS_SVG_PERMITIDAS = new Set([
