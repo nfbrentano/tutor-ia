@@ -9,8 +9,19 @@ export const STORAGE_KEYS = {
   SPEECH_RATE: 'tutoria_speech_rate',
   DISABLED_BOOKS: 'tutoria_livros_desativados',
   AVATAR_MODE: 'tutoria_avatar_mode',
-  PERSONA_FIXA: 'tutoria_persona_fixa'
+  PERSONA_FIXA: 'tutoria_persona_fixa',
+  SCHOOL_GRADE: 'tutoria_serie_escolar'
 } as const;
+
+export const SERIES_ESCOLARES = [
+  '6º ano EF',
+  '7º ano EF',
+  '8º ano EF',
+  '9º ano EF',
+  '1º ano EM',
+  '2º ano EM',
+  '3º ano EM'
+] as const;
 
 export type AvatarModoConfig = 'auto' | '3d' | '2d';
 
@@ -36,13 +47,16 @@ export const CONFIG = {
     '- "tabela": dados organizados com {"cabecalho": ["..."], "linhas": [["..."]]}. ' +
     '- "imagem": termo de busca para a Wikimedia Commons com {"termo": "...", "legenda": "..."}. ' +
     '- "desenho": código SVG limpo direto para diagramas simples. ' +
+    '- "grafico": gráfico cartesiano de função matemática com {"titulo": "...", "expressao": "y = x^2", "eixoX": "x", "eixoY": "y", "pontos": [{"x": -2, "y": 4}, ...]}. ' +
     '- "texto": destaque conceitual ou título didático. ' +
     'Se uma etapa não precisar de apoio visual, defina "lousa": null. ' +
     'Você pode aparecer como um professor inspirado em uma pessoa histórica: nunca atribua a pessoas reais falas, opiniões ou citações inventadas. Só cite trechos reais, com o título da obra; se não tiver certeza da citação, diga que não tem. ' +
     'Classifique a matéria da pergunta no campo "materia" com um destes valores: "fisica_quimica", "matematica", "ciencias", "portugues", "geografia", "historia" ou "geral". ' +
     'Se forem fornecidos "Trechos do livro didático para consulta", explique a dúvida com base estritamente nesses trechos, use os termos do livro sem contradizê-los e preencha o campo "fontes": [{"livroId": "...", "pagina": X}]. Se nenhum trecho for fornecido, não invente fontes e omita o campo fontes. ' +
+    'Sempre que apropriado para fixação, inclua também o campo opcional "desafio" com 1 questão objetiva rápida relacionada à dúvida: ' +
+    '{"pergunta": "...", "opcoes": ["...", "...", "...", "..."], "correta": 0, "dica": "...", "explicacao": "..."}. ' +
     'Retorne ESTRITAMENTE em formato JSON puro válido: ' +
-    '{"materia": "matematica", "etapas": [{"fala": "...", "lousa": {"tipo": "formula", "conteudo": "..."}}], "fontes": [{"livroId": "...", "pagina": 1}]}'
+    '{"materia": "matematica", "etapas": [{"fala": "...", "lousa": {"tipo": "formula", "conteudo": "..."}}], "desafio": {"pergunta": "...", "opcoes": ["A", "B", "C", "D"], "correta": 0, "dica": "...", "explicacao": "..."}, "fontes": [{"livroId": "...", "pagina": 1}]}'
 };
 
 export function getStoredApiKey(): string {
@@ -150,6 +164,30 @@ export function setStoredPersonaFixa(personaId: string): void {
       localStorage.setItem(STORAGE_KEYS.PERSONA_FIXA, personaId);
     } else {
       localStorage.removeItem(STORAGE_KEYS.PERSONA_FIXA);
+    }
+  } catch {}
+}
+
+/**
+ * Série escolar do aluno; vazio = Ensino Fundamental e Médio Geral (RF04).
+ */
+export function getStoredSerieEscolar(): string {
+  try {
+    const val = (localStorage.getItem(STORAGE_KEYS.SCHOOL_GRADE) || '').trim();
+    if (!val) return '';
+    return SERIES_ESCOLARES.includes(val as (typeof SERIES_ESCOLARES)[number]) ? val : '';
+  } catch {
+    return '';
+  }
+}
+
+export function setStoredSerieEscolar(serie: string): void {
+  try {
+    const limpa = (serie || '').trim();
+    if (limpa && SERIES_ESCOLARES.includes(limpa as (typeof SERIES_ESCOLARES)[number])) {
+      localStorage.setItem(STORAGE_KEYS.SCHOOL_GRADE, limpa);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.SCHOOL_GRADE);
     }
   } catch {}
 }

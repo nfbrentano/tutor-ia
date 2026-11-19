@@ -1,7 +1,7 @@
 # [FIX] Correções de fala por etapas, fórmulas na lousa, cache de livros e transição de espera
 
 > **Status:** Concluído
-> **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-11-15 · **Atualizada em:** 2026-11-17
+> **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-11-15 · **Atualizada em:** 2026-11-18
 
 ## Detalhes da Atividade
 

@@ -1,7 +1,7 @@
 # [FEAT] Modo Prática Interativa (Quiz na Lousa), Ajuda Socrática por Foto e Caderno de Estudos
 
-> **Status:** Rascunho
-> **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-11-15 · **Atualizada em:** 2026-11-15
+> **Status:** Concluído
+> **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-11-15 · **Atualizada em:** 2026-11-18
 
 ## Detalhes da Atividade
 
@@ -56,15 +56,15 @@
 
 ## Critérios de Aceitação / Entregas
 
-- [ ] **CA01:** Dado uma explicação do tutor que inclui um `desafio`, quando a resposta aparece no chat, então o botão `"🎯 Testar se entendi"` fica disponível e, ao clicar nele, a lousa exibe a pergunta do desafio com suas alternativas como botões acessíveis.
-- [ ] **CA02:** Dado um desafio aberto na lousa, quando o aluno seleciona a alternativa correta na 1ª tentativa, então a alternativa fica destacada como correta, o tutor fala o elogio com a explicação e o avatar exibe expressão positiva.
-- [ ] **CA03:** Dado um desafio aberto na lousa, quando o aluno seleciona uma alternativa incorreta na 1ª tentativa, então a resposta certa **não** é revelada ainda, o painel mostra a `dica` construtiva e o aluno pode tentar novamente.
-- [ ] **CA04:** Dado que o aluno já errou a 1ª tentativa do desafio, quando erra a 2ª tentativa (ou clica em `"Ver resposta"`), então a alternativa correta é destacada e a explicação completa é exibida e falada.
-- [ ] **CA05:** Dado o `"Modo Dica (Passo a Passo)"` ativado, quando o aluno envia `"Como resolver 2x + 4 = 10?"`, então o tutor explica como começar (ex.: isolar o termo com `x`) e pergunta ao aluno o próximo passo sem entregar `x = 3` de imediato.
-- [ ] **CA06:** Dado uma imagem `.jpg` ou `.png` de um exercício selecionada pelo aluno, quando ele envia a pergunta com a foto, então a imagem é redimensionada para ≤ 1280 px, a miniatura aparece no balão do aluno e `callGeminiApi` envia o bloco `inlineData` junto ao texto.
-- [ ] **CA07 (negativo):** Dado um arquivo que não é imagem (ex.: `.exe` ou `.pdf`) ou uma imagem corrompida, quando selecionado no botão de foto, então o app exibe um aviso claro, não trava e não faz chamada à API.
-- [ ] **CA08:** Dado uma resposta do tutor no chat, quando o aluno clica em `"⭐ Salvar no Caderno"`, então o botão muda para `"✓ Salvo no Caderno"` e a explicação (com seus itens de lousa e fontes) passa a aparecer na lista do `"Meu Caderno"` filtrável por matéria.
-- [ ] **CA09:** Dado o navegador ou app Android sem internet (offline), quando o aluno abre `"Meu Caderno"` e clica em `"Abrir na Lousa"` e `"Ouvir"` em um resumo salvo, então a lousa renderiza os itens salvos e o tutor lê a explicação normalmente em ≤ 200 ms.
+- [x] **CA01:** Dado uma explicação do tutor que inclui um `desafio`, quando a resposta aparece no chat, então o botão `"🎯 Testar se entendi"` fica disponível e, ao clicar nele, a lousa exibe a pergunta do desafio com suas alternativas como botões acessíveis.
+- [x] **CA02:** Dado um desafio aberto na lousa, quando o aluno seleciona a alternativa correta na 1ª tentativa, então a alternativa fica destacada como correta, o tutor fala o elogio com a explicação e o avatar exibe expressão positiva.
+- [x] **CA03:** Dado um desafio aberto na lousa, quando o aluno seleciona uma alternativa incorreta na 1ª tentativa, então a resposta certa **não** é revelada ainda, o painel mostra a `dica` construtiva e o aluno pode tentar novamente.
+- [x] **CA04:** Dado que o aluno já errou a 1ª tentativa do desafio, quando erra a 2ª tentativa (ou clica em `"Ver resposta"`), então a alternativa correta é destacada e a explicação completa é exibida e falada.
+- [x] **CA05:** Dado o `"Modo Dica (Passo a Passo)"` ativado, quando o aluno envia `"Como resolver 2x + 4 = 10?"`, então o tutor explica como começar (ex.: isolar o termo com `x`) e pergunta ao aluno o próximo passo sem entregar `x = 3` de imediato.
+- [x] **CA06:** Dado uma imagem `.jpg` ou `.png` de um exercício selecionada pelo aluno, quando ele envia a pergunta com a foto, então a imagem é redimensionada para ≤ 1280 px, a miniatura aparece no balão do aluno e `callGeminiApi` envia o bloco `inlineData` junto ao texto.
+- [x] **CA07 (negativo):** Dado um arquivo que não é imagem (ex.: `.exe` ou `.pdf`) ou uma imagem corrompida, quando selecionado no botão de foto, então o app exibe um aviso claro, não trava e não faz chamada à API.
+- [x] **CA08:** Dado uma resposta do tutor no chat, quando o aluno clica em `"⭐ Salvar no Caderno"`, então o botão muda para `"✓ Salvo no Caderno"` e a explicação (com seus itens de lousa e fontes) passa a aparecer na lista do `"Meu Caderno"` filtrável por matéria.
+- [x] **CA09:** Dado o navegador ou app Android sem internet (offline), quando o aluno abre `"Meu Caderno"` e clica em `"Abrir na Lousa"` e `"Ouvir"` em um resumo salvo, então a lousa renderiza os itens salvos e o tutor lê a explicação normalmente em ≤ 200 ms.
 
 ## O que a atividade não inclui
 
@@ -81,8 +81,8 @@
 
 | # | Dúvida | Responsável (PO/dev/design) | Bloqueante? | Resposta |
 |---|--------|-----------------------------|-------------|----------|
-| D01 | O desafio (`desafio`) já deve vir embutido no mesmo JSON da explicação inicial (0 latência ao clicar em "Testar se entendi") ou ser pedido em uma chamada separada só quando o aluno clicar? | dev / PO | Não | Sugestão: já pedir o campo `desafio` no JSON da explicação inicial (adiciona ~80 tokens à saída e torna a abertura do quiz instantânea e disponível inclusive offline no cache). |
-| D02 | No envio de foto no Android (Capacitor), usar `<input type="file" accept="image/*" capture="environment">` do WebView ou adicionar `@capacitor/camera`? | dev | Não | Sugestão: começar com `<input type="file" accept="image/*">` (funciona na web e no WebView Android sem permissão extra no manifesto além da galeria/câmera do sistema). |
+| D01 | O desafio (`desafio`) já deve vir embutido no mesmo JSON da explicação inicial (0 latência ao clicar em "Testar se entendi") ou ser pedido em uma chamada separada só quando o aluno clicar? | dev / PO | Não | **Decidido:** o campo opcional `desafio` vem embutido no JSON estruturado da resposta inicial (`src/armazenamento.ts` + `src/gemini.ts`) e nas respostas pré-construídas de `public/conhecimento/cache.json` (`scripts/gerar-cache.ts`), permitindo abertura instantânea offline e online. |
+| D02 | No envio de foto no Android (Capacitor), usar `<input type="file" accept="image/*" capture="environment">` do WebView ou adicionar `@capacitor/camera`? | dev | Não | **Decidido:** utilizado `<input type="file" accept="image/*">` no DOM (`tutor.html`) com validação estrita em `validarArquivoImagem` para `image/jpeg`, `image/png` e `image/webp` até 10 MB e redimensionamento em memória via `<canvas>` (≤ 1280 px, ≤ 1,5 MB em base64). |
 
 ## Sugestões de casos de teste
 

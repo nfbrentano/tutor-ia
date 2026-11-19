@@ -25,4 +25,12 @@ nunca réplicas fotográficas.
 
 ## Animações
 
-Clipes do [Mixamo](https://www.mixamo.com) (Adobe) ou gravador local (`gravador.html`), listados em `animacoes/manifesto.json` (nenhum clipe adicionado ainda; movimento procedural ativo como padrão).
+14 clipes no formato `tutoria-clipe-vrm` listados em `animacoes/manifesto.json` (~633 KB no total; limite do RNF02: ≤ 3 MB), gerados por `scripts/gerar-clipes-animacao.ts` (autoral TutorIA, licença MIT):
+- `idle`: `repouso-respirando.json`, `repouso-troca-peso.json`
+- `listening`: `escuta-aceno.json`
+- `thinking`: `pensando-queixo.json`, `pensando-olhar.json`
+- `speaking`: `falando-palmas-abertas.json`, `falando-enfatizar.json`, `falando-mao-no-peito.json`, `falando-comparar.json`, `falando-contar-dedos.json`, `falando-eureka-atomo.json` (exclusivo de `prof-atomo`)
+- `apontar`: `apontar-lado.json`, `apontar-frente.json`
+- `cumprimentar`: `cumprimentar-aceno.json`
+
+Clipes adicionais do [Mixamo](https://www.mixamo.com) (Adobe) ou gravador local (`gravador.html`) podem ser adicionados em `animacoes/manifesto.json` sem alteração de código.

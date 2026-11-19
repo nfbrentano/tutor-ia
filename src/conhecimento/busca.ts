@@ -11,9 +11,20 @@ export const CONSTANTES_BM25 = {
   K1: 1.2,
   B: 0.75,
   BOOST_DISCIPLINA: 1.35,
+  BOOST_SERIE: 1.25,
   SCORE_MINIMO_PADRAO: 1.2,
   LIMITE_PADRAO: 3
 } as const;
+
+function normalizarSerieEscolar(serie?: string): string {
+  return (serie || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/º|°|ª/g, 'o')
+    .replace(/\s+/g, ' ');
+}
 
 /**
  * Calcula o IDF (Inverse Document Frequency) suavizado e não-negativo.
@@ -59,11 +70,18 @@ export function buscarTrechosRelevantes(
   const avgDocLength = indice.avgDocLength || 100;
   const desativadosSet = new Set(livrosDesativados);
 
-  // Mapeia trechos por ID para acesso O(1)
+  // Mapeia trechos por ID para acesso O(1) e séries por livroId como fallback
   const trechosMap = new Map<string, TrechoLivro>();
   for (const t of indice.trechos) {
     trechosMap.set(t.id, t);
   }
+  const seriePorLivro = new Map<string, string>();
+  for (const livro of indice.livros || []) {
+    if (livro?.id && livro?.serie) {
+      seriePorLivro.set(livro.id, livro.serie);
+    }
+  }
+  const serieAlvoNorm = normalizarSerieEscolar(opcoes.serie);
 
   // Acumulador de pontuação por trechoId
   const scoresPorTrecho = new Map<string, number>();
@@ -120,6 +138,14 @@ export function buscarTrechosRelevantes(
         (discAlvo === 'ciencias' && (discTrecho === 'biologia' || discTrecho === 'ciencias'))
       ) {
         scoreFinal *= CONSTANTES_BM25.BOOST_DISCIPLINA;
+      }
+    }
+
+    // Prioriza trechos da série escolar do aluno (RF04, CA06, CT05)
+    if (serieAlvoNorm) {
+      const serieTrecho = trecho.serie || seriePorLivro.get(trecho.livroId);
+      if (serieTrecho && normalizarSerieEscolar(serieTrecho) === serieAlvoNorm) {
+        scoreFinal *= CONSTANTES_BM25.BOOST_SERIE;
       }
     }
 

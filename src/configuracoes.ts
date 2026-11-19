@@ -8,6 +8,7 @@ import {
   getStoredAvatarMode,
   getStoredDisabledBookIds,
   getStoredPersonaFixa,
+  getStoredSerieEscolar,
   getStoredSpeechRate,
   getStoredVoiceUri,
   removeStoredApiKey,
@@ -15,6 +16,7 @@ import {
   setStoredAvatarMode,
   setStoredBookDisabled,
   setStoredPersonaFixa,
+  setStoredSerieEscolar,
   setStoredSpeechRate,
   setStoredVoiceUri,
   AvatarModoConfig
@@ -31,6 +33,7 @@ import {
   PERSONAS,
   VozDisponivel
 } from './personas';
+import { registrarServiceWorkerPwa } from './pwa';
 import { obterServicoVoz } from './voz';
 
 /**
@@ -54,6 +57,7 @@ export function obterOpcoesDemonstracaoVoz(
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  registrarServiceWorkerPwa();
   const servicoVoz = obterServicoVoz();
   const diagnosticoAudio = new DiagnosticoAudioVU();
 
@@ -433,6 +437,15 @@ document.addEventListener('DOMContentLoaded', async () => {
           selectPersona.value = getStoredPersonaFixa();
           selectPersona.addEventListener('change', () => {
             setStoredPersonaFixa(selectPersona.value);
+          });
+        }
+
+        // Série / Ano Escolar (RF04, CA05)
+        const selectSerieEscolar = document.getElementById('select-serie-escolar') as HTMLSelectElement | null;
+        if (selectSerieEscolar) {
+          selectSerieEscolar.value = getStoredSerieEscolar();
+          selectSerieEscolar.addEventListener('change', () => {
+            setStoredSerieEscolar(selectSerieEscolar.value);
           });
         }
       });

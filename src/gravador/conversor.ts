@@ -43,6 +43,8 @@ export interface OpcoesConversor {
   espelhar?: boolean;
   /** Rotação neutra da cabeça medida pelo botão "Calibrar" (substitui PITCH_NEUTRO_CABECA). */
   cabecaNeutra?: Quat;
+  /** Matriz 4×4 column-major de `FaceLandmarker.facialTransformationMatrixes` (RF04c). */
+  matrizRosto?: number[];
 }
 
 export interface MaoDetectada {
@@ -190,9 +192,26 @@ export function converterQuadro(
     qAntebracoMundo[lado] = qBracoMundo.multiply(qAnte);
   }
 
-  // 3. Cabeça: base formada pelas orelhas (direita) e pelo nariz (frente)
+  // 3. Cabeça: matriz de orientação do Face Landmarker (RF04c), com fallback para nariz + orelhas
   let cabecaBruta: Quat | undefined;
-  if ([NARIZ, ORELHA_E, ORELHA_D].every(i => vis(i) >= VISIBILIDADE_MINIMA)) {
+  if (opcoes.matrizRosto && opcoes.matrizRosto.length === 16) {
+    const qCabecaMundo = new THREE.Quaternion().setFromRotationMatrix(
+      new THREE.Matrix4().fromArray(opcoes.matrizRosto)
+    );
+    if (espelhar) {
+      qCabecaMundo.set(qCabecaMundo.x, -qCabecaMundo.y, -qCabecaMundo.z, qCabecaMundo.w);
+    }
+    const qCabecaLocal = qTroncoInv.clone().multiply(qCabecaMundo);
+    cabecaBruta = quat(qCabecaLocal);
+
+    const neutra = opcoes.cabecaNeutra
+      ? new THREE.Quaternion(...opcoes.cabecaNeutra)
+      : new THREE.Quaternion();
+    const qRel = neutra.clone().invert().multiply(qCabecaLocal);
+    const qPescoco = new THREE.Quaternion().slerp(qRel, 0.4);
+    rotacoes.neck = quat(qPescoco);
+    rotacoes.head = quat(qPescoco.clone().invert().multiply(qRel));
+  } else if ([NARIZ, ORELHA_E, ORELHA_D].every(i => vis(i) >= VISIBILIDADE_MINIMA)) {
     const orelhaE = p(idx(ORELHA_E, ORELHA_D));
     const orelhaD = p(idx(ORELHA_D, ORELHA_E));
     const direita = orelhaE.clone().sub(orelhaD).normalize();

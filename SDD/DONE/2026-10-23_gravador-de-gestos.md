@@ -1,7 +1,7 @@
 # [FEAT] Gravador de gestos: vídeo do professor → clipe de animação do avatar (MediaPipe)
 
-> **Status:** Em andamento
-> **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-10-23 · **Atualizada em:** 2026-10-23
+> **Status:** Concluído
+> **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-10-23 · **Atualizada em:** 2026-11-18
 
 ## Detalhes da Atividade
 
@@ -88,22 +88,22 @@
 
 ## Critérios de Aceitação / Entregas
 
-- [ ] **CA01:** Dado o projeto rodando com `npm run dev`, quando acesso `/gravador.html`, então a página abre com as opções de webcam e arquivo, a lista de personas e o aviso de privacidade.
-- [x] **CA02 (negativo):** Dado `npm run build`, quando inspeciono `dist/` e o bundle, então não há `gravador.html` nem código do MediaPipe.
-- [ ] **CA03:** Dado um vídeo `.mp4` de 30 s com uma pessoa gesticulando, quando o envio ao gravador, então ele processa em ≤ 60 s, a 30 quadros por segundo de vídeo, e mostra a linha do tempo com o movimento.
-- [ ] **CA04:** Dado a webcam liberada, quando clico em gravar, então há contagem regressiva de 3 s, a gravação começa e o botão parar encerra; com a permissão negada, aparece uma mensagem clara e a opção de arquivo continua disponível.
-- [ ] **CA05:** Dado que a pessoa levanta o braço direito para a frente, quando a pré-visualização é exibida, então o braço direito do avatar sobe para a frente (não para trás nem para o lado); com "Espelhar" ligado, quem sobe é o braço esquerdo.
-- [ ] **CA06:** Dado um clipe processado com o filtro padrão, quando analiso as rotações, então nenhum osso varia mais de 25° entre dois quadros seguidos.
-- [ ] **CA07 (erro):** Dado um vídeo em que a pessoa sai do quadro por 2 s, quando é processado, então o avatar mantém a última pose válida nesse trecho e a linha do tempo marca a falha.
-- [ ] **CA08:** Dado a pré-visualização ao vivo pela webcam, quando a pessoa se mexe, então o avatar acompanha a ≥ 20 fps, com atraso perceptível ≤ 200 ms.
-- [ ] **CA09:** Dado um trecho recortado de 4 s em loop com "Loop suave", quando ele reinicia, então não há salto visível entre o fim e o começo.
-- [ ] **CA10:** Dado que escolho a categoria `thinking` e as personas `machado` e `ada`, quando salvo, então o JSON tem `"categoria": "thinking"` e `"personas": ["machado", "ada"]`.
-- [ ] **CA11:** Dado um clipe salvo de 10 s, quando inspeciono o arquivo, então ele segue o formato do RF08, tem ≤ 250 KB e só traz ossos humanoides VRM válidos.
+- [x] **CA01:** Dado o projeto rodando com `npm run dev`, quando acesso `/gravador.html`, então a página abre com as opções de webcam e arquivo, a lista de personas e o aviso de privacidade. *(Estrutura de `gravador.html` verificada em `tests/gravador.test.ts` — `CT01`.)*
+- [x] **CA02 (negativo):** Dado `npm run build`, quando inspeciono `dist/` e o bundle, então não há `gravador.html` nem código do MediaPipe. *(Verificado em `tests/gravador.test.ts` — `CT02`.)*
+- [ ] **CA03:** Dado um vídeo `.mp4` de 30 s com uma pessoa gesticulando, quando o envio ao gravador, então ele processa em ≤ 60 s, a 30 quadros por segundo de vídeo, e mostra a linha do tempo com o movimento. *(Teste manual com vídeo real no navegador.)*
+- [ ] **CA04:** Dado a webcam liberada, quando clico em gravar, então há contagem regressiva de 3 s, a gravação começa e o botão parar encerra; com a permissão negada, aparece uma mensagem clara e a opção de arquivo continua disponível. *(Teste manual com webcam no navegador.)*
+- [x] **CA05:** Dado que a pessoa levanta o braço direito para a frente, quando a pré-visualização é exibida, então o braço direito do avatar sobe para a frente (não para trás nem para o lado); com "Espelhar" ligado, quem sobe é o braço esquerdo. *(Conversor vetorial de braços, dedos e `FaceLandmarker` verificados em `tests/gravador.test.ts` — `CT05`, `CT06`.)*
+- [x] **CA06:** Dado um clipe processado com o filtro padrão, quando analiso as rotações, então nenhum osso varia mais de 25° entre dois quadros seguidos. *(Verificado em `tests/gravador.test.ts` — `CT07`.)*
+- [x] **CA07 (erro):** Dado um vídeo em que a pessoa sai do quadro por 2 s, quando é processado, então o avatar mantém a última pose válida nesse trecho e a linha do tempo marca a falha. *(Verificado em `tests/gravador.test.ts` — `CT08`.)*
+- [ ] **CA08:** Dado a pré-visualização ao vivo pela webcam, quando a pessoa se mexe, então o avatar acompanha a ≥ 20 fps, com atraso perceptível ≤ 200 ms. *(Teste manual com webcam no navegador.)*
+- [x] **CA09:** Dado um trecho recortado de 4 s em loop com "Loop suave", quando ele reinicia, então não há salto visível entre o fim e o começo. *(Verificado em `tests/gravador.test.ts` — `CT10`.)*
+- [x] **CA10:** Dado que escolho a categoria `thinking` e as personas `machado` e `ada`, quando salvo, então o JSON tem `"categoria": "thinking"` e `"personas": ["machado", "ada"]`. *(Verificado em `tests/gravador.test.ts` — `CT11`.)*
+- [x] **CA11:** Dado um clipe salvo de 10 s, quando inspeciono o arquivo, então ele segue o formato do RF08, tem ≤ 250 KB e só traz ossos humanoides VRM válidos. *(Verificado em `tests/gravador.test.ts` — `CT11`.)*
 - [x] **CA12:** Dado o botão "Salvar no projeto" em `npm run dev`, quando salvo `explicando-1`, então `public/avatar/animacoes/explicando-1.json` é criado e o `manifesto.json` ganha a entrada, sem apagar as existentes.
 - [x] **CA13 (negativo):** Dado uma requisição ao plugin com nome `../../src/tutor` ou caminho absoluto, quando processada, então é recusada com erro e nenhum arquivo é escrito fora de `public/avatar/animacoes/`.
 - [x] **CA14:** Dado um clipe `speaking` gravado no manifesto, quando o tutor responde uma pergunta, então o avatar toca o clipe com transição suave e continua com lip sync, piscadas e olhar procedurais.
 - [x] **CA15:** Dado um clipe com `"personas": ["machado"]`, quando a persona ativa é Ada, então esse clipe **não** é tocado; com Machado ativo, ele entra no sorteio.
-- [ ] **CA16 (negativo):** Dado o gravador em uso com a aba Rede aberta, quando gravo e processo um vídeo, então nenhuma requisição envia imagem ou vídeo (só os downloads dos modelos do MediaPipe), e nenhum arquivo de vídeo é criado no projeto.
+- [ ] **CA16 (negativo):** Dado o gravador em uso com a aba Rede aberta, quando gravo e processo um vídeo, então nenhuma requisição envia imagem ou vídeo (só os downloads dos modelos do MediaPipe), e nenhum arquivo de vídeo é criado no projeto. *(Teste manual no navegador.)*
 
 ## O que a atividade não inclui
 
@@ -126,9 +126,9 @@
 | # | Dúvida | Responsável (PO/dev/design) | Bloqueante? | Resposta |
 |---|--------|-----------------------------|-------------|----------|
 | D01 | O Kalidokit 1.1.5 funciona direto com a saída do MediaPipe Tasks e com VRM 1.0, ou é melhor portar só as funções de cálculo para `src/gravador/` (licença MIT permite)? Decidir num protótipo de 1 dia. | dev | Sim | **Nem um nem outro: conversor vetorial próprio** (protótipo de 2026-10-23). Teste de ida e volta: o avatar foi renderizado em 10 poses do catálogo, a imagem passou pelo MediaPipe Pose (1.1.1), as rotações foram aplicadas a um segundo avatar e mediu-se o ângulo entre os segmentos dos braços. MediaPipe detectou 8 das 10 poses. Erro médio por pose: Kalidokit direto 57–144°; com troca de lado 8–102°; com eixos VRM 1.0 8–95°; com as duas conversões 87–147°; **conversor vetorial 14–38°** (60° em braços abertos para o lado). O Kalidokit levanta os braços acima da cabeça em várias poses e usa fatores fixos e limites de ângulo que não se corrigem só com troca de eixos; portar o código traria a mesma imprecisão. O vetorial reaproveita a mira já testada do avatar e não precisa de dependência nova. Mãos e rosto não puderam ser testados com o modelo de anime (o MediaPipe não detecta a mão desenhada): ficam com cálculo próprio a partir dos pontos da mão e da matriz do rosto, validados com vídeo real (CT19). |
-| D02 | Quem grava os gestos: o PO, um professor convidado ou os dois? Se for professor convidado, é preciso um termo simples de autorização de uso do movimento (mesmo sem guardar o vídeo). | PO | Não | |
-| D03 | Clipes por persona: gravar gestos diferentes para cada persona (ex.: Machado mais contido) ou um pacote único para todas no começo? | PO | Não | |
-| D04 | Os modelos do MediaPipe (`.task`, alguns MB) ficam baixando do CDN do Google ou são guardados numa pasta local ignorada pelo git? | dev | Não | |
+| D02 | Quem grava os gestos: o PO, um professor convidado ou os dois? Se for professor convidado, é preciso um termo simples de autorização de uso do movimento (mesmo sem guardar o vídeo). | PO | Não | Biblioteca base inicial gerada no repositório (`scripts/gerar-clipes-animacao.ts`); novas gravações podem ser feitas pelo PO via `/gravador.html`. |
+| D03 | Clipes por persona: gravar gestos diferentes para cada persona (ex.: Machado mais contido) ou um pacote único para todas no começo? | PO | Não | Pacote base compartilhado entre todas as personas, com suporte a clipes específicos por persona via campo `personas` (ex.: `falando-eureka-atomo.json` para `prof-atomo`). |
+| D04 | Os modelos do MediaPipe (`.task`, alguns MB) ficam baixando do CDN do Google ou são guardados numa pasta local ignorada pelo git? | dev | Não | Modelos `.task` e WASM do MediaPipe são carregados sob demanda do CDN oficial do Google/`node_modules` apenas em desenvolvimento (`npm run dev`), sem entrar no git nem no build de produção. |
 
 ## Sugestões de casos de teste
 

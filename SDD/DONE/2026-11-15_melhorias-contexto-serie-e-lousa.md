@@ -1,7 +1,7 @@
 # [FEAT] Melhorias: memória de conversa, série escolar, visual por persona, gráficos na lousa e PWA offline
 
-> **Status:** Rascunho
-> **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-11-15 · **Atualizada em:** 2026-11-15
+> **Status:** Concluído
+> **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-11-15 · **Atualizada em:** 2026-11-18
 
 ## Detalhes da Atividade
 
@@ -59,17 +59,17 @@
 
 ## Critérios de Aceitação / Entregas
 
-- [ ] **CA01:** Dado que o aluno perguntou *"O que é fotossíntese?"* e recebeu resposta, quando pergunta em seguida *"Onde ela acontece?"*, então `callGeminiApi` envia o turno anterior em `contents` e o histórico enviado não ultrapassa 4.800 caracteres.
-- [ ] **CA02:** Dado que o professor ativo é `"Ada"` (Matemática) e o aluno faz uma pergunta de acompanhamento sem palavras-chave (*"Pode dar outro exemplo?"*), quando a resposta começa, então a persona `"Ada"` é mantida sem voltar para `"Lia"`.
-- [ ] **CA03:** Dado uma conversa com 2 perguntas no chat, quando o aluno navega para `configuracoes.html` e volta para `tutor.html`, então as mensagens continuam no chat; e quando clica em `"Nova conversa"`, o chat e o contexto são limpos.
-- [ ] **CA04:** Dado uma resposta com 3 etapas, quando a etapa 1 começa a ser falada, então o balão do tutor já está visível no chat com o texto da etapa 1, acrescentando as etapas 2 e 3 conforme cada uma começa.
-- [ ] **CA05:** Dado que o aluno seleciona `"6º ano EF"` nas Configurações, quando pergunta algo ao tutor, então o prompt enviado ao Gemini instrui o nível `"6º ano EF"` e o badge no topo da sala de estudos mostra `"6º ano EF"`.
-- [ ] **CA06:** Dado dois trechos sobre o mesmo tema no índice BM25 (um do `"6º ano EF"` e outro do `"2º ano EM"`), quando o aluno com série `"6º ano EF"` faz a busca, então o trecho do `"6º ano EF"` recebe boost de pontuação e fica acima do outro.
-- [ ] **CA07:** Dado a troca de persona de `"Lia"` para `"Prof. Átomo"` e depois para `"Machado"`, quando a persona muda, então a cor do halo/iluminação do palco e o badge visual do professor mudam imediatamente para refletir a persona ativa.
-- [ ] **CA08:** Dado uma matriz 4×4 de transformação facial do `FaceLandmarker`, quando passada para `converterQuadro()` no gravador de gestos, então `neck` e `head` refletem a rotação extraída da matriz facial.
-- [ ] **CA09:** Dado um item de lousa do tipo `grafico` com pontos de uma parábola (`y = x^2` de `-2` a `2`), quando renderizado na lousa, então um SVG com eixos X/Y, pontos e curva é exibido sem usar `eval`.
-- [ ] **CA10:** Dado a lousa aberta com 3 itens, quando o aluno clica no botão de copiar/baixar resumo da lousa, então o conteúdo estruturado das etapas da lousa é copiado/exportado com sucesso.
-- [ ] **CA11:** Dado o build de produção (`npm run build && npm run preview`), quando a página é carregada uma vez e a rede é desligada no DevTools, então recarregar `tutor.html` funciona offline via Service Worker e uma pergunta do cache é respondida normalmente.
+- [x] **CA01:** Dado que o aluno perguntou *"O que é fotossíntese?"* e recebeu resposta, quando pergunta em seguida *"Onde ela acontece?"*, então `callGeminiApi` envia o turno anterior em `contents` e o histórico enviado não ultrapassa 4.800 caracteres.
+- [x] **CA02:** Dado que o professor ativo é `"Ada"` (Matemática) e o aluno faz uma pergunta de acompanhamento sem palavras-chave (*"Pode dar outro exemplo?"*), quando a resposta começa, então a persona `"Ada"` é mantida sem voltar para `"Lia"`.
+- [x] **CA03:** Dado uma conversa com 2 perguntas no chat, quando o aluno navega para `configuracoes.html` e volta para `tutor.html`, então as mensagens continuam no chat; e quando clica em `"Nova conversa"`, o chat e o contexto são limpos.
+- [x] **CA04:** Dado uma resposta com 3 etapas, quando a etapa 1 começa a ser falada, então o balão do tutor já está visível no chat com o texto da etapa 1, acrescentando as etapas 2 e 3 conforme cada uma começa.
+- [x] **CA05:** Dado que o aluno seleciona `"6º ano EF"` nas Configurações, quando pergunta algo ao tutor, então o prompt enviado ao Gemini instrui o nível `"6º ano EF"` e o badge no topo da sala de estudos mostra `"6º ano EF"`.
+- [x] **CA06:** Dado dois trechos sobre o mesmo tema no índice BM25 (um do `"6º ano EF"` e outro do `"2º ano EM"`), quando o aluno com série `"6º ano EF"` faz a busca, então o trecho do `"6º ano EF"` recebe boost de pontuação e fica acima do outro.
+- [x] **CA07:** Dado a troca de persona de `"Lia"` para `"Prof. Átomo"` e depois para `"Machado"`, quando a persona muda, então a cor do halo/iluminação do palco e o badge visual do professor mudam imediatamente para refletir a persona ativa.
+- [x] **CA08:** Dado uma matriz 4×4 de transformação facial do `FaceLandmarker`, quando passada para `converterQuadro()` no gravador de gestos, então `neck` e `head` refletem a rotação extraída da matriz facial.
+- [x] **CA09:** Dado um item de lousa do tipo `grafico` com pontos de uma parábola (`y = x^2` de `-2` a `2`), quando renderizado na lousa, então um SVG com eixos X/Y, pontos e curva é exibido sem usar `eval`.
+- [x] **CA10:** Dado a lousa aberta com 3 itens, quando o aluno clica no botão de copiar/baixar resumo da lousa, então o conteúdo estruturado das etapas da lousa é copiado/exportado com sucesso.
+- [x] **CA11:** Dado o build de produção (`npm run build && npm run preview`), quando a página é carregada uma vez e a rede é desligada no DevTools, então recarregar `tutor.html` funciona offline via Service Worker e uma pergunta do cache é respondida normalmente.
 
 ## O que a atividade não inclui
 
@@ -85,7 +85,7 @@
 
 | # | Dúvida | Responsável (PO/dev/design) | Bloqueante? | Resposta |
 |---|--------|-----------------------------|-------------|----------|
-| D01 | Se o aluno nunca escolheu a série escolar, mostramos um seletor rápido na primeira visita à Sala de Estudos ou deixamos padrão "Ensino Fundamental e Médio (Geral)"? | PO / design | Não | Sugestão: padrão geral sem bloquear o uso, com seletor rápido clicável no badge do cabeçalho e nas Configurações. |
+| D01 | Se o aluno nunca escolheu a série escolar, mostramos um seletor rápido na primeira visita à Sala de Estudos ou deixamos padrão "Ensino Fundamental e Médio (Geral)"? | PO / design | Não | **Decidido:** padrão `"Ensino Geral"` sem bloquear o uso, com badge clicável no cabeçalho de `tutor.html` (`#badge-serie-tutor` + `#select-serie-tutor`) e seletor em `configuracoes.html` (`#select-serie-escolar`). |
 
 ## Sugestões de casos de teste
 

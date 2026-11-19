@@ -1,3 +1,66 @@
 {
-  "clipes": []
+  "clipes": [
+    {
+      "arquivo": "repouso-respirando.json",
+      "categoria": "idle"
+    },
+    {
+      "arquivo": "repouso-troca-peso.json",
+      "categoria": "idle"
+    },
+    {
+      "arquivo": "escuta-aceno.json",
+      "categoria": "listening"
+    },
+    {
+      "arquivo": "pensando-queixo.json",
+      "categoria": "thinking"
+    },
+    {
+      "arquivo": "pensando-olhar.json",
+      "categoria": "thinking"
+    },
+    {
+      "arquivo": "falando-palmas-abertas.json",
+      "categoria": "speaking"
+    },
+    {
+      "arquivo": "falando-enfatizar.json",
+      "categoria": "speaking"
+    },
+    {
+      "arquivo": "falando-mao-no-peito.json",
+      "categoria": "speaking"
+    },
+    {
+      "arquivo": "falando-comparar.json",
+      "categoria": "speaking"
+    },
+    {
+      "arquivo": "falando-contar-dedos.json",
+      "categoria": "speaking"
+    },
+    {
+      "arquivo": "falando-eureka-atomo.json",
+      "categoria": "speaking",
+      "personas": [
+        "prof-atomo"
+      ]
+    },
+    {
+      "arquivo": "apontar-lado.json",
+      "categoria": "apontar",
+      "loop": false
+    },
+    {
+      "arquivo": "apontar-frente.json",
+      "categoria": "apontar",
+      "loop": false
+    },
+    {
+      "arquivo": "cumprimentar-aceno.json",
+      "categoria": "cumprimentar",
+      "loop": false
+    }
+  ]
 }

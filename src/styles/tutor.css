@@ -56,8 +56,9 @@ main.tutor-layout {
   width: 250px;
   height: 250px;
   border-radius: 50%;
-  border: 2px dashed var(--primary);
-  opacity: 0.35;
+  border: 2px dashed var(--persona-cor, var(--primary));
+  box-shadow: 0 0 24px color-mix(in srgb, var(--persona-cor, var(--primary)) 28%, transparent);
+  opacity: 0.45;
   pointer-events: none;
   animation: rotateHalo 25s linear infinite;
   transition: var(--transition-smooth);
@@ -69,8 +70,8 @@ main.tutor-layout {
   width: 280px;
   height: 280px;
   border-radius: 50%;
-  border: 1.5px solid transparent;
-  opacity: 0;
+  border: 1.5px solid color-mix(in srgb, var(--persona-cor, var(--primary)) 22%, transparent);
+  opacity: 0.25;
   pointer-events: none;
   transition: var(--transition-smooth);
   top: 15px;
@@ -943,5 +944,411 @@ main.tutor-layout {
 .btn-entendido-fonte:hover {
   background: #7dd3fc;
   box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+}
+
+/* ==========================================================================
+   PRÁTICA INTERATIVA, FOTO DO EXERCÍCIO E CADERNO DE ESTUDOS (RF01-RF06)
+   ========================================================================== */
+.practice-counter-badge {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-medium);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 9999px;
+  padding: 0.32rem 0.7rem;
+  white-space: nowrap;
+}
+
+.btn-caderno-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.38rem 0.85rem;
+  border-radius: 9999px;
+  background: rgba(250, 204, 21, 0.14);
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  color: #fde68a;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  white-space: nowrap;
+}
+
+.btn-caderno-header:hover {
+  background: rgba(250, 204, 21, 0.24);
+  border-color: #facc15;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 720px) {
+  .practice-counter-badge {
+    display: none;
+  }
+}
+
+.bubble-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+}
+
+.bubble-quiz-btn {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.2);
+  color: #e0f2fe;
+  font-weight: 700;
+}
+
+.btn-salvar-caderno {
+  border-color: rgba(250, 204, 21, 0.5);
+  background: rgba(250, 204, 21, 0.12);
+  color: #fde68a;
+}
+
+.btn-salvar-caderno:hover:not(:disabled) {
+  background: #facc15;
+  color: #0f172a;
+}
+
+.btn-salvar-caderno.salvo {
+  border-color: rgba(16, 185, 129, 0.6);
+  background: rgba(16, 185, 129, 0.16);
+  color: #a7f3d0;
+  cursor: default;
+}
+
+.bubble-student-photo-wrap {
+  margin: 0.25rem 0;
+}
+
+.bubble-student-photo {
+  max-width: 180px;
+  max-height: 140px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  object-fit: cover;
+  cursor: zoom-in;
+  display: block;
+}
+
+.panel-controls-bar {
+  padding: 0.6rem 1.25rem;
+  border-top: 1px solid var(--border-color);
+  background: rgba(15, 23, 42, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.modo-pedagogico-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-medium);
+}
+
+.select-modo-pedagogico,
+.caderno-filtro-select {
+  background: var(--bg-surface);
+  color: var(--text-high);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.32rem 0.55rem;
+  font-family: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.btn-foto-exercicio {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #7dd3fc;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.btn-foto-exercicio:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: var(--primary);
+}
+
+.btn-foto-exercicio:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.foto-preview-bar {
+  padding: 0.55rem 1.25rem;
+  background: rgba(30, 41, 59, 0.8);
+  border-top: 1px solid rgba(56, 189, 248, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.foto-preview-bar.hidden,
+.foto-erro-msg.hidden {
+  display: none;
+}
+
+.foto-preview-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid rgba(56, 189, 248, 0.5);
+}
+
+.foto-preview-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.foto-preview-nome {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-high);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.foto-preview-hint {
+  font-size: 0.7rem;
+  color: #7dd3fc;
+}
+
+.btn-remover-foto {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.foto-erro-msg {
+  padding: 0.5rem 1.25rem;
+  background: rgba(239, 68, 68, 0.14);
+  border-top: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  font-size: 0.78rem;
+}
+
+/* Modal Meu Caderno */
+.modal-caderno-card {
+  max-width: 680px;
+}
+
+.caderno-filtros-bar {
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.caderno-filtro-label {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.caderno-lista-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  white-space: normal;
+}
+
+.caderno-vazio {
+  color: #94a3b8;
+  text-align: center;
+  padding: 1.5rem 0.5rem;
+  font-size: 0.9rem;
+}
+
+.caderno-nota-card {
+  background: rgba(30, 41, 59, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.caderno-nota-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.74rem;
+  color: #94a3b8;
+}
+
+.caderno-nota-materia {
+  background: rgba(56, 189, 248, 0.14);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 9999px;
+  padding: 0.15rem 0.55rem;
+  font-weight: 700;
+}
+
+.caderno-nota-pergunta {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.caderno-nota-texto {
+  font-size: 0.86rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.caderno-nota-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.caderno-btn {
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.12);
+  color: #e0f2fe;
+  transition: all 0.2s ease;
+}
+
+.caderno-btn:hover {
+  background: rgba(56, 189, 248, 0.25);
+}
+
+.caderno-btn-excluir {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  margin-left: auto;
+}
+
+.caderno-btn-excluir:hover {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+/* ==========================================================================
+   SÉRIE ESCOLAR NO CABEÇALHO, BADGE VISUAL DA PERSONA E NOVA CONVERSA (RF02-RF05)
+   ========================================================================== */
+.brand-icon-link,
+.brand-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-title-link:hover {
+  text-decoration: none;
+}
+
+.serie-badge-wrap {
+  position: relative;
+  display: inline-block;
+  margin-top: 2px;
+}
+
+.badge-serie-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #7dd3fc;
+}
+
+.badge-serie-label::after {
+  content: '▾';
+  font-size: 0.65rem;
+  opacity: 0.8;
+}
+
+.select-serie-badge {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.persona-palco-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.9rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--persona-cor, var(--primary)) 14%, rgba(15, 23, 42, 0.85));
+  border: 1px solid color-mix(in srgb, var(--persona-cor, var(--primary)) 55%, transparent);
+  color: #f8fafc;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--persona-cor, var(--primary)) 22%, transparent);
+  transition: var(--transition-smooth);
+}
+
+.persona-palco-materia {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--persona-cor, #7dd3fc);
+  padding-left: 0.4rem;
+  border-left: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.btn-nova-conversa {
+  background: rgba(148, 163, 184, 0.14);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: var(--text-high);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.28rem 0.65rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.btn-nova-conversa:hover {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: var(--primary);
+  color: #e0f2fe;
 }
 

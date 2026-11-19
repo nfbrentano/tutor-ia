@@ -70,9 +70,12 @@ describe('Personas por matéria', () => {
       expect(extrairMateria('{"etapas": []}')).toBeUndefined();
     });
 
-    it('o prompt do Gemini pede o campo materia e proíbe citações inventadas (RF10, RF13)', () => {
+    it('CT14 / CA15: o prompt do Gemini pede o campo materia e proíbe citações inventadas (RF10, RF13)', () => {
       expect(CONFIG.SYSTEM_PROMPT).toContain('"materia"');
       expect(CONFIG.SYSTEM_PROMPT).toMatch(/nunca atribua a pessoas reais/);
+      expect(CONFIG.SYSTEM_PROMPT).toMatch(/citações inventadas/i);
+      expect(CONFIG.SYSTEM_PROMPT).toMatch(/título da obra/i);
+      expect(CONFIG.SYSTEM_PROMPT).toMatch(/diga que não tem/i);
     });
   });
 

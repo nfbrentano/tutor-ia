@@ -29,6 +29,7 @@ export function dividirEmTrechos(
     livroId: string;
     tituloLivro: string;
     disciplina: string;
+    serie?: string;
     pagina: number;
     capitulo?: string;
   },
@@ -38,6 +39,17 @@ export function dividirEmTrechos(
   const max = parametros.tamanhoMaximo ?? PARAMETROS_PADRAO_TRECHOS.tamanhoMaximo;
   const sobreposicao = parametros.sobreposicao ?? PARAMETROS_PADRAO_TRECHOS.sobreposicao;
 
+  const criarTrecho = (indiceTrecho: number, texto: string): TrechoLivro => ({
+    id: `${meta.livroId}-p${meta.pagina}-c${indiceTrecho}`,
+    livroId: meta.livroId,
+    tituloLivro: meta.tituloLivro,
+    disciplina: meta.disciplina,
+    ...(meta.serie ? { serie: meta.serie } : {}),
+    pagina: meta.pagina,
+    capitulo: meta.capitulo,
+    texto
+  });
+
   const textoLimpo = textoPagina.trim();
   if (textoLimpo.length < 50) {
     return [];
@@ -45,17 +57,7 @@ export function dividirEmTrechos(
 
   // Se o texto total for menor que o máximo, cria um único trecho íntegro
   if (textoLimpo.length <= max) {
-    return [
-      {
-        id: `${meta.livroId}-p${meta.pagina}-c1`,
-        livroId: meta.livroId,
-        tituloLivro: meta.tituloLivro,
-        disciplina: meta.disciplina,
-        pagina: meta.pagina,
-        capitulo: meta.capitulo,
-        texto: textoLimpo
-      }
-    ];
+    return [criarTrecho(1, textoLimpo)];
   }
 
   // Divide o texto em blocos de parágrafos preservando quebras
@@ -74,15 +76,7 @@ export function dividirEmTrechos(
     } else {
       // O buffer já tem tamanho suficiente
       if (buffer.length >= min) {
-        trechos.push({
-          id: `${meta.livroId}-p${meta.pagina}-c${trechoIndex++}`,
-          livroId: meta.livroId,
-          tituloLivro: meta.tituloLivro,
-          disciplina: meta.disciplina,
-          pagina: meta.pagina,
-          capitulo: meta.capitulo,
-          texto: buffer.trim()
-        });
+        trechos.push(criarTrecho(trechoIndex++, buffer.trim()));
 
         // Calcula sobreposição no final do buffer sem cortar palavras
         const inicioSobreposicao = Math.max(0, buffer.length - sobreposicao);
@@ -121,15 +115,7 @@ export function dividirEmTrechos(
 
       const parteTexto = buffer.slice(0, pontoCorte).trim();
       if (parteTexto.length >= 50) {
-        trechos.push({
-          id: `${meta.livroId}-p${meta.pagina}-c${trechoIndex++}`,
-          livroId: meta.livroId,
-          tituloLivro: meta.tituloLivro,
-          disciplina: meta.disciplina,
-          pagina: meta.pagina,
-          capitulo: meta.capitulo,
-          texto: parteTexto
-        });
+        trechos.push(criarTrecho(trechoIndex++, parteTexto));
       }
 
       // Prepara sobreposição
@@ -145,15 +131,7 @@ export function dividirEmTrechos(
 
   // Se restou algo relevante no buffer
   if (buffer.trim().length >= 80) {
-    trechos.push({
-      id: `${meta.livroId}-p${meta.pagina}-c${trechoIndex++}`,
-      livroId: meta.livroId,
-      tituloLivro: meta.tituloLivro,
-      disciplina: meta.disciplina,
-      pagina: meta.pagina,
-      capitulo: meta.capitulo,
-      texto: buffer.trim()
-    });
+    trechos.push(criarTrecho(trechoIndex++, buffer.trim()));
   }
 
   return trechos;

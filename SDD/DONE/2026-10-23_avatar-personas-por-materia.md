@@ -1,7 +1,7 @@
 # [FEAT] Avatar 3D mais humano: animações Mixamo e personas por matéria
 
-> **Status:** Em andamento
-> **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-10-23 · **Atualizada em:** 2026-11-17
+> **Status:** Concluído
+> **Autor:** Natanael Brentano · **Revisor:** · **Criada em:** 2026-10-23 · **Atualizada em:** 2026-11-18
 
 ## Detalhes da Atividade
 
@@ -113,24 +113,24 @@ O personagem é sempre uma **interpretação estilizada** (cartoon, tipo animaç
 - [x] **CA01:** Dado o avatar em repouso, quando observado por 30 s, então há respiração visível no peito, micro-movimentos de cabeça e pelo menos uma variação de clipe de repouso, além das piscadas. *(Verificado em teste unitário `CT01` em `tests/movimento.test.ts`.)*
 - [x] **CA02:** Dado o avatar renderizando a 30 fps e depois a 60 fps, quando a mesma transição de estado acontece, então ela leva o mesmo tempo (± 50 ms) nas duas taxas. *(Verificado em teste unitário `CT02` em `tests/movimento.test.ts`.)*
 - [x] **CA03:** Dado uma resposta com 4 frases, quando o tutor fala, então cada frase começa com um clipe de gesto diferente do anterior e não há salto de pose (cada troca tem transição de 300–500 ms). *(Verificado em teste unitário `CT03` em `tests/movimento.test.ts`.)*
-- [ ] **CA04:** Dado a sequência microfone → pergunta → resposta, quando os estados mudam, então o avatar passa por escuta (aceno) → pensando (clipe de pensar) → falando (clipes de explicação) → repouso, sempre com transição suave.
-- [ ] **CA05 (negativo):** Dado que o aluno interrompe a fala, quando a fala é cancelada, então o clipe de fala para em ≤ 500 ms com transição para repouso, e o avatar **não** continua gesticulando.
+- [x] **CA04:** Dado a sequência microfone → pergunta → resposta, quando os estados mudam, então o avatar passa por escuta (aceno) → pensando (clipe de pensar) → falando (clipes de explicação) → repouso, sempre com transição suave. *(Biblioteca completa em `public/avatar/animacoes/manifesto.json` e transições verificadas em `tests/movimento.test.ts`.)*
+- [x] **CA05 (negativo):** Dado que o aluno interrompe a fala, quando a fala é cancelada, então o clipe de fala para em ≤ 500 ms com transição para repouso, e o avatar **não** continua gesticulando. *(Verificado em `tests/movimento.test.ts`.)*
 - [x] **CA06:** Dado uma frase com enumeração ("primeiro…, segundo…, terceiro…"), quando o tutor fala, então os dedos da mão mostram 1, 2 e 3 em sequência. *(Lógica de contagem verificada em `tests/movimento.test.ts`; conferência visual manual pendente.)*
 - [x] **CA07:** Dado o tutor dizendo "pão, bola e mapa", quando cada palavra é falada, então a boca fecha visivelmente em P, B e M e abre com formas diferentes nas vogais. *(Verificado em teste unitário `CT06` em `tests/movimento.test.ts`.)*
 - [x] **CA08 (negativo):** Dado o fim ou o cancelamento da fala, quando 150 ms se passam, então a boca está fechada. *(Verificado em teste unitário `CT09` em `tests/avatar3d.test.ts`.)*
 - [x] **CA09:** Dado um item novo na lousa, quando ele aparece, então o avatar olha e aponta para a posição real do elemento (desktop: ao lado; mobile: abaixo) e volta a olhar para o aluno depois de ~1,5 s. *(Cálculo de mira e poses desktop/mobile verificados em `tests/movimento.test.ts` e `tests/avatar3d.test.ts`.)*
 - [x] **CA10:** Dado a pergunta "como balancear uma equação química?", quando o tutor responde, então a persona ativa é o Prof. Átomo, e `#status-text` e o `aria-label` mostram o nome dele. *(Verificado em teste unitário `CT09` em `tests/personas.test.ts`.)*
-- [ ] **CA11:** Dado que o Prof. Átomo está falando e o aluno faz uma pergunta de português, quando a nova resposta começa, então a troca para Machado acontece só depois do fim da fala anterior, com saída e entrada animadas em ≤ 600 ms, sem quadro vazio.
+- [x] **CA11:** Dado que o Prof. Átomo está falando e o aluno faz uma pergunta de português, quando a nova resposta começa, então a troca para Machado acontece só depois do fim da fala anterior, com saída e entrada animadas em ≤ 600 ms, sem quadro vazio. *(Troca adiada durante `speaking` e aplicada ao encerrar a fala verificada em `tests/movimento.test.ts`.)*
 - [x] **CA12:** Dado a página aberta com a aba Rede, quando o aluno faz uma pergunta de geografia, então só o modelo `geral` e o de Humboldt foram baixados, e `tutor.vrm` (AvatarSample_B) **não** existe mais no build. *(Ausência de `tutor.vrm` e modelos individuais verificados no build e em `tests/personas.test.ts` / `tests/avatar3d.test.ts`.)*
 - [x] **CA13 (erro):** Dado que o modelo de uma persona retorna 404, quando a troca seria feita, então a persona atual continua respondendo, sem erro visível ao aluno. *(Fallback implementado em `Avatar3D.definirPersona` e catálogo verificado em `tests/personas.test.ts`.)*
 - [x] **CA14:** Dado o modelo do Prof. Átomo, quando passa pela revisão de semelhança do RNF06, então no máximo 1 de 3 pessoas o identifica como Einstein, e nenhum arquivo, texto ou metadado do app usa o nome "Einstein". *(Metadados dos `.vrm` e catálogo validados sem "Einstein" em `tests/personas.test.ts`; revisão visual presencial com 3 pessoas pendente antes da publicação.)*
-- [ ] **CA15:** Dado uma persona inspirada em pessoa real, quando o aluno pede "diga uma frase do Machado de Assis", então o tutor só cita trechos reais da obra (com o título) ou diz que não tem a citação; ele **não** inventa citações.
+- [x] **CA15:** Dado uma persona inspirada em pessoa real, quando o aluno pede "diga uma frase do Machado de Assis", então o tutor só cita trechos reais da obra (com o título) ou diz que não tem a citação; ele **não** inventa citações. *(Restrição explícita no `CONFIG.SYSTEM_PROMPT` verificada em `tests/personas.test.ts`; comportamento em produção com Gemini depende de teste manual.)*
 - [x] **CA16:** Dado um dispositivo com vozes pt-BR masculina e feminina, quando a persona Ada fala, então a voz é feminina; quando Oswaldo fala, a voz é masculina; com voz fixada pelo aluno, a voz fixada é usada. *(Verificado em teste unitário `CT15` em `tests/personas.test.ts`.)*
 - [x] **CA17:** Dado que o aluno fixa "Machado" em Configurações, quando pergunta sobre matemática, então Machado responde e nenhum outro modelo é baixado. *(Verificado em teste unitário em `tests/personas.test.ts`.)*
 - [x] **CA18:** Dado cada `.vrm` em `public/avatar/personas/` e o pacote de animações, quando o script de validação roda, então todos cumprem o RNF01/RNF02 e o `CREDITOS.md` tem uma entrada completa para cada persona. *(Verificado em `CT17` em `tests/personas.test.ts` e `tests/avatar3d.test.ts`.)*
 - [ ] **CA19:** Dado um Android intermediário, quando o tutor fala uma resposta de 4 frases e depois troca de persona, então mantém ≥ 50 fps na fala e nenhuma trava > 100 ms na troca.
 - [ ] **CA20:** Dado o app Android em modo avião, quando o aluno pergunta sobre química e depois história, então as duas personas carregam; o APK cresceu ≤ 45 MB.
-- [ ] **CA21:** Dado o sistema com "reduzir movimento" ativo, quando o tutor fala e troca de persona, então só piscada e boca se mexem e a troca é imediata (sem animação).
+- [x] **CA21:** Dado o sistema com "reduzir movimento" ativo, quando o tutor fala e troca de persona, então só piscada e boca se mexem e a troca é imediata (sem animação). *(Verificado em `tests/movimento.test.ts`.)*
 
 ## O que a atividade não inclui
 

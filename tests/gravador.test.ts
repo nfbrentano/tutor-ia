@@ -120,6 +120,22 @@ describe('Gravador de gestos', () => {
       );
       dobrado.forEach(c => expect(c).toBeCloseTo(Math.PI / 2, 5));
     });
+
+    it('RF04c: usa facialTransformationMatrixes para girar cabeça e pescoço e respeita espelhar', () => {
+      const { mundo, imagem } = montarPose({ esqBraco: BAIXO, esqAnte: BAIXO, dirBraco: BAIXO, dirAnte: BAIXO });
+      const anguloYaw = THREE.MathUtils.degToRad(20);
+      const matrizRosto = new THREE.Matrix4().makeRotationY(anguloYaw).toArray();
+
+      const normal = converterQuadro(mundo, imagem, [], { matrizRosto });
+      const qCabecaNormal = new THREE.Quaternion(...normal.rotacoes.neck!).multiply(new THREE.Quaternion(...normal.rotacoes.head!));
+      const eulerNormal = new THREE.Euler().setFromQuaternion(qCabecaNormal, 'YXZ');
+      expect(eulerNormal.y).toBeCloseTo(anguloYaw, 3);
+
+      const espelhado = converterQuadro(mundo, imagem, [], { matrizRosto, espelhar: true });
+      const qCabecaEsp = new THREE.Quaternion(...espelhado.rotacoes.neck!).multiply(new THREE.Quaternion(...espelhado.rotacoes.head!));
+      const eulerEsp = new THREE.Euler().setFromQuaternion(qCabecaEsp, 'YXZ');
+      expect(eulerEsp.y).toBeCloseTo(-anguloYaw, 3);
+    });
   });
 
   describe('CT07 / CT08: suavização e falhas', () => {
@@ -306,6 +322,44 @@ describe('Gravador de gestos', () => {
       expect(tempos[0]).toBe(0);
       expect(tempos[1]).toBeCloseTo(0.05, 6);
       expect(converterClipeJson({ formato: 'outro' }, vrmFalso, 'x')).toBeNull();
+    });
+  });
+
+  describe('CT01 / CT02 / CA01 / CA02 / RNF01 / RNF05: página de desenvolvimento e isolamento do build', () => {
+    it('CT01 / CA01 / RNF05: gravador.html possui webcam, arquivo, personas e aviso de privacidade', () => {
+      const htmlPath = path.resolve(__dirname, '../gravador.html');
+      expect(fs.existsSync(htmlPath)).toBe(true);
+      const html = fs.readFileSync(htmlPath, 'utf8');
+
+      expect(html).toContain('id="btn-webcam"');
+      expect(html).toContain('id="arquivo-video"');
+      expect(html).toContain('id="sel-persona-previa"');
+      expect(html).toMatch(/não é salvo nem enviado/i);
+    });
+
+    it('CT02 / CA02 / RNF01: @mediapipe/tasks-vision fica só em devDependencies e gravador.html fora do build', () => {
+      const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf8'));
+      expect(pkg.devDependencies?.['@mediapipe/tasks-vision']).toBe('1.1.1');
+      expect(pkg.dependencies?.['@mediapipe/tasks-vision']).toBeUndefined();
+
+      const viteConfig = fs.readFileSync(path.resolve(__dirname, '../vite.config.ts'), 'utf8');
+      const blocoInput = /input:\s*\{[\s\S]*?\}/.exec(viteConfig)?.[0] || '';
+      expect(blocoInput).toContain('tutor.html');
+      expect(blocoInput).not.toContain('gravador.html');
+
+      const distDir = path.resolve(__dirname, '../dist');
+      if (fs.existsSync(distDir)) {
+        expect(fs.existsSync(path.join(distDir, 'gravador.html'))).toBe(false);
+        const assetsDir = path.join(distDir, 'assets');
+        if (fs.existsSync(assetsDir)) {
+          for (const arquivo of fs.readdirSync(assetsDir)) {
+            if (!arquivo.endsWith('.js')) continue;
+            const conteudo = fs.readFileSync(path.join(assetsDir, arquivo), 'utf8');
+            expect(conteudo).not.toContain('tasks-vision');
+            expect(conteudo).not.toContain('PoseLandmarker');
+          }
+        }
+      }
     });
   });
 });

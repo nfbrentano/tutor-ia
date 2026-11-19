@@ -13,15 +13,35 @@
 </head>
 <body>
   <header>
-    <a href="./index.html" class="brand" id="brand-link">
-      <div class="brand-icon">🤖</div>
+    <div class="brand">
+      <a href="./index.html" class="brand-icon-link" id="brand-link" title="Voltar para a página inicial">
+        <div class="brand-icon">🤖</div>
+      </a>
       <div class="brand-info">
-        <h1>Tutor<span>IA</span></h1>
-        <span class="badge-level">Sala de Estudos</span>
+        <h1><a href="./index.html" class="brand-title-link">Tutor<span>IA</span></a></h1>
+        <div class="serie-badge-wrap" title="Selecionar sua série escolar">
+          <span class="badge-level badge-serie-label" id="badge-serie-tutor">Ensino Geral</span>
+          <select id="select-serie-tutor" class="select-serie-badge" aria-label="Selecionar série escolar">
+            <option value="">Todas as séries (Geral)</option>
+            <option value="6º ano EF">6º ano EF</option>
+            <option value="7º ano EF">7º ano EF</option>
+            <option value="8º ano EF">8º ano EF</option>
+            <option value="9º ano EF">9º ano EF</option>
+            <option value="1º ano EM">1º ano EM</option>
+            <option value="2º ano EM">2º ano EM</option>
+            <option value="3º ano EM">3º ano EM</option>
+          </select>
+        </div>
       </div>
-    </a>
+    </div>
 
     <div class="header-actions">
+      <span class="practice-counter-badge" id="practice-counter-badge" title="Resumo da sessão atual" aria-live="polite">📚 0 • 🎯 0</span>
+
+      <button type="button" class="btn-caderno-header" id="btn-abrir-caderno" title="Abrir Meu Caderno de Estudos (offline)">
+        📒 Meu Caderno
+      </button>
+
       <a href="./configuracoes.html" class="api-status-tag" id="status-tag-link" title="Ver configurações da API">
         <div class="status-dot-indicator" id="status-indicator"></div>
         <span id="status-label">Verificando...</span>
@@ -180,15 +200,28 @@
                 <line x1="8" y1="8" x2="16" y2="8"></line>
                 <line x1="8" y1="16" x2="13" y2="16"></line>
               </svg>
-              <span>Lousa do Tutor</span>
+              <span>Lousa</span>
             </div>
-            <span class="lousa-badge" id="lousa-counter">Apoio Visual</span>
-            <button class="lousa-close-btn" id="btn-close-lousa" title="Fechar Lousa" aria-label="Fechar Lousa">✕</button>
+            <div class="lousa-header-actions">
+              <button type="button" class="lousa-acao-btn" id="btn-copiar-lousa" title="Copiar resumo da lousa" aria-label="Copiar resumo da lousa">📋 Copiar</button>
+              <button type="button" class="lousa-acao-btn" id="btn-baixar-lousa" title="Baixar resumo da lousa em Markdown" aria-label="Baixar resumo da lousa">⬇️ .md</button>
+              <button type="button" class="lousa-close-btn" id="btn-close-lousa" title="Fechar Lousa" aria-label="Fechar Lousa">✕</button>
+            </div>
           </div>
           <div class="lousa-body" id="lousa-body" aria-live="polite">
             <!-- Itens didáticos sincronizados com as etapas da fala -->
           </div>
+          <div class="lousa-footer hidden" id="lousa-footer">
+            <button type="button" class="lousa-btn-desafio" id="btn-lousa-testar-entendi">🎯 Testar se entendi</button>
+          </div>
         </div>
+      </div>
+
+      <!-- Badge visual da persona no palco (RF05a, CA07) -->
+      <div class="persona-palco-badge" id="persona-palco-badge" aria-live="polite">
+        <span class="persona-palco-emblema" id="persona-palco-emblema">✨</span>
+        <span class="persona-palco-nome" id="persona-palco-nome">Lia</span>
+        <span class="persona-palco-materia" id="persona-palco-materia">Geral</span>
       </div>
 
       <!-- Badge de Estado Atual -->
@@ -218,7 +251,10 @@
     <aside class="panel" aria-label="Histórico de Conversa">
       <div class="panel-header">
         <span>Sessão de Estudos</span>
-        <span id="session-tag" style="font-size: 0.78rem; color: var(--accent-speaking);">● Ativa</span>
+        <div class="panel-header-actions">
+          <button type="button" class="btn-nova-conversa" id="btn-nova-conversa" title="Limpar conversa e iniciar novo assunto">🔄 Nova conversa</button>
+          <span id="session-tag" style="font-size: 0.78rem; color: var(--accent-speaking);">● Ativa</span>
+        </div>
       </div>
 
       <div class="panel-body" id="chat-stream">
@@ -236,6 +272,33 @@
           </div>
         </div>
       </div>
+
+      <!-- Controles Pedagógicos e Anexo de Foto (RF03, RF04) -->
+      <div class="panel-controls-bar">
+        <label class="modo-pedagogico-wrap" for="select-modo-pedagogico">
+          <span class="modo-pedagogico-label">Modo:</span>
+          <select id="select-modo-pedagogico" class="select-modo-pedagogico" aria-label="Modo pedagógico de resposta">
+            <option value="completo">Explicação completa</option>
+            <option value="dica">💡 Modo Dica (Passo a Passo)</option>
+          </select>
+        </label>
+
+        <button type="button" class="btn-foto-exercicio" id="btn-foto-exercicio" title="Enviar foto de exercício do caderno ou livro (JPG, PNG ou WebP até 10 MB)">
+          📷 Foto do exercício
+        </button>
+        <input type="file" id="input-foto-exercicio" accept="image/*" hidden />
+      </div>
+
+      <div class="foto-preview-bar hidden" id="foto-preview-bar">
+        <img id="foto-preview-img" class="foto-preview-img" src="" alt="Prévia da foto do exercício" />
+        <div class="foto-preview-info">
+          <span class="foto-preview-nome" id="foto-preview-nome">Foto anexada</span>
+          <span class="foto-preview-hint">Pronta para enviar com sua dúvida</span>
+        </div>
+        <button type="button" class="btn-remover-foto" id="btn-remover-foto" title="Remover foto" aria-label="Remover foto anexada">✕</button>
+      </div>
+
+      <div class="foto-erro-msg hidden" id="foto-erro-msg" role="alert"></div>
 
       <!-- Campo de Digitação Alternativo (Fallback) -->
       <div class="panel-footer">
@@ -279,6 +342,48 @@
       <div class="modal-fonte-footer">
         <span class="modal-fonte-aviso">Trecho original extraído da obra escolar para conferência didática.</span>
         <button id="btn-entendido-modal-fonte" class="btn-entendido-fonte">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal do Caderno de Estudos Local (RF05, RF06, RNF04) -->
+  <div class="modal-fonte-overlay hidden" id="modal-caderno-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-caderno-titulo">
+    <div class="modal-fonte-card modal-caderno-card">
+      <div class="modal-fonte-header">
+        <div class="modal-fonte-info">
+          <span class="modal-fonte-badge">📒 Offline • Salvo no aparelho</span>
+          <h3 id="modal-caderno-titulo" class="modal-fonte-titulo">Meu Caderno de Estudos</h3>
+          <span id="caderno-estatisticas-resumo" class="modal-fonte-subtitulo">0 dúvidas tiradas • 0 desafios acertados nesta sessão</span>
+        </div>
+        <button type="button" id="btn-fechar-modal-caderno" class="modal-fonte-fechar" aria-label="Fechar Meu Caderno">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="caderno-filtros-bar">
+        <label for="select-filtro-caderno" class="caderno-filtro-label">Filtrar matéria:</label>
+        <select id="select-filtro-caderno" class="caderno-filtro-select">
+          <option value="todas">Todas as matérias</option>
+          <option value="matematica">Matemática</option>
+          <option value="ciencias">Ciências</option>
+          <option value="fisica_quimica">Física e Química</option>
+          <option value="historia">História</option>
+          <option value="geografia">Geografia</option>
+          <option value="portugues">Português</option>
+          <option value="geral">Geral</option>
+        </select>
+      </div>
+
+      <div class="modal-fonte-corpo caderno-lista-container" id="caderno-lista-container">
+        <p class="caderno-vazio">Nenhuma anotação salva ainda. Clique em "⭐ Salvar no Caderno" após uma explicação para revisar offline.</p>
+      </div>
+
+      <div class="modal-fonte-footer">
+        <span class="modal-fonte-aviso">Suas anotações ficam salvas apenas neste aparelho (IndexedDB).</span>
+        <button type="button" id="btn-ok-modal-caderno" class="btn-entendido-fonte">Fechar</button>
       </div>
     </div>
   </div>

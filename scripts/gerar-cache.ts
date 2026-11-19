@@ -80,7 +80,19 @@ export const PERGUNTAS_FREQUENTES_CURRICULO: Array<Omit<ItemCacheResposta, 'id' 
           tituloLivro: 'Ciências da Natureza - 6º Ano',
           pagina: 1
         }
-      ]
+      ],
+      desafio: {
+        pergunta: 'Quais são os reagentes necessários para a planta realizar a fotossíntese?',
+        opcoes: [
+          'Oxigênio, glicose e nitrogênio',
+          'Luz solar, água (H2O) e gás carbônico (CO2)',
+          'Somente água mineral do solo',
+          'Oxigênio e vapor de enxofre'
+        ],
+        correta: 1,
+        dica: 'Lembre-se do que entra pelas raízes e pelas folhas junto com a energia do Sol.',
+        explicacao: 'Na fotossíntese, a planta usa água, gás carbônico e luz solar para produzir glicose e liberar oxigênio.'
+      }
     }
   },
   {
@@ -135,7 +147,19 @@ export const PERGUNTAS_FREQUENTES_CURRICULO: Array<Omit<ItemCacheResposta, 'id' 
           tituloLivro: 'Ciências da Natureza - 6º Ano',
           pagina: 1
         }
-      ]
+      ],
+      desafio: {
+        pergunta: 'Em qual estrutura da célula vegetal a fotossíntese acontece principalmente?',
+        opcoes: [
+          'Nos cloroplastos, que contêm clorofila',
+          'No núcleo celular',
+          'Apenas na parede do caule sem luz',
+          'Nos lisossomos das raízes'
+        ],
+        correta: 0,
+        dica: 'É a organela verde das folhas que abriga o pigmento captador de luz.',
+        explicacao: 'A clorofila fica dentro dos cloroplastos das células vegetais, onde a energia luminosa é capturada.'
+      }
     }
   },
   {
@@ -186,7 +210,19 @@ export const PERGUNTAS_FREQUENTES_CURRICULO: Array<Omit<ItemCacheResposta, 'id' 
           tituloLivro: 'Ciências da Natureza - 6º Ano',
           pagina: 2
         }
-      ]
+      ],
+      desafio: {
+        pergunta: 'Qual estrutura da célula controla a entrada e saída de substâncias e a protege?',
+        opcoes: [
+          'Mitocôndria',
+          'Núcleo',
+          'Membrana plasmática',
+          'Cromossomo'
+        ],
+        correta: 2,
+        dica: 'Pense na camada externa que envolve e delimita toda a célula.',
+        explicacao: 'A membrana plasmática envolve a célula e seleciona o que entra e sai dela.'
+      }
     }
   },
   {
@@ -235,7 +271,19 @@ export const PERGUNTAS_FREQUENTES_CURRICULO: Array<Omit<ItemCacheResposta, 'id' 
           tituloLivro: 'História do Brasil e Geral - 7º Ano',
           pagina: 1
         }
-      ]
+      ],
+      desafio: {
+        pergunta: 'Qual episódio simbólico marcou o início da Revolução Francesa em 14 de julho de 1789?',
+        opcoes: [
+          'A assinatura do Tratado de Versalhes',
+          'A Queda da Bastilha',
+          'A Independência dos Estados Unidos',
+          'O Descobrimento do Brasil'
+        ],
+        correta: 1,
+        dica: 'Era uma antiga fortaleza e prisão real em Paris tomada pela população.',
+        explicacao: 'A Queda da Bastilha simbolizou o rompimento com o poder absoluto do rei na França.'
+      }
     }
   },
   {
@@ -293,7 +341,19 @@ export const PERGUNTAS_FREQUENTES_CURRICULO: Array<Omit<ItemCacheResposta, 'id' 
           tituloLivro: 'Matemática Prática e Geometria - 6º Ano',
           pagina: 1
         }
-      ]
+      ],
+      desafio: {
+        pergunta: 'Qual é o resultado da soma 1/4 + 1/2?',
+        opcoes: [
+          '2/6',
+          '3/4',
+          '1/6',
+          '2/4'
+        ],
+        correta: 1,
+        dica: 'Transforme 1/2 em quartos (2/4) usando denominador comum 4 antes de somar os numeradores.',
+        explicacao: 'Como MMC(4, 2) = 4, temos 1/4 + 2/4 = 3/4.'
+      }
     }
   }
 ];

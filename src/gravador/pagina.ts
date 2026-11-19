@@ -5,7 +5,7 @@
 
 import * as THREE from 'three';
 import type { VRMHumanBoneName } from '@pixiv/three-vrm';
-import { FilesetResolver, HandLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision';
+import { FaceLandmarker, FilesetResolver, HandLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision';
 
 import type { CategoriaClipe } from '../avatar3d/animacoes';
 import { POSE_CUMPRIMENTAR, POSE_IDLE, POSE_THINKING, POSES_GESTOS_FALA, POSES_REPOUSO } from '../avatar3d/poses';
@@ -23,6 +23,8 @@ const MODELO_POSE =
   'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task';
 const MODELO_MAO =
   'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task';
+const MODELO_ROSTO =
+  'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const video = $<HTMLVideoElement>('video');
@@ -48,6 +50,7 @@ const previa = new PreviaAvatar($<HTMLCanvasElement>('canvas-avatar'));
 
 let pose: PoseLandmarker | null = null;
 let maos: HandLandmarker | null = null;
+let rosto: FaceLandmarker | null = null;
 let stream: MediaStream | null = null;
 let gravando = false;
 let inicioGravacaoMs = 0;
@@ -73,7 +76,7 @@ function mostrarMensagem(texto: string, tipo: 'ok' | 'erro' | '' = ''): void {
 }
 
 async function carregarMediaPipe(): Promise<void> {
-  if (pose && maos) return;
+  if (pose && maos && rosto) return;
   progresso.textContent = 'Carregando MediaPipe (primeira vez baixa os modelos)…';
   const fileset = await FilesetResolver.forVisionTasks(WASM);
   pose = await PoseLandmarker.createFromOptions(fileset, {
@@ -86,6 +89,12 @@ async function carregarMediaPipe(): Promise<void> {
     runningMode: 'VIDEO',
     numHands: 2
   });
+  rosto = await FaceLandmarker.createFromOptions(fileset, {
+    baseOptions: { modelAssetPath: MODELO_ROSTO, delegate: 'GPU' },
+    runningMode: 'VIDEO',
+    numFaces: 1,
+    outputFacialTransformationMatrixes: true
+  });
   progresso.textContent = '';
 }
 
@@ -95,11 +104,13 @@ function processarQuadroAtual(timestampMs: number, dt: number): { rotacoes: Rota
   ultimoTimestampMs = ts;
   const resPose = pose!.detectForVideo(video, ts);
   const resMaos = maos!.detectForVideo(video, ts);
+  const resRosto = rosto?.detectForVideo(video, ts);
   const listaMaos: MaoDetectada[] = resMaos.landmarks.map((imagem, i) => ({ imagem, mundo: resMaos.worldLandmarks[i] }));
 
   const resultado = converterQuadro(resPose.worldLandmarks[0], resPose.landmarks[0], listaMaos, {
     espelhar: chkEspelhar.checked,
-    cabecaNeutra
+    cabecaNeutra,
+    matrizRosto: resRosto?.facialTransformationMatrixes?.[0]?.data
   });
   if (resultado.cabecaBruta) ultimaCabecaBruta = resultado.cabecaBruta;
   const rotacoes = suavizador.filtrar(resultado.rotacoes, dt);
@@ -338,6 +349,12 @@ async function rodarAutoteste(): Promise<void> {
     runningMode: 'IMAGE',
     numPoses: 1
   });
+  const rostoImagem = await FaceLandmarker.createFromOptions(fileset, {
+    baseOptions: { modelAssetPath: MODELO_ROSTO, delegate: 'GPU' },
+    runningMode: 'IMAGE',
+    numFaces: 1,
+    outputFacialTransformationMatrixes: true
+  });
 
   const tela = document.createElement('canvas');
   tela.width = 512;
@@ -376,7 +393,10 @@ async function rodarAutoteste(): Promise<void> {
       linhas.push(`<tr><td>${nome}</td><td colspan="5">não detectado</td></tr>`);
       continue;
     }
-    const { rotacoes } = converterQuadro(det.worldLandmarks[0], det.landmarks[0]);
+    const detRosto = rostoImagem.detect(tela);
+    const { rotacoes } = converterQuadro(det.worldLandmarks[0], det.landmarks[0], [], {
+      matrizRosto: detRosto.facialTransformationMatrixes?.[0]?.data
+    });
     previa.aplicarRotacoes(rotacoes);
     const erros = segmentos.map(([a, b], i) => Math.round(THREE.MathUtils.radToDeg(previa.direcaoOsso(a, b).angleTo(esperadas[i]))));
     const media = Math.round(erros.reduce((s, e) => s + e, 0) / erros.length);
@@ -387,6 +407,7 @@ async function rodarAutoteste(): Promise<void> {
   previa.aplicarPose(POSE_IDLE);
   renderer.dispose();
   poseImagem.close();
+  rostoImagem.close();
   saida.innerHTML = `<table><tr><th>pose</th><th>braço E</th><th>antebraço E</th><th>braço D</th><th>antebraço D</th><th>média</th></tr>${linhas.join('')}</table>`;
 }
 
