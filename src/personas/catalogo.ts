@@ -9,22 +9,28 @@ import { MateriaId, Persona } from './tipos';
 
 export const PERSONA_PADRAO_ID = 'lia';
 
-/** Modelo usado por toda persona que ainda não tem `.vrm` próprio (D04). */
-export const MODELO_PROVISORIO = './avatar/tutor.vrm';
+/** Modelo padrão de reserva quando uma persona não definir `.vrm` específico (RF14). */
+export const MODELO_PROVISORIO = './avatar/personas/lia.vrm';
 
 export const PERSONAS: Persona[] = [
   {
     id: 'lia',
     nome: 'Lia',
     materias: ['geral'],
+    modelo: './avatar/personas/lia.vrm',
     descricao: 'Educadora jovem e acolhedora',
+    corTema: '#38bdf8',
+    emblema: '✨',
     voz: { genero: 'feminino', pitch: 1.05, rate: 1.05 }
   },
   {
     id: 'prof-atomo',
     nome: 'Prof. Átomo',
     materias: ['fisica_quimica'],
+    modelo: './avatar/personas/prof-atomo.vrm',
     descricao: 'Cientista original, curioso e animado',
+    corTema: '#a855f7',
+    emblema: '⚛️',
     voz: { genero: 'masculino', pitch: 0.95, rate: 1.0 },
     pesosGestos: { enfatizar: 2, 'contar-dedos': 1.5 }
   },
@@ -32,8 +38,11 @@ export const PERSONAS: Persona[] = [
     id: 'ada',
     nome: 'Ada',
     materias: ['matematica'],
+    modelo: './avatar/personas/ada.vrm',
     inspiracao: { nome: 'Ada Lovelace', anos: '1815–1852' },
     descricao: 'Matemática precisa e paciente',
+    corTema: '#3b82f6',
+    emblema: '📐',
     voz: { genero: 'feminino', pitch: 1.0, rate: 1.0 },
     pesosGestos: { 'contar-dedos': 2 }
   },
@@ -41,16 +50,22 @@ export const PERSONAS: Persona[] = [
     id: 'oswaldo',
     nome: 'Oswaldo',
     materias: ['ciencias'],
+    modelo: './avatar/personas/oswaldo.vrm',
     inspiracao: { nome: 'Oswaldo Cruz', anos: '1872–1917' },
     descricao: 'Cientista e médico sanitarista',
+    corTema: '#10b981',
+    emblema: '🔬',
     voz: { genero: 'masculino', pitch: 0.9, rate: 1.0 }
   },
   {
     id: 'machado',
     nome: 'Machado',
     materias: ['portugues'],
+    modelo: './avatar/personas/machado.vrm',
     inspiracao: { nome: 'Machado de Assis', anos: '1839–1908' },
     descricao: 'Escritor elegante e contido',
+    corTema: '#f59e0b',
+    emblema: '✒️',
     voz: { genero: 'masculino', pitch: 0.9, rate: 0.95 },
     pesosGestos: { 'mao-no-peito': 2, 'palmas-abertas': 0.5 }
   },
@@ -58,8 +73,11 @@ export const PERSONAS: Persona[] = [
     id: 'humboldt',
     nome: 'Humboldt',
     materias: ['geografia'],
+    modelo: './avatar/personas/humboldt.vrm',
     inspiracao: { nome: 'Alexander von Humboldt', anos: '1769–1859' },
     descricao: 'Explorador entusiasmado',
+    corTema: '#14b8a6',
+    emblema: '🧭',
     voz: { genero: 'masculino', pitch: 1.0, rate: 1.05 },
     pesosGestos: { 'palmas-abertas': 2 }
   },
@@ -67,8 +85,11 @@ export const PERSONAS: Persona[] = [
     id: 'herodoto',
     nome: 'Heródoto',
     materias: ['historia'],
+    modelo: './avatar/personas/herodoto.vrm',
     inspiracao: { nome: 'Heródoto', anos: 'c. 484–425 a.C.' },
     descricao: 'Contador de histórias',
+    corTema: '#f97316',
+    emblema: '🏛️',
     voz: { genero: 'masculino', pitch: 0.85, rate: 0.95 },
     pesosGestos: { 'palmas-abertas': 1.5 }
   }

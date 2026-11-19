@@ -60,12 +60,39 @@
 
 /* Cabeçalho da Lousa */
 .lousa-header {
-  padding: 0.85rem 1.2rem;
+  padding: 0.75rem 1.1rem;
   background: rgba(15, 23, 42, 0.95);
   border-bottom: 1.5px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
+}
+
+.lousa-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.lousa-acao-btn {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #bae6fd;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.22rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  white-space: nowrap;
+}
+
+.lousa-acao-btn:hover {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: var(--primary);
+  color: #fff;
 }
 
 .lousa-title {
@@ -182,6 +209,12 @@
   font-size: 0.75em;
   color: #7dd3fc;
   vertical-align: sub;
+}
+
+.formula-frac {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
 }
 
 /* Tipo: Passos Numerados */
@@ -333,4 +366,278 @@
   font-size: 0.78rem;
   color: var(--text-muted);
   text-align: center;
+}
+
+/* Tipo: Quiz Interativo de Fixação (RF01, RF02, RNF03) */
+.lousa-item-quiz {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92));
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.lousa-quiz-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.lousa-quiz-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lousa-quiz-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 9999px;
+  padding: 0.2rem 0.6rem;
+}
+
+.lousa-quiz-pergunta {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #f8fafc;
+  line-height: 1.45;
+}
+
+.lousa-quiz-opcoes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.lousa-quiz-opcao {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  color: var(--text-high);
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lousa-quiz-opcao:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.lousa-quiz-opcao:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.lousa-quiz-letra {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(148, 163, 184, 0.18);
+  color: #e2e8f0;
+  font-weight: 700;
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lousa-quiz-texto {
+  flex: 1;
+  line-height: 1.35;
+}
+
+.lousa-quiz-opcao.correta {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: #10b981;
+  color: #d1fae5;
+}
+
+.lousa-quiz-opcao.correta .lousa-quiz-letra {
+  background: #10b981;
+  color: #022c22;
+}
+
+.lousa-quiz-opcao.incorreta {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.65);
+  color: #fecaca;
+}
+
+.lousa-quiz-opcao.incorreta .lousa-quiz-letra {
+  background: rgba(239, 68, 68, 0.85);
+  color: #fff;
+}
+
+.lousa-quiz-opcao:disabled:not(.correta):not(.incorreta) {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.lousa-quiz-feedback:empty {
+  display: none;
+}
+
+.lousa-quiz-feedback {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-sm);
+}
+
+.lousa-quiz-feedback.feedback-dica {
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  color: #fde68a;
+}
+
+.lousa-quiz-feedback.feedback-correto {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #a7f3d0;
+}
+
+.lousa-quiz-feedback.feedback-revelado {
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #bae6fd;
+}
+
+.lousa-quiz-acoes {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.lousa-quiz-ver-resposta {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: var(--text-medium);
+  font-size: 0.75rem;
+  font-family: inherit;
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lousa-quiz-ver-resposta:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.lousa-quiz-ver-resposta.oculto {
+  display: none;
+}
+
+.lousa-footer {
+  padding: 0.7rem 1.2rem;
+  border-top: 1px solid var(--border-color);
+  background: rgba(15, 23, 42, 0.92);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.lousa-footer.hidden {
+  display: none;
+}
+
+.lousa-btn-desafio {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(14, 165, 233, 0.35));
+  border: 1px solid var(--primary);
+  color: #e0f2fe;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.4rem 0.85rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lousa-btn-desafio:hover {
+  background: var(--primary);
+  color: #0f172a;
+}
+
+/* Tipo: Gráfico Cartesiano (RF06a, CA09, RNF02) */
+.lousa-grafico-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.lousa-grafico-titulo {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  text-align: center;
+}
+
+.lousa-grafico-svg-box {
+  width: 100%;
+  background: #020617;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem;
+}
+
+.lousa-grafico-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.grafico-grade {
+  stroke: rgba(148, 163, 184, 0.16);
+  stroke-width: 1;
+}
+
+.grafico-eixo {
+  stroke: rgba(148, 163, 184, 0.65);
+  stroke-width: 1.5;
+}
+
+.grafico-curva {
+  stroke: #38bdf8;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.grafico-ponto {
+  fill: #facc15;
+  stroke: #0f172a;
+  stroke-width: 1.2;
+}
+
+.grafico-rotulo {
+  fill: #94a3b8;
+  font-size: 9px;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.grafico-eixo-nome {
+  fill: #7dd3fc;
+  font-weight: 700;
+}
+
+.lousa-grafico-expressao {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #7dd3fc;
 }

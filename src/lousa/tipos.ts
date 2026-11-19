@@ -9,7 +9,41 @@ export type TipoItemLousa =
   | 'lista'
   | 'tabela'
   | 'imagem'
-  | 'desenho';
+  | 'desenho'
+  | 'quiz'
+  | 'grafico';
+
+export interface PontoGrafico {
+  x: number;
+  y: number;
+}
+
+export interface GraficoConteudo {
+  expressao?: string;
+  pontos: PontoGrafico[];
+  titulo?: string;
+  eixoX?: string;
+  eixoY?: string;
+}
+
+export interface DesafioQuiz {
+  pergunta: string;
+  opcoes: string[];
+  correta: number;
+  dica: string;
+  explicacao: string;
+}
+
+export interface EventoRespostaQuiz {
+  acertou: boolean;
+  tentativa: number;
+  revelado?: boolean;
+  indiceEscolhido: number;
+  desafio: DesafioQuiz;
+  mensagemFeedback: string;
+}
+
+export type OnResponderQuizCallback = (evento: EventoRespostaQuiz) => void;
 
 export interface TabelaConteudo {
   cabecalho: string[];
@@ -28,7 +62,9 @@ export type ConteudoItemLousa =
   | string // para texto, formula, desenho
   | string[] // para passos, lista
   | TabelaConteudo // para tabela
-  | ImagemConteudo; // para imagem
+  | ImagemConteudo // para imagem
+  | DesafioQuiz // para quiz
+  | GraficoConteudo; // para grafico
 
 export interface ItemLousa {
   tipo: TipoItemLousa;
@@ -51,5 +87,7 @@ export interface RespostaDidatica {
   fontes?: Array<{ livroId: string; tituloLivro?: string; pagina: number; trechoId?: string }>;
   /** Matéria classificada pelo Gemini, usada na próxima escolha de persona (RF13). */
   materia?: string;
+  /** Desafio de fixação opcional para modo prática na lousa (RF01). */
+  desafio?: DesafioQuiz | null;
 }
 

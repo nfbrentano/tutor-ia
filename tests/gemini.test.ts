@@ -10,6 +10,17 @@ describe('Módulo Gemini - parseGeminiResponse e cleanTextForSpeech', () => {
     expect(cleaned).not.toContain('https://');
   });
 
+  it('CT06 / CA06: deve converter fórmulas LaTeX, subscritos e potências para leitura natural na fala', () => {
+    const fala1 = cleanTextForSpeech('A fórmula é \\frac{1}{2} e H_2O \\to O_2');
+    expect(fala1).not.toContain('\\frac');
+    expect(fala1).not.toContain('\\to');
+    expect(fala1).not.toContain('_');
+    expect(fala1).toBe('A fórmula é 1 sobre 2 e H2O gera O2');
+
+    const fala2 = cleanTextForSpeech('H_2O e \\frac{1}{2} \\to x^2');
+    expect(fala2).toBe('H2O e 1 sobre 2 gera x ao quadrado');
+  });
+
   it('deve fazer o parse correto de JSON puro', () => {
     const jsonStr = JSON.stringify({
       texto: 'O Brasil foi descoberto em 1500.',

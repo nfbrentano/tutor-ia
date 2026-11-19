@@ -38,6 +38,10 @@ export interface Persona {
   /** Pessoa real que inspirou a persona; ausente nas personas originais (RF10). */
   inspiracao?: { nome: string; anos: string };
   descricao: string;
+  /** Cor de destaque para halo, luz secundária 3D e distintivo de matéria (RF05). */
+  corTema: string;
+  /** Ícone/emblema visual da persona (RF05). */
+  emblema: string;
   voz: VozPersona;
   camera?: CameraPersona;
   /** Peso relativo de cada gesto de fala; gestos ausentes têm peso 1. */

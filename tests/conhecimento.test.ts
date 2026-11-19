@@ -327,6 +327,26 @@ describe('Base de Conhecimento - Cache Pré-construído e de Execução (CT07, C
     // Em ambiente com IndexedDB mockado ou disponível, busca rápida
     expect(normalizarFrase('como calcular o delta da bhaskara')).toBe('calcular delta bhaskara');
   });
+
+  it('CT07 / CA07: buscarEmCache ignora resposta quando o livro citado está desativado', async () => {
+    const cacheItens = gerarCachePerguntas();
+    gerenciador.carregarCachePreConstruido(cacheItens);
+
+    const respostaSemFiltro = await gerenciador.buscarEmCache('o que é fotossíntese?');
+    expect(respostaSemFiltro).not.toBeNull();
+    expect(respostaSemFiltro!.fontes?.[0].livroId).toBe('ciencias-fundamental-6');
+
+    const respostaComLivroDesativado = await gerenciador.buscarEmCache('o que é fotossíntese?', {
+      livrosDesativados: ['ciencias-fundamental-6']
+    });
+    expect(respostaComLivroDesativado).toBeNull();
+
+    // Também ignora na busca por similaridade de tokens
+    const respostaSimilarDesativada = await gerenciador.buscarEmCache('me explica o que é fotossíntese nas plantas', {
+      livrosDesativados: ['ciencias-fundamental-6']
+    });
+    expect(respostaSimilarDesativada).toBeNull();
+  });
 });
 
 describe('Base de Conhecimento - Configurações de Livros (CT10 / CA11)', () => {

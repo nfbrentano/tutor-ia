@@ -1,7 +1,8 @@
 /**
  * TUTORIA - Clipes de Animação do Mixamo no Avatar VRM (RF02, RF03 da spec de personas)
  *
- * Os FBX do Mixamo ("Without Skin", 30 fps) ficam em public/avatar/animacoes/ e são listados em
+ * Os FBX do Mixamo ("Without Skin", 30 fps) e os clipes JSON do gravador de gestos
+ * (SDD/2026-10-23_gravador-de-gestos.md) ficam em public/avatar/animacoes/ e são listados em
  * manifesto.json. A conversão de ossos Mixamo → VRM segue o exemplo oficial do three-vrm
  * (humanoidAnimation/loadMixamoAnimation.js). Sem manifesto, o avatar usa só o movimento procedural.
  */
@@ -17,6 +18,8 @@ export interface ItemManifestoClipe {
   categoria: CategoriaClipe;
   /** Clipes de um disparo (cumprimentar, apontar) não repetem. Padrão: true. */
   loop?: boolean;
+  /** Só toca nestas personas; ausente = todas (RF10 do gravador). */
+  personas?: string[];
 }
 
 export interface ManifestoClipes {
@@ -49,11 +52,51 @@ export function validarManifestoClipes(dados: unknown): ManifestoClipes {
       (c): c is ItemManifestoClipe =>
         !!c &&
         typeof c.arquivo === 'string' &&
-        /\.fbx$/i.test(c.arquivo) &&
+        /\.(fbx|json)$/i.test(c.arquivo) &&
         !c.arquivo.includes('..') &&
-        CATEGORIAS_VALIDAS.includes(c.categoria)
+        !c.arquivo.includes('/') &&
+        CATEGORIAS_VALIDAS.includes(c.categoria) &&
+        (c.personas === undefined || (Array.isArray(c.personas) && c.personas.every(p => typeof p === 'string')))
     )
   };
+}
+
+/**
+ * Itens que podem tocar na persona ativa: sem `personas` valem para todas (CA15 do gravador).
+ */
+export function filtrarClipesPorPersona<T extends { item: ItemManifestoClipe }>(clipes: T[], personaId: string | null): T[] {
+  return clipes.filter(c => !c.item.personas || c.item.personas.length === 0 || (!!personaId && c.item.personas.includes(personaId)));
+}
+
+/** Arquivo de clipe gravado pelo gravador de gestos (RF08 do gravador). */
+interface ClipeJson {
+  formato: string;
+  versao: number;
+  fps: number;
+  duracao: number;
+  ossos: Record<string, number[]>;
+}
+
+/**
+ * Monta um clipe do formato `tutoria-clipe-vrm` para os ossos normalizados deste VRM.
+ * Retorna null se o arquivo não for desse formato ou não tiver ossos conhecidos.
+ */
+export function converterClipeJson(dados: unknown, vrm: VRM, nome: string): THREE.AnimationClip | null {
+  const clipe = dados as ClipeJson | null;
+  if (!clipe || clipe.formato !== 'tutoria-clipe-vrm' || clipe.versao !== 1 || !(clipe.fps > 0) || !clipe.ossos) {
+    return null;
+  }
+
+  const tracks: THREE.KeyframeTrack[] = [];
+  for (const [osso, valores] of Object.entries(clipe.ossos)) {
+    const no = vrm.humanoid?.getNormalizedBoneNode(osso as VRMHumanBoneName);
+    if (!no || !Array.isArray(valores) || valores.length < 8 || valores.length % 4 !== 0) continue;
+    const tempos = Array.from({ length: valores.length / 4 }, (_, i) => i / clipe.fps);
+    tracks.push(new THREE.QuaternionKeyframeTrack(`${no.name}.quaternion`, tempos, valores));
+  }
+
+  if (tracks.length === 0) return null;
+  return new THREE.AnimationClip(nome, clipe.duracao, tracks);
 }
 
 /**
@@ -180,6 +223,7 @@ export class GerenciadorClipes {
   private acaoAtual: THREE.AnimationAction | null = null;
   private categoriaAtual: CategoriaClipe | null = null;
   private ultimoIndicePorCategoria = new Map<CategoriaClipe, number>();
+  private personaId: string | null = null;
 
   constructor(private vrm: VRM) {
     this.mixer = new THREE.AnimationMixer(vrm.scene);
@@ -192,7 +236,7 @@ export class GerenciadorClipes {
   async carregar(pastaBase: string): Promise<number> {
     let manifesto: ManifestoClipes;
     try {
-      const resposta = await fetch(`${pastaBase}/manifesto.json`, { cache: 'force-cache' });
+      const resposta = await fetch(`${pastaBase}/manifesto.json`, { cache: 'no-cache' });
       if (!resposta.ok) return 0;
       manifesto = validarManifestoClipes(await resposta.json());
     } catch {
@@ -201,8 +245,14 @@ export class GerenciadorClipes {
 
     const resultados = await Promise.allSettled(
       manifesto.clipes.map(async item => {
-        const asset = await carregarFbx(`${pastaBase}/${item.arquivo}`);
-        const clipe = converterClipeMixamo(asset, this.vrm, item.arquivo);
+        const url = `${pastaBase}/${item.arquivo}`;
+        let clipe: THREE.AnimationClip | null;
+        if (/\.json$/i.test(item.arquivo)) {
+          const resposta = await fetch(url, { cache: 'no-cache' });
+          clipe = resposta.ok ? converterClipeJson(await resposta.json(), this.vrm, item.arquivo) : null;
+        } else {
+          clipe = converterClipeMixamo(await carregarFbx(url), this.vrm, item.arquivo);
+        }
         return clipe ? { item, clipe } : null;
       })
     );
@@ -213,8 +263,17 @@ export class GerenciadorClipes {
     return this.clipes.length;
   }
 
+  /** Persona ativa: clipes gravados só para outras personas deixam de tocar (RF10 do gravador). */
+  definirPersona(personaId: string | null): void {
+    this.personaId = personaId;
+  }
+
+  private clipesDaPersona(): ClipeCarregado[] {
+    return filtrarClipesPorPersona(this.clipes, this.personaId);
+  }
+
   temCategoria(categoria: CategoriaClipe): boolean {
-    return this.clipes.some(c => c.item.categoria === categoria);
+    return this.clipesDaPersona().some(c => c.item.categoria === categoria);
   }
 
   estaAtivo(): boolean {
@@ -230,7 +289,7 @@ export class GerenciadorClipes {
    * Retorna false se não há clipe da categoria.
    */
   tocar(categoria: CategoriaClipe, duracaoTransicaoSeg = 0.4): boolean {
-    const opcoes = this.clipes.filter(c => c.item.categoria === categoria);
+    const opcoes = this.clipesDaPersona().filter(c => c.item.categoria === categoria);
     if (opcoes.length === 0) return false;
 
     const anterior = this.ultimoIndicePorCategoria.get(categoria) ?? null;

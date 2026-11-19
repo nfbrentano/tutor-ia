@@ -18,6 +18,9 @@ export class WebServicoVoz implements ServicoVoz {
   private isListeningFlag = false;
   private isSpeakingFlag = false;
   private voicesCache: SpeechSynthesisVoice[] = [];
+  private resolverFalaPendente: (() => void) | null = null;
+  private timeoutFalaId: ReturnType<typeof setTimeout> | null = null;
+  private falaSeqId = 0;
 
   constructor() {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -72,7 +75,8 @@ export class WebServicoVoz implements ServicoVoz {
       return;
     }
 
-    await this.pararDeFalar();
+    this.cancelarFalaInterna();
+    const idFala = ++this.falaSeqId;
 
     const textoLimpo = cleanTextForSpeech(texto);
     if (!textoLimpo) {
@@ -103,120 +107,160 @@ export class WebServicoVoz implements ServicoVoz {
       utterance.voice = selectedVoice;
     }
 
-    utterance.onstart = () => {
-      this.isSpeakingFlag = true;
-      eventos?.onStart?.();
-    };
+        return new Promise<void>((resolve) => {
+          if (idFala !== this.falaSeqId) {
+            eventos?.onEnd?.();
+            resolve();
+            return;
+          }
 
-    utterance.onboundary = (event) => {
-      if (event.name === 'word') {
-        const word = textoLimpo.substring(event.charIndex, event.charIndex + (event.charLength || 5));
-        eventos?.onBoundary?.(event.charIndex, word);
-      }
-    };
+        let concluido = false;
 
-    const finaliza = () => {
-      this.isSpeakingFlag = false;
-      eventos?.onEnd?.();
-    };
+        const concluir = () => {
+          if (concluido) return;
+          concluido = true;
 
-    utterance.onend = finaliza;
-    utterance.onerror = (e) => {
-      this.isSpeakingFlag = false;
-      eventos?.onError?.(e);
-      finaliza();
-    };
+          if (this.timeoutFalaId) {
+            clearTimeout(this.timeoutFalaId);
+            this.timeoutFalaId = null;
+          }
+          if (this.resolverFalaPendente === concluir) {
+            this.resolverFalaPendente = null;
+          }
 
-    window.speechSynthesis.speak(utterance);
-  }
+          this.isSpeakingFlag = false;
+          eventos?.onEnd?.();
+          resolve();
+        };
 
-  async pararDeFalar(): Promise<void> {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      this.isSpeakingFlag = false;
+        utterance.onstart = () => {
+          if (concluido) return;
+          this.isSpeakingFlag = true;
+          eventos?.onStart?.();
+        };
+
+        utterance.onboundary = (event) => {
+          if (concluido) return;
+          if (event.name === 'word') {
+            const word = textoLimpo.substring(event.charIndex, event.charIndex + (event.charLength || 5));
+            eventos?.onBoundary?.(event.charIndex, word);
+          }
+        };
+
+        utterance.onend = concluir;
+        utterance.onerror = (e) => {
+          if (!concluido) {
+            eventos?.onError?.(e);
+          }
+          concluir();
+        };
+
+        this.resolverFalaPendente = concluir;
+        const timeoutMs = Math.max(15000, Math.min(120000, textoLimpo.length * 150));
+        this.timeoutFalaId = setTimeout(concluir, timeoutMs);
+
+        this.isSpeakingFlag = true;
+        window.speechSynthesis.speak(utterance);
+      });
     }
-  }
 
-  async ouvir(eventos: OuvirEventos): Promise<void> {
-    if (typeof window === 'undefined') return;
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      eventos.onError?.('Reconhecimento de fala não suportado neste navegador.');
-      return;
-    }
-
-    await this.pararDeOuvir();
-    await this.pararDeFalar();
-
-    const recognition = new SpeechRecognition();
-    this.recognitionInstance = recognition;
-    recognition.lang = 'pt-BR';
-    recognition.continuous = false;
-    recognition.interimResults = true;
-
-    recognition.onstart = () => {
-      this.isListeningFlag = true;
-      eventos.onStart?.();
-    };
-
-    recognition.onresult = (event: any) => {
-      let interim = '';
-      let final = '';
-
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          final += event.results[i][0].transcript;
-        } else {
-          interim += event.results[i][0].transcript;
+      private cancelarFalaInterna(): void {
+        this.falaSeqId++;
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+        this.isSpeakingFlag = false;
+        if (this.resolverFalaPendente) {
+          const resolver = this.resolverFalaPendente;
+          this.resolverFalaPendente = null;
+          resolver();
         }
       }
 
-      if (interim) {
-        eventos.onInterim?.(interim);
+  async pararDeFalar(): Promise<void> {
+        this.cancelarFalaInterna();
       }
-      if (final && final.trim()) {
-        eventos.onFinal?.(final.trim());
+
+  async ouvir(eventos: OuvirEventos): Promise<void> {
+        if (typeof window === 'undefined') return;
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          eventos.onError?.('Reconhecimento de fala não suportado neste navegador.');
+          return;
+        }
+
+        await this.pararDeOuvir();
+        await this.pararDeFalar();
+
+        const recognition = new SpeechRecognition();
+        this.recognitionInstance = recognition;
+        recognition.lang = 'pt-BR';
+        recognition.continuous = false;
+        recognition.interimResults = true;
+
+        recognition.onstart = () => {
+          this.isListeningFlag = true;
+          eventos.onStart?.();
+        };
+
+        recognition.onresult = (event: any) => {
+          let interim = '';
+          let final = '';
+
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              final += event.results[i][0].transcript;
+            } else {
+              interim += event.results[i][0].transcript;
+            }
+          }
+
+          if (interim) {
+            eventos.onInterim?.(interim);
+          }
+          if (final && final.trim()) {
+            eventos.onFinal?.(final.trim());
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          this.isListeningFlag = false;
+          const errorMessages: Record<string, string> = {
+            'not-allowed': 'Permissão do microfone negada. Permita o microfone nas permissões da página ou do sistema.',
+            'service-not-allowed': 'Serviço de voz bloqueado pelo navegador.',
+            'audio-capture': 'Nenhum microfone detectado no dispositivo.',
+            'network': 'Falha de conexão com o serviço de voz. Verifique sua internet.',
+            'no-speech': 'Nenhuma fala detectada. Toque no microfone e tente novamente.',
+            'aborted': 'Gravação cancelada.'
+          };
+
+          const msg = errorMessages[event.error] || `Erro no microfone: ${event.error}`;
+          eventos.onError?.(msg);
+        };
+
+        recognition.onend = () => {
+          this.isListeningFlag = false;
+          eventos.onEnd?.();
+        };
+
+        try {
+          recognition.start();
+        } catch (err: any) {
+          this.isListeningFlag = false;
+          eventos.onError?.(`Não foi possível iniciar o microfone: ${err.message || err}`);
+        }
       }
-    };
-
-    recognition.onerror = (event: any) => {
-      this.isListeningFlag = false;
-      const errorMessages: Record<string, string> = {
-        'not-allowed': 'Permissão do microfone negada. Permita o microfone nas permissões da página ou do sistema.',
-        'service-not-allowed': 'Serviço de voz bloqueado pelo navegador.',
-        'audio-capture': 'Nenhum microfone detectado no dispositivo.',
-        'network': 'Falha de conexão com o serviço de voz. Verifique sua internet.',
-        'no-speech': 'Nenhuma fala detectada. Toque no microfone e tente novamente.',
-        'aborted': 'Gravação cancelada.'
-      };
-
-      const msg = errorMessages[event.error] || `Erro no microfone: ${event.error}`;
-      eventos.onError?.(msg);
-    };
-
-    recognition.onend = () => {
-      this.isListeningFlag = false;
-      eventos.onEnd?.();
-    };
-
-    try {
-      recognition.start();
-    } catch (err: any) {
-      this.isListeningFlag = false;
-      eventos.onError?.(`Não foi possível iniciar o microfone: ${err.message || err}`);
-    }
-  }
 
   async pararDeOuvir(): Promise<void> {
-    if (this.recognitionInstance) {
-      try {
-        this.recognitionInstance.stop();
-      } catch {
-        // Ignora erros ao parar
+        if (this.recognitionInstance) {
+          try {
+            this.recognitionInstance.stop();
+          } catch {
+            // Ignora erros ao parar
+          }
+          this.recognitionInstance = null;
+        }
+        this.isListeningFlag = false;
       }
-      this.recognitionInstance = null;
     }
-    this.isListeningFlag = false;
-  }
-}

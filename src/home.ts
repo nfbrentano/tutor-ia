@@ -3,8 +3,10 @@
  */
 
 import { hasApiKey } from './armazenamento';
+import { registrarServiceWorkerPwa } from './pwa';
 
 document.addEventListener('DOMContentLoaded', () => {
+  registrarServiceWorkerPwa();
   const statusIndicator = document.getElementById('status-indicator');
   const statusLabel = document.getElementById('status-label');
   const btnStartTutor = document.getElementById('btn-start-tutor');

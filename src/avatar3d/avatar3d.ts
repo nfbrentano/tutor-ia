@@ -102,6 +102,7 @@ export class Avatar3D implements ControladorAvatar {
   private modeloAtualUrl: string | null = null;
   private cacheModelos = new Map<string, VRM>();
   private trocandoPersona = false;
+  private rimLight: THREE.DirectionalLight | null = null;
 
   // Clipes do Mixamo (RF02, RF03) e mistura com a pose procedural
   private clipes: GerenciadorClipes | null = null;
@@ -201,9 +202,11 @@ export class Avatar3D implements ControladorAvatar {
       const keyLight = new THREE.DirectionalLight(0xffffff, 1.25);
       keyLight.position.set(0.8, 1.8, 1.8).normalize();
       this.scene.add(keyLight);
-      const rimLight = new THREE.DirectionalLight(0x7dd3fc, 0.75);
-      rimLight.position.set(-1.2, 1.6, -1.2).normalize();
-      this.scene.add(rimLight);
+      const corRimInicial = this.persona?.corTema ?? '#7dd3fc';
+      this.rimLight = new THREE.DirectionalLight(corRimInicial, 0.85);
+      this.rimLight.position.set(-1.2, 1.6, -1.2).normalize();
+      this.scene.add(this.rimLight);
+      this.atualizarTemaVisualPalco();
 
       // 4. Modelo da persona, com o provisório como reserva (D04, CA13)
       const urlDesejada = this.persona ? obterModeloPersona(this.persona) : this.config.caminhoModelo;
@@ -325,6 +328,7 @@ export class Avatar3D implements ControladorAvatar {
     if (!this.vrm || this.prefereMovimentoReduzido()) return;
     const vrmAlvo = this.vrm;
     const gerenciador = new GerenciadorClipes(vrmAlvo);
+    gerenciador.definirPersona(this.persona?.id ?? null);
     const total = await gerenciador.carregar(PASTA_ANIMACOES);
     if (this.estaDestruido || this.vrm !== vrmAlvo || total === 0) {
       gerenciador.destruir();
@@ -430,13 +434,10 @@ export class Avatar3D implements ControladorAvatar {
     // 1. Pose base: clipe do Mixamo e/ou pose procedural, misturados por pesoClipe
     const usarClipe = !!this.clipes?.estaAtivo() && !this.estaApontando && !this.estaCumprimentando && !reducedMotion;
     this.pesoClipe += ((usarClipe ? 1 : 0) - this.pesoClipe) * fatorSuavizacao(5, delta);
-    if (this.clipes && this.pesoClipe > 0.001) {
-      this.clipes.atualizar(delta);
-    }
 
     const fator = fatorSuavizacao(reducedMotion ? 12 : 6, delta);
     this.interpolarPose(fator);
-    this.aplicarPoseBase(vrm, reducedMotion);
+    this.aplicarPoseBase(vrm, reducedMotion, delta);
 
     // 2. Camadas somadas (respiração, troca de peso, batidas, aceno, olhar)
     if (!reducedMotion) {
@@ -463,10 +464,13 @@ export class Avatar3D implements ControladorAvatar {
     }
   }
 
-  private readonly _quatPose = new THREE.Quaternion();
   private readonly _euler = new THREE.Euler();
+  private readonly _quatsPose = Object.fromEntries(OSSOS_POSE.map(o => [o, new THREE.Quaternion()])) as Record<
+    keyof PoseVRM,
+    THREE.Quaternion
+  >;
 
-  private aplicarPoseBase(vrm: VRM, reducedMotion: boolean): void {
+  private aplicarPoseBase(vrm: VRM, reducedMotion: boolean, delta: number): void {
     for (const osso of OSSOS_POSE) {
       const node = vrm.humanoid?.getNormalizedBoneNode(osso as VRMHumanBoneName);
       if (!node) continue;
@@ -476,13 +480,17 @@ export class Avatar3D implements ControladorAvatar {
         reducedMotion && osso !== 'head' && osso !== 'neck'
           ? POSE_IDLE[osso] || { x: 0, y: 0, z: 0 }
           : this.poseAtual[osso]!;
-      this._quatPose.setFromEuler(this._euler.set(rot.x, rot.y, rot.z));
+      node.quaternion.setFromEuler(this._euler.set(rot.x, rot.y, rot.z));
+      this._quatsPose[osso].copy(node.quaternion);
+    }
 
-      if (this.pesoClipe > 0.001 && this.clipes) {
-        // node.quaternion já tem o valor do clipe (mixer.update)
-        node.quaternion.slerp(this._quatPose, 1 - this.pesoClipe);
-      } else {
-        node.quaternion.copy(this._quatPose);
+    // O clipe entra por cima da pose: ossos que ele não anima ficam com a pose do quadro, sem
+    // herdar as camadas somadas no quadro anterior (que se acumulariam)
+    if (this.clipes && this.pesoClipe > 0.001) {
+      this.clipes.atualizar(delta);
+      for (const osso of OSSOS_POSE) {
+        const node = vrm.humanoid?.getNormalizedBoneNode(osso as VRMHumanBoneName);
+        if (node) node.quaternion.copy(this._quatsPose[osso].clone().slerp(node.quaternion, this.pesoClipe));
       }
     }
   }
@@ -559,6 +567,9 @@ export class Avatar3D implements ControladorAvatar {
         }
         curvas[i] += (alvo - curvas[i]) * fator;
       }
+
+      // Clipe gravado com dedos tem prioridade, exceto durante a contagem (gravador de gestos)
+      if (!contando && this.pesoClipe > 0.5) continue;
 
       const sinal = lado === 'right' ? 1 : -1;
       DEDOS.forEach((dedo, i) => {
@@ -757,6 +768,7 @@ export class Avatar3D implements ControladorAvatar {
     const categoria = this.estadoAtual;
     // Na fala, o loop de gestos escolhe um clipe por frase
     if (categoria === 'speaking' && this.clipes.temCategoria('speaking')) return;
+    if (this.clipes.obterCategoriaAtual() === categoria) return;
     if (!this.clipes.tocar(categoria) && categoria !== 'idle') {
       // Sem clipe para o estado: volta ao repouso se houver, ou à pose procedural
       if (!this.clipes.tocar('idle')) this.clipes.parar();
@@ -850,6 +862,10 @@ export class Avatar3D implements ControladorAvatar {
     this.sequenciaBoca = [];
     this.molaBatida.zerar();
     this.mostrarDedos(null);
+
+    if (this.clipes?.obterCategoriaAtual() === 'speaking') {
+      if (!this.clipes.tocar('idle', 0.35)) this.clipes.parar(0.35);
+    }
 
     if (!this.estaApontando && this.estadoAtual === 'idle') {
       this.poseAlvo = POSES_REPOUSO[this.indiceRepouso % POSES_REPOUSO.length];
@@ -1071,6 +1087,7 @@ export class Avatar3D implements ControladorAvatar {
         void this.carregarClipes();
       } else {
         this.persona = persona;
+        this.clipes?.definirPersona(persona.id);
       }
       this.atualizarRotuloAcessivel();
       if (!reducedMotion) this.cumprimentar();
@@ -1103,8 +1120,25 @@ export class Avatar3D implements ControladorAvatar {
 
   private atualizarRotuloAcessivel(): void {
     const canvas = this.elementos.canvasElemento;
-    if (!canvas) return;
-    canvas.setAttribute('aria-label', this.persona ? `Tutor ${descreverPersona(this.persona)}` : 'Avatar 3D do Tutor');
+    if (canvas) {
+      canvas.setAttribute('aria-label', this.persona ? `Tutor ${descreverPersona(this.persona)}` : 'Avatar 3D do Tutor');
+    }
+    this.atualizarTemaVisualPalco();
+  }
+
+  /** Aplica corTema da persona ativa na luz secundária 3D e na variável CSS do palco (RF05). */
+  private atualizarTemaVisualPalco(): void {
+    if (!this.persona) return;
+    if (this.rimLight && this.persona.corTema) {
+      this.rimLight.color.set(this.persona.corTema);
+    }
+    const mod = this.elementos.moduloElemento;
+    if (mod) {
+      mod.setAttribute('data-persona', this.persona.id);
+      if (this.persona.corTema) {
+        mod.style.setProperty('--persona-cor', this.persona.corTema);
+      }
+    }
   }
 
   private pausarAnimacoes(): void {

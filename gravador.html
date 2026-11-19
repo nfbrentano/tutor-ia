@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TutorIA - Gravador de Gestos (desenvolvimento)</title>
+  <style>
+    :root { --fundo: #0f172a; --painel: #1e293b; --borda: #334155; --texto: #e2e8f0; --suave: #94a3b8; --destaque: #38bdf8; --erro: #f87171; --ok: #4ade80; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--fundo); color: var(--texto); font: 14px/1.45 system-ui, -apple-system, sans-serif; }
+    header { padding: 16px 20px; border-bottom: 1px solid var(--borda); }
+    header h1 { margin: 0 0 4px; font-size: 18px; }
+    .aviso { color: var(--suave); font-size: 12.5px; margin: 0; }
+    main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px 20px; }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+    section { background: var(--painel); border: 1px solid var(--borda); border-radius: 10px; padding: 12px; }
+    h2 { font-size: 14px; margin: 0 0 10px; color: var(--destaque); }
+    .palco { position: relative; aspect-ratio: 4 / 3; background: #000; border-radius: 8px; overflow: hidden; }
+    .palco video, .palco canvas { width: 100%; height: 100%; object-fit: contain; display: block; }
+    #contagem { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; font-size: 72px; font-weight: 700; background: rgba(0,0,0,.4); }
+    .linha { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+    button { background: #0ea5e9; color: #fff; border: 0; border-radius: 6px; padding: 7px 12px; font: inherit; cursor: pointer; }
+    button.secundario { background: #475569; }
+    button:disabled { opacity: .45; cursor: default; }
+    input[type="text"], select { background: var(--fundo); color: var(--texto); border: 1px solid var(--borda); border-radius: 6px; padding: 6px 8px; font: inherit; }
+    label { color: var(--suave); }
+    input[type="range"] { flex: 1; min-width: 140px; }
+    #mensagem { min-height: 20px; margin-top: 8px; }
+    #mensagem.erro { color: var(--erro); }
+    #mensagem.ok { color: var(--ok); }
+    #falhas { color: #fbbf24; font-size: 12.5px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 12.5px; }
+    td, th { border: 1px solid var(--borda); padding: 3px 6px; text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+    .largura-total { grid-column: 1 / -1; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Gravador de Gestos</h1>
+    <p class="aviso">Ferramenta de desenvolvimento. O vídeo é processado só neste navegador e não é salvo nem enviado: o clipe guarda apenas as rotações dos ossos.</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>1. Vídeo</h2>
+      <div class="palco">
+        <video id="video" playsinline muted></video>
+        <div id="contagem"></div>
+      </div>
+      <div class="linha">
+        <button id="btn-webcam">Usar webcam</button>
+        <button id="btn-gravar" disabled>Gravar</button>
+        <button id="btn-parar" class="secundario" disabled>Parar</button>
+      </div>
+      <div class="linha">
+        <label for="arquivo-video">Ou um vídeo (.mp4/.mov H.264):</label>
+        <input id="arquivo-video" type="file" accept="video/mp4,video/quicktime,video/webm" />
+        <button id="btn-processar" disabled>Processar vídeo</button>
+      </div>
+      <div class="linha">
+        <label><input id="chk-espelhar" type="checkbox" /> Espelhar</label>
+        <label for="rng-suavidade">Responsivo</label>
+        <input id="rng-suavidade" type="range" min="0" max="1" step="0.05" value="0.5" />
+        <label for="rng-suavidade">Suave</label>
+        <button id="btn-calibrar" class="secundario" title="Olhe para a câmera com a cabeça reta e clique">Calibrar cabeça</button>
+      </div>
+      <div id="progresso" class="aviso"></div>
+    </section>
+
+    <section>
+      <h2>2. Pré-visualização</h2>
+      <div class="palco"><canvas id="canvas-avatar"></canvas></div>
+      <div class="linha">
+        <label for="sel-persona-previa">Avatar:</label>
+        <select id="sel-persona-previa"></select>
+      </div>
+    </section>
+
+    <section>
+      <h2>3. Recorte</h2>
+      <div class="linha">
+        <label for="rng-inicio">Início</label>
+        <input id="rng-inicio" type="range" min="0" max="0" step="0.05" value="0" />
+        <span id="txt-inicio">0,0 s</span>
+      </div>
+      <div class="linha">
+        <label for="rng-fim">Fim</label>
+        <input id="rng-fim" type="range" min="0" max="0" step="0.05" value="0" />
+        <span id="txt-fim">0,0 s</span>
+      </div>
+      <div id="falhas"></div>
+      <div class="linha">
+        <button id="btn-tocar" disabled>Tocar como clipe</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>4. Salvar clipe</h2>
+      <div class="linha">
+        <label for="txt-nome">Nome</label>
+        <input id="txt-nome" type="text" placeholder="explicando-1" />
+        <label for="sel-categoria">Categoria</label>
+        <select id="sel-categoria">
+          <option value="speaking">speaking (falando)</option>
+          <option value="thinking">thinking (pensando)</option>
+          <option value="listening">listening (ouvindo)</option>
+          <option value="idle">idle (repouso)</option>
+          <option value="cumprimentar">cumprimentar</option>
+          <option value="apontar">apontar</option>
+        </select>
+      </div>
+      <div class="linha">
+        <label><input id="chk-loop" type="checkbox" checked /> Repetir (loop)</label>
+        <label><input id="chk-loop-suave" type="checkbox" checked /> Loop suave</label>
+      </div>
+      <div class="linha" id="lista-personas"><span class="aviso">Só para as personas (nenhuma = todas):</span></div>
+      <div class="linha">
+        <button id="btn-baixar" disabled>Baixar .json</button>
+        <button id="btn-salvar" disabled>Salvar no projeto</button>
+      </div>
+      <div id="mensagem"></div>
+    </section>
+
+    <section class="largura-total">
+      <h2>Autoteste do conversor (ida e volta com o avatar)</h2>
+      <p class="aviso">Renderiza o avatar nas poses do catálogo, passa pelo MediaPipe e pelo conversor e mede o erro dos braços (meta ≤ 25°).</p>
+      <button id="btn-autoteste" class="secundario">Rodar autoteste</button>
+      <div id="resultado-autoteste"></div>
+    </section>
+  </main>
+
+  <script type="module" src="/src/gravador/pagina.ts"></script>
+</body>
+</html>

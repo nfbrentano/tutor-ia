@@ -4,8 +4,13 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import * as fs from 'fs';
+import * as path from 'path';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { VRMLoaderPlugin } from '@pixiv/three-vrm';
 
 import { getStoredPersonaFixa, setStoredPersonaFixa, CONFIG } from '../src/armazenamento';
+import { obterOpcoesDemonstracaoVoz } from '../src/configuracoes';
 import { extrairMateria } from '../src/gemini';
 import {
   ajustarPitchPersona,
@@ -65,9 +70,12 @@ describe('Personas por matéria', () => {
       expect(extrairMateria('{"etapas": []}')).toBeUndefined();
     });
 
-    it('o prompt do Gemini pede o campo materia e proíbe citações inventadas (RF10, RF13)', () => {
+    it('CT14 / CA15: o prompt do Gemini pede o campo materia e proíbe citações inventadas (RF10, RF13)', () => {
       expect(CONFIG.SYSTEM_PROMPT).toContain('"materia"');
       expect(CONFIG.SYSTEM_PROMPT).toMatch(/nunca atribua a pessoas reais/);
+      expect(CONFIG.SYSTEM_PROMPT).toMatch(/citações inventadas/i);
+      expect(CONFIG.SYSTEM_PROMPT).toMatch(/título da obra/i);
+      expect(CONFIG.SYSTEM_PROMPT).toMatch(/diga que não tem/i);
     });
   });
 
@@ -161,6 +169,127 @@ describe('Personas por matéria', () => {
     it('sem vozes em português, deixa o serviço usar o padrão', () => {
       expect(escolherVozParaPersona([vozes[2]], obterPersonaPadrao())).toBeUndefined();
       expect(escolherVozParaPersona([], obterPersonaPadrao())).toBeUndefined();
+    });
+
+    it('CT10 / CA10: demonstração em Configurações usa voz e pitch da persona selecionada no modo automático', () => {
+      const profAtomo = obterPersonaPorId('prof-atomo')!;
+      const opcoesAuto = obterOpcoesDemonstracaoVoz(vozes, '', 1.0, 'prof-atomo');
+      expect(opcoesAuto.voiceUri).toBe('m1');
+      expect(opcoesAuto.pitch).toBe(profAtomo.voz.pitch);
+      expect(opcoesAuto.rate).toBeCloseTo(profAtomo.voz.rate);
+
+      // Com voz fixa escolhida, a escolha do usuário prevalece
+      const opcoesFixa = obterOpcoesDemonstracaoVoz(vozes, 'f1', 1.1, 'prof-atomo');
+      expect(opcoesFixa.voiceUri).toBe('f1');
+      expect(opcoesFixa.pitch).toBeLessThan(profAtomo.voz.pitch);
+    });
+  });
+
+  describe('CT17 / CA18 / RNF01 / RNF02 / RNF06: validação dos assets das personas e créditos', () => {
+    const OSSOS_OBRIGATORIOS = [
+      'hips', 'spine', 'chest', 'upperChest', 'neck', 'head', 'leftEye', 'rightEye',
+      'leftUpperLeg', 'leftLowerLeg', 'leftFoot', 'leftToes',
+      'rightUpperLeg', 'rightLowerLeg', 'rightFoot', 'rightToes',
+      'leftShoulder', 'leftUpperArm', 'leftLowerArm', 'leftHand',
+      'rightShoulder', 'rightUpperArm', 'rightLowerArm', 'rightHand'
+    ];
+    const OSSOS_DEDOS = [
+      'ThumbMetacarpal', 'ThumbProximal', 'ThumbDistal',
+      'IndexProximal', 'IndexIntermediate', 'IndexDistal',
+      'MiddleProximal', 'MiddleIntermediate', 'MiddleDistal',
+      'RingProximal', 'RingIntermediate', 'RingDistal',
+      'LittleProximal', 'LittleIntermediate', 'LittleDistal'
+    ].flatMap(sufixo => [`left${sufixo}`, `right${sufixo}`]);
+    const EXPRESSOES_OBRIGATORIAS = ['blink', 'aa', 'ih', 'ou', 'ee', 'oh', 'happy', 'relaxed', 'surprised'];
+
+    it('cada persona aponta para seu .vrm exclusivo e tutor.vrm foi removido (RF14, CA12)', () => {
+      expect(fs.existsSync(path.resolve(__dirname, '../public/avatar/tutor.vrm'))).toBe(false);
+      for (const persona of PERSONAS) {
+        expect(persona.modelo).toBe(`./avatar/personas/${persona.id}.vrm`);
+        const arquivo = path.resolve(__dirname, `../public/avatar/personas/${persona.id}.vrm`);
+        expect(fs.existsSync(arquivo)).toBe(true);
+      }
+    });
+
+    it('todos os 7 arquivos .vrm cumprem RNF01, CA14 e carregam no VRMLoaderPlugin', async () => {
+      for (const persona of PERSONAS) {
+        const arquivo = path.resolve(__dirname, `../public/avatar/personas/${persona.id}.vrm`);
+        const stats = fs.statSync(arquivo);
+        expect(stats.size).toBeLessThanOrEqual(6 * 1024 * 1024);
+
+        const buf = fs.readFileSync(arquivo);
+        expect(buf.readUInt32LE(0)).toBe(0x46546c67);
+        const jsonLen = buf.readUInt32LE(12);
+        const jsonStr = buf.subarray(20, 20 + jsonLen).toString('utf8');
+        expect(jsonStr.toLowerCase()).not.toContain('einstein');
+
+        const gltf = JSON.parse(jsonStr);
+        let triangulos = 0;
+        for (const mesh of gltf.meshes || []) {
+          for (const prim of mesh.primitives || []) {
+            if (prim.indices !== undefined) {
+              triangulos += gltf.accessors[prim.indices].count / 3;
+            }
+          }
+        }
+        expect(triangulos).toBeGreaterThan(500);
+        expect(triangulos).toBeLessThanOrEqual(30000);
+        expect((gltf.materials || []).length).toBeLessThanOrEqual(4);
+
+        const vrmExt = gltf.extensions?.VRMC_vrm;
+        expect(vrmExt?.specVersion).toBe('1.0');
+
+        const humanBones = vrmExt?.humanoid?.humanBones || {};
+        for (const osso of [...OSSOS_OBRIGATORIOS, ...OSSOS_DEDOS]) {
+          expect(humanBones[osso]?.node).toBeTypeOf('number');
+        }
+
+        const presets = vrmExt?.expressions?.preset || {};
+        const targets = gltf.meshes?.[0]?.primitives?.[0]?.targets || [];
+        for (const expr of EXPRESSOES_OBRIGATORIAS) {
+          const binds = presets[expr]?.morphTargetBinds;
+          expect(Array.isArray(binds) && binds.length > 0).toBe(true);
+          expect(binds[0].index).toBeLessThan(targets.length);
+        }
+
+        // Carregamento real com GLTFLoader + VRMLoaderPlugin (@pixiv/three-vrm)
+        const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+        const loader = new GLTFLoader();
+        loader.register((parser) => new VRMLoaderPlugin(parser));
+        const parsed = await new Promise<{ userData: Record<string, unknown> }>((resolve, reject) => {
+          loader.parse(ab, '', resolve, reject);
+        });
+        const vrm = parsed.userData.vrm as {
+          humanoid?: { getNormalizedBoneNode: (n: string) => unknown };
+          expressionManager?: { getExpression: (n: string) => unknown };
+          lookAt?: unknown;
+        };
+        expect(vrm).toBeDefined();
+        expect(vrm.humanoid?.getNormalizedBoneNode('head')).toBeTruthy();
+        expect(vrm.humanoid?.getNormalizedBoneNode('leftIndexDistal')).toBeTruthy();
+        expect(vrm.lookAt).toBeDefined();
+        for (const expr of EXPRESSOES_OBRIGATORIAS) {
+          expect(vrm.expressionManager?.getExpression(expr)).toBeTruthy();
+        }
+      }
+    });
+
+    it('pacote de animações em public/avatar/animacoes ocupa ≤ 3 MB (RNF02)', () => {
+      const dirAnim = path.resolve(__dirname, '../public/avatar/animacoes');
+      const totalBytes = fs
+        .readdirSync(dirAnim)
+        .reduce((acc, nome) => acc + fs.statSync(path.join(dirAnim, nome)).size, 0);
+      expect(totalBytes).toBeLessThanOrEqual(3 * 1024 * 1024);
+    });
+
+    it('CREDITOS.md documenta todas as 7 personas e seus arquivos sem entradas pendentes (RNF06, CA18)', () => {
+      const creditosPath = path.resolve(__dirname, '../public/avatar/CREDITOS.md');
+      const creditos = fs.readFileSync(creditosPath, 'utf8');
+      expect(creditos.toLowerCase()).not.toContain('pendente');
+      for (const persona of PERSONAS) {
+        expect(creditos).toContain(persona.nome);
+        expect(creditos).toContain(`personas/${persona.id}.vrm`);
+      }
     });
   });
 });

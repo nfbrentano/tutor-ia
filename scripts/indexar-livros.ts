@@ -130,6 +130,7 @@ export async function executarIndexacao(opcoes: { catalogoPath?: string; saidaPa
             livroId: livro.id,
             tituloLivro: livro.titulo,
             disciplina: livro.disciplina,
+            serie: livro.serie,
             pagina: p,
             capitulo: capituloAtual
           });

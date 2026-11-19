@@ -19,7 +19,7 @@ export interface Avatar3DConfig extends AvatarConfig {
 
 export const CONFIG_AVATAR_3D_PADRAO: Avatar3DConfig = {
   ...CONFIG_AVATAR_PADRAO,
-  caminhoModelo: './avatar/tutor.vrm',
+  caminhoModelo: './avatar/personas/lia.vrm',
   tempoLimiteCarregamentoMs: 10000,
   duracaoTransicaoMs: 350,
   fpsLimiteRepouso: 30,

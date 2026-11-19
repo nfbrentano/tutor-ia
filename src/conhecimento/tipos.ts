@@ -20,6 +20,7 @@ export interface TrechoLivro {
   livroId: string;
   tituloLivro: string;
   disciplina: string;
+  serie?: string;
   pagina: number;
   capitulo?: string;
   texto: string;
@@ -54,6 +55,7 @@ export interface ResultadoBusca {
 
 export interface OpcoesBusca {
   disciplina?: string;
+  serie?: string;
   livrosDesativados?: string[];
   limite?: number;
   scoreMinimo?: number;

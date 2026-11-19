@@ -4,12 +4,14 @@
  */
 
 export * from './renderer';
+export * from './resumo';
 export * from './sanitizer';
 export * from './tipos';
 export * from './wikimedia';
 
 import { renderizarItemLousa } from './renderer';
-import { ItemLousa } from './tipos';
+import { formatarResumoLousa } from './resumo';
+import { DesafioQuiz, ItemLousa, OnResponderQuizCallback } from './tipos';
 import { buscarImagemWikimedia } from './wikimedia';
 
 export interface LousaElementos {
@@ -23,11 +25,21 @@ export class LousaControlador {
   private aberta = false;
   private itensAtuais: ItemLousa[] = [];
   private onVerImagem?: (url: string, legenda?: string) => void;
+  private onResponderQuiz?: OnResponderQuizCallback;
 
-  constructor(elementos: LousaElementos, onVerImagem?: (url: string, legenda?: string) => void) {
+  constructor(
+    elementos: LousaElementos,
+    onVerImagem?: (url: string, legenda?: string) => void,
+    onResponderQuiz?: OnResponderQuizCallback
+  ) {
     this.elementos = elementos;
     this.onVerImagem = onVerImagem;
+    this.onResponderQuiz = onResponderQuiz;
     this.vincularEventos();
+  }
+
+  definirOnResponderQuiz(callback: OnResponderQuizCallback): void {
+    this.onResponderQuiz = callback;
   }
 
   private vincularEventos(): void {
@@ -44,6 +56,13 @@ export class LousaControlador {
 
   obterItensAtuais(): ItemLousa[] {
     return [...this.itensAtuais];
+  }
+
+  /**
+   * Exporta os itens atuais da lousa em Markdown/texto limpo para cópia ou download (RF06b).
+   */
+  exportarResumo(titulo?: string): string {
+    return formatarResumoLousa(this.itensAtuais, titulo);
   }
 
   abrir(): void {
@@ -90,7 +109,7 @@ export class LousaControlador {
       }
     }
 
-    const elemento = renderizarItemLousa(itemResolvido, this.onVerImagem);
+    const elemento = renderizarItemLousa(itemResolvido, this.onVerImagem, this.onResponderQuiz);
     if (!elemento) return null;
 
     this.itensAtuais.push(itemResolvido);
@@ -106,10 +125,12 @@ export class LousaControlador {
       this.elementos.corpoElemento.appendChild(elemento);
 
       // Rolagem suave para o novo item
-      this.elementos.corpoElemento.scrollTo({
-        top: this.elementos.corpoElemento.scrollHeight,
-        behavior: 'smooth'
-      });
+      if (typeof this.elementos.corpoElemento.scrollTo === 'function') {
+        this.elementos.corpoElemento.scrollTo({
+          top: this.elementos.corpoElemento.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
 
       // Dispara evento para o avatar ou outros ouvintes (RF09, CA13)
       const eventoExibido = new CustomEvent('lousa:item-exibido', {
@@ -123,6 +144,68 @@ export class LousaControlador {
     }
 
     return elemento;
+  }
+
+  /**
+   * Adiciona e exibe um card interativo de Desafio Quiz na lousa (RF01, RF02).
+   */
+  async abrirDesafioQuiz(desafio: DesafioQuiz): Promise<HTMLElement | null> {
+    if (!desafio) return null;
+    this.abrir();
+    return this.adicionarItem({
+      tipo: 'quiz',
+      conteudo: desafio
+    });
+  }
+
+  /**
+   * Permite que o aluno responda ao quiz ativo falando a letra/opção pelo microfone (RF02).
+   */
+  responderQuizAtivoPorVoz(falaAluno: string): boolean {
+    if (!this.aberta || !this.elementos.corpoElemento) return false;
+    const cardAtivo = this.elementos.corpoElemento.querySelector('.lousa-quiz-card[data-quiz-ativo="true"]');
+    if (!cardAtivo) return false;
+
+    const texto = falaAluno
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+    if (!texto) return false;
+
+    const botoes = Array.from(cardAtivo.querySelectorAll<HTMLButtonElement>('.lousa-quiz-opcao'));
+    if (botoes.length === 0) return false;
+
+    const mapaLetras: Array<[RegExp, number]> = [
+      [/\b(?:letra|alternativa|opcao|resposta)?\s*a\b|\bprimeir[ao]\b/, 0],
+      [/\b(?:letra|alternativa|opcao|resposta)?\s*b\b|\bsegund[ao]\b/, 1],
+      [/\b(?:letra|alternativa|opcao|resposta)?\s*c\b|\bterceir[ao]\b/, 2],
+      [/\b(?:letra|alternativa|opcao|resposta)?\s*d\b|\bquart[ao]\b/, 3],
+      [/\b(?:letra|alternativa|opcao|resposta)?\s*e\b|\bquint[ao]\b/, 4]
+    ];
+
+    for (const [padrao, idx] of mapaLetras) {
+      if (padrao.test(texto) && botoes[idx] && !botoes[idx].disabled) {
+        botoes[idx].click();
+        return true;
+      }
+    }
+
+    for (const btn of botoes) {
+      if (btn.disabled) continue;
+      const textoOpcao = (btn.querySelector('.lousa-quiz-texto')?.textContent || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+      if (textoOpcao && textoOpcao.length >= 2 && (texto === textoOpcao || texto.includes(textoOpcao))) {
+        btn.click();
+        return true;
+      }
+    }
+
+    return false;
   }
 
   async carregarItens(itens: ItemLousa[]): Promise<void> {

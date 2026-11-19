@@ -4,6 +4,7 @@
  */
 
 import { sortearProximoGesto, sortearProximoGestoEspera } from './gestos';
+import type { Persona } from '../personas/tipos';
 import {
   AvatarConfig,
   AvatarElementos,
@@ -377,6 +378,15 @@ export class AvatarAnimator implements ControladorAvatar {
       'gesto-postura-atenta'
     );
     mod.classList.add(`gesto-${proximo}`);
+  }
+
+  definirPersona(persona: Persona): void {
+    const mod = this.elementos.moduloElemento;
+    if (!mod || !persona) return;
+    mod.setAttribute('data-persona', persona.id);
+    if (persona.corTema) {
+      mod.style.setProperty('--persona-cor', persona.corTema);
+    }
   }
 
   destruir(): void {
