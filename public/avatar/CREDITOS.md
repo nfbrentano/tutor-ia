@@ -1,6 +1,6 @@
 # Créditos dos avatares do TutorIA
 
-Spec: `SDD/2026-10-23_avatar-personas-por-materia.md` (RNF06).
+Spec: `SDD/DONE/2026-10-23_avatar-personas-por-materia.md` (RNF06).
 
 Critério para personas inspiradas em pessoas reais: morte há pelo menos 100 anos, retrato
 de referência em domínio público, nenhum licenciamento ativo da imagem e uso de prenome/alcunha

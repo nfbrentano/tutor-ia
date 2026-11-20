@@ -871,9 +871,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Funciona inclusive offline (RNF01)
     controladorEspera.iniciarEspera(textoParaEnviar);
 
-    // 3. Consulta ao Cache (apenas quando não houver foto nem modo Dica Socrática)
+    // 3. Consulta ao Cache (sem foto, sem modo Dica e sem conversa em andamento: uma pergunta de
+    // acompanhamento depende do contexto e não pode receber uma resposta pronta genérica)
     const livrosDesativados = getStoredDisabledBookIds();
-    if (!fotoParaEnvio && modoPedagogico === 'completo') {
+    if (!fotoParaEnvio && modoPedagogico === 'completo' && historicoParaEnvio.length === 0) {
       try {
         const respostaEmCache = await gerenciadorCache.buscarEmCache(textoParaEnviar, { livrosDesativados });
         if (respostaEmCache) {
@@ -1020,6 +1021,23 @@ document.addEventListener('DOMContentLoaded', () => {
       if (processandoFila) return;
       processandoFila = true;
 
+      try {
+        await falarEtapasDaFila();
+      } catch (erroFila) {
+        // Uma etapa com problema não pode travar a fila nem deixar o avatar preso em "falando"
+        console.warn('Erro ao apresentar etapa da explicação:', erroFila);
+      } finally {
+        processandoFila = false;
+      }
+
+      if (streamFinalizado && filaEtapas.length === 0 && speechSequenceId === currentSequence) {
+        avatar.pararFala();
+        avatar.definirEstado('idle');
+      }
+      finalizarBolhaGeminiSePronta();
+    }
+
+    async function falarEtapasDaFila(): Promise<void> {
       while (filaEtapas.length > 0) {
         if (speechSequenceId !== currentSequence || currentSignal.aborted) break;
         const etapa = filaEtapas.shift()!;
@@ -1085,14 +1103,6 @@ document.addEventListener('DOMContentLoaded', () => {
           );
         }
       }
-
-      processandoFila = false;
-
-      if (streamFinalizado && filaEtapas.length === 0 && speechSequenceId === currentSequence) {
-        avatar.pararFala();
-        avatar.definirEstado('idle');
-      }
-      finalizarBolhaGeminiSePronta();
     }
 
     try {
@@ -1116,8 +1126,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (speechSequenceId !== currentSequence || currentSignal.aborted) return;
 
-      // Salva no cache apenas perguntas de texto no modo completo sem histórico anterior
-      if (!fotoParaEnvio && modoPedagogico === 'completo' && textoLimpo && historicoParaEnvio.length === 0) {
+      // Salva no cache apenas perguntas de texto no modo completo sem histórico anterior e
+      // só respostas completas (fallback de resposta vazia ou stream cortado repetiriam a falha offline)
+      if (
+        !fotoParaEnvio &&
+        modoPedagogico === 'completo' &&
+        textoLimpo &&
+        historicoParaEnvio.length === 0 &&
+        resposta.completa !== false &&
+        resposta.etapas.some(e => e.fala && e.fala.trim())
+      ) {
         gerenciadorCache.salvarNoCacheExecucao(textoLimpo, resposta);
       }
 
@@ -1212,7 +1230,8 @@ document.addEventListener('DOMContentLoaded', () => {
           },
           onError: (erroMsg) => {
             avatar.definirEstado('idle', erroMsg);
-            chat.adicionarMensagem('tutor', `⚠️ ${erroMsg}`);
+            // Aviso de microfone não é resposta do tutor: fica fora do histórico enviado ao Gemini
+            chat.adicionarMensagem('tutor', `⚠️ ${erroMsg}`, null, null, null, { omitirHistorico: true });
           },
           onEnd: () => {
             if (avatar.obterEstado() === 'listening') {

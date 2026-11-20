@@ -1,6 +1,6 @@
 /**
  * TUTORIA - Página do Gravador de Gestos (gravador.html, só em `npm run dev`)
- * Spec: SDD/2026-10-23_gravador-de-gestos.md (RF01 - RF11, RF13)
+ * Spec: SDD/DONE/2026-10-23_gravador-de-gestos.md (RF01 - RF11, RF13)
  */
 
 import * as THREE from 'three';

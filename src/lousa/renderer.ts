@@ -407,9 +407,10 @@ export function renderizarItemLousa(
       // Thead
       const thead = document.createElement('thead');
       const trHead = document.createElement('tr');
-      (cabecalho as string[]).forEach(col => {
+      if (!Array.isArray(cabecalho) || !Array.isArray(tab.linhas)) return null;
+      (cabecalho as unknown[]).forEach(col => {
         const th = document.createElement('th');
-        th.textContent = col;
+        th.textContent = col === null || col === undefined ? '' : String(col);
         trHead.appendChild(th);
       });
       thead.appendChild(trHead);
@@ -417,11 +418,12 @@ export function renderizarItemLousa(
 
       // Tbody
       const tbody = document.createElement('tbody');
-      (tab.linhas as string[][]).forEach(linha => {
+      (tab.linhas as unknown[]).forEach(linha => {
+        if (!Array.isArray(linha)) return;
         const tr = document.createElement('tr');
         linha.forEach(celula => {
           const td = document.createElement('td');
-          td.innerHTML = formatarFormula(celula);
+          td.innerHTML = formatarFormula(celula === null || celula === undefined ? '' : String(celula));
           tr.appendChild(td);
         });
         tbody.appendChild(tr);

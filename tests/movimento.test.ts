@@ -1,6 +1,6 @@
 /**
  * TUTORIA - Testes do Movimento Humano do Avatar 3D
- * Spec: SDD/2026-10-23_avatar-personas-por-materia.md (CT01 - CT03, CT06, CT07 e RF01 - RF05)
+ * Spec: SDD/DONE/2026-10-23_avatar-personas-por-materia.md (CT01 - CT03, CT06, CT07 e RF01 - RF05)
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';

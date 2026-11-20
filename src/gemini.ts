@@ -39,6 +39,16 @@ export interface ContentGemini {
   parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }>;
 }
 
+/** Corta o texto em até `limite` caracteres sem partir palavras, terminando com reticências. */
+export function cortarEmPalavra(texto: string, limite: number): string {
+  if (texto.length <= limite) return texto;
+  if (limite <= 1) return '';
+  const corte = texto.slice(0, limite - 1);
+  const ultimoEspaco = corte.lastIndexOf(' ');
+  const base = ultimoEspaco > limite * 0.6 ? corte.slice(0, ultimoEspaco) : corte;
+  return base.trimEnd() + '…';
+}
+
 /**
  * Monta o histórico multi-turno compacto para `contents`, mantendo até os últimos
  * 5 turnos (10 mensagens) dentro do orçamento de 4.800 caracteres (~1.200 tokens) (RF01, RNF01, CT01).
@@ -59,19 +69,21 @@ export function montarHistoricoContents(
 
   if (recentes.length === 0) return [];
 
-  // Compacta respostas do modelo enviando apenas materia e textoCompleto (sem JSON de lousa)
+  // Compacta respostas do modelo enviando apenas materia e textoCompleto (sem JSON de lousa).
+  // O texto bruto fica guardado para que um corte por orçamento refaça o JSON, em vez de
+  // partir o JSON já montado (que viraria JSON inválido no histórico)
+  const dadosModelo = new Map<ContentGemini, { materia?: string; texto: string }>();
+  const formatarModelo = (d: { materia?: string; texto: string }) =>
+    JSON.stringify({ ...(d.materia ? { materia: d.materia } : {}), textoCompleto: d.texto });
+
   const formatados: ContentGemini[] = recentes.map((item) => {
-    const texto =
-      item.role === 'model'
-        ? JSON.stringify({
-            ...(item.materia ? { materia: item.materia } : {}),
-            textoCompleto: item.texto.trim()
-          })
-        : item.texto.trim();
-    return {
-      role: item.role,
-      parts: [{ text: texto }]
-    };
+    if (item.role === 'model') {
+      const dados = { materia: item.materia, texto: item.texto.trim() };
+      const conteudo: ContentGemini = { role: 'model', parts: [{ text: formatarModelo(dados) }] };
+      dadosModelo.set(conteudo, dados);
+      return conteudo;
+    }
+    return { role: item.role, parts: [{ text: item.texto.trim() }] };
   });
 
   // Garante alternância válida começando em 'user' e terminando em 'model' (pois a pergunta atual será 'user')
@@ -94,19 +106,43 @@ export function montarHistoricoContents(
     }
   }
 
-  // Se o turno restante ainda ultrapassar maxChars, trunca proporcionalmente sem remover o turno mais recente
+  // Ainda acima do orçamento: encurta primeiro as respostas do modelo (as mais longas) e só depois
+  // as perguntas, sem nunca esvaziar uma pergunta do aluno e sempre em limite de palavra
   let excesso = tamanhoTotal(formatados) - maxChars;
-  if (excesso > 0 && formatados.length > 0) {
-    for (const entry of formatados) {
+  if (excesso > 0) {
+    const ordem = formatados
+      .map((entry, indice) => ({ entry, indice }))
+      .sort((x, y) => {
+        if (x.entry.role !== y.entry.role) return x.entry.role === 'model' ? -1 : 1;
+        const tx = x.entry.parts[0] && 'text' in x.entry.parts[0] ? x.entry.parts[0].text.length : 0;
+        const ty = y.entry.parts[0] && 'text' in y.entry.parts[0] ? y.entry.parts[0].text.length : 0;
+        return ty - tx;
+      });
+    for (const { entry } of ordem) {
       if (excesso <= 0) break;
       const part = entry.parts[0];
       if (!part || !('text' in part)) continue;
-      const disponivel = Math.max(0, part.text.length - excesso);
-      if (disponivel < part.text.length) {
-        const removido = part.text.length - disponivel;
-        part.text = disponivel > 3 ? part.text.slice(0, disponivel - 3) + '...' : part.text.slice(0, disponivel);
-        excesso -= removido;
+      const antes = part.text.length;
+      const dados = dadosModelo.get(entry);
+
+      if (dados) {
+        const minimo = Math.min(dados.texto.length, 60);
+        const alvo = Math.max(minimo, dados.texto.length - excesso);
+        if (alvo >= dados.texto.length) continue;
+        dados.texto = cortarEmPalavra(dados.texto, alvo);
+        part.text = formatarModelo(dados);
+        // O escape do JSON pode deixar o turno um pouco maior que o corte do texto: ajusta
+        while (part.text.length > antes - excesso && dados.texto.length > minimo) {
+          dados.texto = cortarEmPalavra(dados.texto, Math.max(minimo, dados.texto.length - 10));
+          part.text = formatarModelo(dados);
+        }
+      } else {
+        const minimo = Math.min(part.text.length, 120);
+        const remover = Math.min(excesso, part.text.length - minimo);
+        if (remover <= 0) continue;
+        part.text = cortarEmPalavra(part.text, antes - remover);
       }
+      excesso -= antes - part.text.length;
     }
   }
 
@@ -235,7 +271,7 @@ export function cleanTextForSpeech(text: string): string {
 
   // Remove delimitadores LaTeX e modificadores de tamanho
   limpo = limpo
-    .replace(/\$\$?/g, '')
+    .replace(/(?<![A-Z])\$\$?/g, '') // preserva "R$" e "US$"
     .replace(/\\(?:left|right)(?![a-zA-Z])/g, '')
     .replace(/\\(?:text|mathrm)\{([^{}]*)\}/g, '$1');
 
@@ -607,7 +643,8 @@ export function parseGeminiResponse(rawText: string, trechosContexto?: TrechoLiv
     textoCompleto: 'Não consegui formular uma resposta clara para essa dúvida.',
     itensLousa: [],
     texto: 'Não consegui formular uma resposta clara para essa dúvida.',
-    imagem_url: null
+    imagem_url: null,
+    completa: false
   };
 
   if (!rawText || !rawText.trim()) {
@@ -878,12 +915,13 @@ export async function callGeminiApi(
         throw new DOMException('Requisição cancelada pelo usuário.', 'AbortError');
       }
 
-      const method = querStreaming ? 'streamGenerateContent?alt=sse&' : 'generateContent?';
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:${method}key=${trimmedKey}`;
+      const method = querStreaming ? 'streamGenerateContent?alt=sse' : 'generateContent';
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:${method}`;
 
+      // A chave vai no cabeçalho, não na URL: URLs aparecem em logs, DevTools/HAR e proxies
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': trimmedKey },
         body: JSON.stringify(payload),
         signal: opcoes.signal
       });
@@ -909,6 +947,10 @@ export async function callGeminiApi(
           continue;
         }
 
+        // Requisição inválida ou chave sem permissão: repetir em outro modelo só gasta cota e tempo
+        if (response.status === 400 || response.status === 401 || response.status === 403) {
+          (lastError as Error & { naoRepetir?: boolean }).naoRepetir = true;
+        }
         throw lastError;
       }
 
@@ -927,6 +969,7 @@ export async function callGeminiApi(
         let rawBuffer = '';
         let sseLineBuffer = '';
         const etapasEmitidas: EtapaExplicacao[] = [];
+        let streamInterrompido = false;
 
         try {
           while (true) {
@@ -962,6 +1005,7 @@ export async function callGeminiApi(
         } catch (streamErr: any) {
           if (streamErr?.name === 'AbortError') throw streamErr;
           console.warn('Conexão de streaming interrompida, processando dados acumulados:', streamErr);
+          streamInterrompido = true;
         }
 
         // Fim do stream: se emitiu etapas incrementais, retorna a resposta completa
@@ -987,6 +1031,7 @@ export async function callGeminiApi(
             imagem_url: null,
             fontes: fontesValidadas,
             materia: extrairMateria(rawBuffer),
+            completa: !streamInterrompido,
             ...(desafioValidado ? { desafio: desafioValidado } : {})
           };
         }
@@ -999,7 +1044,8 @@ export async function callGeminiApi(
         return {
           ...parsedFinal,
           modeloUsado: model,
-          materia: extrairMateria(rawBuffer)
+          materia: extrairMateria(rawBuffer),
+          completa: parsedFinal.completa !== false && !streamInterrompido
         };
       }
 
@@ -1025,6 +1071,7 @@ export async function callGeminiApi(
     } catch (err: any) {
       lastError = err instanceof Error ? err : new Error(String(err));
       if (
+        (lastError as Error & { naoRepetir?: boolean }).naoRepetir ||
         lastError.name === 'AbortError' ||
         lastError.message.includes('cancelada') ||
         lastError.message.includes('API key') ||

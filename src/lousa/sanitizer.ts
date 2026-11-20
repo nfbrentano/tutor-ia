@@ -7,8 +7,9 @@
  * Escapa caracteres especiais HTML.
  */
 export function escapeHtml(texto: string): string {
-  if (!texto) return '';
-  return texto
+  if (texto === null || texto === undefined || texto === '') return '';
+  // O modelo às vezes manda números/booleanos em células e opções: nunca quebrar a lousa por isso
+  return String(texto)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -21,12 +22,12 @@ export function escapeHtml(texto: string): string {
  * Toda conversão opera após `escapeHtml()` para impedir injeção de HTML/XSS (RF03, RNF01).
  */
 export function formatarFormula(formula: string): string {
-  if (!formula) return '';
-  const escapado = escapeHtml(formula);
+  if (formula === null || formula === undefined || formula === '') return '';
+  const escapado = escapeHtml(String(formula));
 
   // Remove delimitadores LaTeX ($...$, $$...$$) e modificadores de tamanho (\left, \right)
   let processado = escapado
-    .replace(/\$\$?/g, '')
+    .replace(/(?<![A-Z])\$\$?/g, '') // preserva "R$" e "US$"
     .replace(/\\(?:left|right)(?![a-zA-Z])/g, '');
 
   // Texto e raízes em LaTeX
@@ -90,22 +91,33 @@ const TAGS_SVG_PERMITIDAS = new Set([
   'marker'
 ]);
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/** Valor de atributo perigoso: script embutido, expressão CSS ou referência externa via url(). */
+function valorAtributoPerigoso(nome: string, valor: string): boolean {
+  const v = valor.toLowerCase().replace(/[\s\u0000-\u001f]+/g, '');
+  if (v.includes('javascript:') || v.includes('vbscript:') || v.includes('data:text/html') || v.includes('expression(')) {
+    return true;
+  }
+  // Links só para âncoras internas do próprio desenho (ex.: marcadores e gradientes)
+  if (nome === 'href' || nome.endsWith(':href') || nome === 'src') return !v.startsWith('#');
+  // url() só pode apontar para ids internos: bloqueia rastreio e carregamento externo
+  if (/url\((?!['"]?#)/.test(v)) return true;
+  return false;
+}
+
 /**
  * Sanitiza estritamente strings SVG geradas pelo modelo (RF06 / CA08 / CT08).
- * Remove qualquer script, handlers on* e referências externas.
+ *
+ * Em vez de "limpar" a árvore parseada (o que deixa passar comentários, instruções de
+ * processamento e CDATA, que o `outerHTML` reescreve e o `innerHTML` reinterpreta como HTML),
+ * reconstrói um SVG novo copiando apenas elementos da lista permitida, atributos seguros e
+ * nós de texto. Qualquer outro nó é descartado.
  */
 export function sanitizarSvg(svgString: string): string {
   if (!svgString || typeof svgString !== 'string') return '';
-
-  if (typeof DOMParser === 'undefined') {
-    // Ambiente de teste sem DOMParser nativo: fallback regex de segurança
-    return svgString
-      .replace(/<script[\s\S]*?<\/script>/gi, '')
-      .replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, '')
-      .replace(/\s+on[a-zA-Z]+\s*=\s*(['"]).*?\1/gi, '')
-      .replace(/\s+on[a-zA-Z]+\s*=[^\s>]+/gi, '')
-      .trim();
-  }
+  // Sem DOM não há como garantir a sanitização: melhor não desenhar do que arriscar
+  if (typeof DOMParser === 'undefined' || typeof document === 'undefined') return '';
 
   try {
     const parser = new DOMParser();
@@ -118,63 +130,54 @@ export function sanitizarSvg(svgString: string): string {
       return '';
     }
 
-    const svgElement = doc.documentElement;
-    if (svgElement.tagName.toLowerCase() !== 'svg') {
+    const origem = doc.documentElement;
+    if (!origem || origem.localName.toLowerCase() !== 'svg') {
       return '';
     }
 
-    // Função recursiva de limpeza
-    const limparElemento = (el: Element): boolean => {
-      const tagName = el.tagName.toLowerCase();
+    const copiar = (el: Element): Element | null => {
+      const tag = el.localName;
+      if (!TAGS_SVG_PERMITIDAS.has(tag.toLowerCase())) return null;
 
-      // Se a tag não for permitida, remove
-      if (!TAGS_SVG_PERMITIDAS.has(tagName)) {
-        return false;
-      }
-
-      // Remove atributos maliciosos
-      const atributos = Array.from(el.attributes);
-      for (const attr of atributos) {
+      const novo = document.createElementNS(SVG_NS, tag);
+      for (const attr of Array.from(el.attributes)) {
         const nome = attr.name.toLowerCase();
-        const valor = attr.value.toLowerCase().trim();
-
-        // Remove handlers on* (ex: onload, onclick)
-        if (nome.startsWith('on')) {
-          el.removeAttribute(attr.name);
-          continue;
-        }
-
-        // Remove links javascript: ou URLs externas
-        if (nome === 'href' || nome.endsWith(':href') || nome === 'src') {
-          if (valor.startsWith('javascript:') || valor.startsWith('http:') || valor.startsWith('https:')) {
-            el.removeAttribute(attr.name);
+        if (nome.startsWith('on') || nome.startsWith('xmlns')) continue;
+        if (valorAtributoPerigoso(nome, attr.value)) continue;
+        try {
+          if (attr.namespaceURI) {
+            novo.setAttributeNS(attr.namespaceURI, attr.name, attr.value);
+          } else {
+            novo.setAttribute(attr.name, attr.value);
           }
+        } catch {
+          // Nome de atributo inválido: descarta
         }
       }
 
-      // Limpa os filhos
-      const filhos = Array.from(el.children);
-      for (const filho of filhos) {
-        const permitido = limparElemento(filho);
-        if (!permitido) {
-          el.removeChild(filho);
+      for (const filho of Array.from(el.childNodes)) {
+        if (filho.nodeType === 1) {
+          const copia = copiar(filho as Element);
+          if (copia) novo.appendChild(copia);
+        } else if (filho.nodeType === 3) {
+          // Só texto puro; comentários (8), instruções de processamento (7) e CDATA (4) são descartados
+          novo.appendChild(document.createTextNode(filho.textContent ?? ''));
         }
       }
-
-      return true;
+      return novo;
     };
 
-    const raizValida = limparElemento(svgElement);
-    if (!raizValida) return '';
+    const svgElement = copiar(origem);
+    if (!svgElement) return '';
 
     // Garante atributos de responsividade no SVG raiz
     if (!svgElement.getAttribute('viewBox')) {
-      const width = svgElement.getAttribute('width') || '200';
-      const height = svgElement.getAttribute('height') || '150';
+      const width = parseFloat(svgElement.getAttribute('width') || '') || 200;
+      const height = parseFloat(svgElement.getAttribute('height') || '') || 150;
       svgElement.setAttribute('viewBox', `0 0 ${width} ${height}`);
     }
     svgElement.setAttribute('width', '100%');
-    svgElement.setAttribute('height', 'auto');
+    svgElement.removeAttribute('height');
     svgElement.classList.add('lousa-desenho-svg');
 
     return svgElement.outerHTML;

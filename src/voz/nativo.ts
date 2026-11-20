@@ -11,7 +11,8 @@ import { FalaEventos, OpcoesFala, OuvirEventos, ServicoVoz } from './tipos';
 export class NativoServicoVoz implements ServicoVoz {
   private isListeningFlag = false;
   private isSpeakingFlag = false;
-  private partialListener: any = null;
+  private falaSeq = 0;
+  private escutaSeq = 0;
 
   async temSuporteReconhecimento(): Promise<boolean> {
     try {
@@ -49,6 +50,9 @@ export class NativoServicoVoz implements ServicoVoz {
 
   async falar(texto: string, eventos?: FalaEventos, opcoes?: OpcoesFala): Promise<void> {
     await this.pararDeFalar();
+    // Uma fala interrompida pode resolver depois que a próxima começou: só a mais recente
+    // atualiza o estado e dispara eventos
+    const seq = ++this.falaSeq;
 
     const textoLimpo = cleanTextForSpeech(texto);
     if (!textoLimpo) {
@@ -68,9 +72,11 @@ export class NativoServicoVoz implements ServicoVoz {
         category: 'ambient'
       });
 
+      if (seq !== this.falaSeq) return;
       this.isSpeakingFlag = false;
       eventos?.onEnd?.();
     } catch (err) {
+      if (seq !== this.falaSeq) return;
       this.isSpeakingFlag = false;
       eventos?.onError?.(err);
       eventos?.onEnd?.();
@@ -89,6 +95,7 @@ export class NativoServicoVoz implements ServicoVoz {
   async ouvir(eventos: OuvirEventos): Promise<void> {
     await this.pararDeOuvir();
     await this.pararDeFalar();
+    const seq = ++this.escutaSeq;
 
     try {
       // Verifica e solicita permissões nativas de áudio se necessário
@@ -106,63 +113,56 @@ export class NativoServicoVoz implements ServicoVoz {
       this.isListeningFlag = true;
       eventos.onStart?.();
 
-      // Registra listener de resultados parciais (interim)
-      if (this.partialListener) {
-        await this.partialListener.remove();
-        this.partialListener = null;
-      }
-
-      this.partialListener = await SpeechRecognition.addListener('partialResults', (data: { matches: string[] }) => {
-        if (data.matches && data.matches.length > 0) {
-          eventos.onInterim?.(data.matches[0]);
-        }
-      });
-
+      // Sem resultados parciais: no plugin v7, com `partialResults: true` o start() resolve na hora,
+      // sem texto, e os erros (silêncio, sem correspondência) nunca chegam ao JS. Assim o start()
+      // só resolve com a transcrição final, ou rejeita com o erro do reconhecedor.
       const result = await SpeechRecognition.start({
         language: 'pt-BR',
         maxResults: 1,
         prompt: 'Diga sua dúvida escolar...',
-        partialResults: true,
+        partialResults: false,
         popup: false
       });
 
+      if (seq !== this.escutaSeq) return;
       this.isListeningFlag = false;
-      if (result && result.matches && result.matches.length > 0) {
-        eventos.onFinal?.(result.matches[0]);
+      const texto = result?.matches?.[0]?.trim();
+      if (texto) {
+        eventos.onFinal?.(texto);
+      } else {
+        eventos.onError?.('Nenhuma fala detectada. Toque no microfone e tente de novo.');
       }
       eventos.onEnd?.();
     } catch (err: any) {
+      if (seq !== this.escutaSeq) return;
       this.isListeningFlag = false;
-      eventos.onError?.(err?.message || 'Falha ao capturar áudio no Android.');
+      eventos.onError?.(traduzirErroReconhecimento(err?.message));
       eventos.onEnd?.();
-    } finally {
-      if (this.partialListener) {
-        try {
-          await this.partialListener.remove();
-        } catch {
-          // Ignora
-        }
-        this.partialListener = null;
-      }
     }
   }
 
   async pararDeOuvir(): Promise<void> {
     if (this.isListeningFlag) {
       try {
+        // Encerra a captura; o reconhecedor ainda entrega o que ouviu até aqui pelo start()
         await SpeechRecognition.stop();
       } catch {
         // Ignora erro ao parar
       }
       this.isListeningFlag = false;
     }
-    if (this.partialListener) {
-      try {
-        await this.partialListener.remove();
-      } catch {
-        // Ignora
-      }
-      this.partialListener = null;
-    }
   }
+}
+
+/** Mensagens do SpeechRecognizer do Android em português, para o aluno entender o que houve. */
+export function traduzirErroReconhecimento(mensagem?: string): string {
+  const m = (mensagem || '').toLowerCase();
+  if (m.includes('no match') || m.includes('speech timeout') || m.includes('no speech')) {
+    return 'Nenhuma fala detectada. Toque no microfone e tente de novo.';
+  }
+  if (m.includes('permission')) return 'Sem permissão para usar o microfone.';
+  if (m.includes('network')) return 'Sem conexão para reconhecer a fala. Tente digitar a pergunta.';
+  if (m.includes('busy')) return 'O reconhecimento de voz está ocupado. Tente de novo em instantes.';
+  if (m.includes('audio')) return 'Não foi possível gravar o áudio do microfone.';
+  return 'Falha ao capturar áudio no Android.';
 }

@@ -4,6 +4,7 @@
 
 export * from './animacoes';
 export * from './avatar3d';
+export * from './holograma';
 export * from './lipSync';
 export * from './movimento';
 export * from './poses';

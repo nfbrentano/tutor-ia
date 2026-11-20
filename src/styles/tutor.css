@@ -23,7 +23,8 @@ main.tutor-layout {
 }
 
 /* ==========================================================================
-   SEÇÃO DO AVATAR MODULAR ARTICULADO
+   PALCO DO AVATAR: CABEÇA HOLOGRÁFICA NUM TUBO DE ENERGIA
+   Spec: SDD/2026-11-20_avatar-cabeca-holografica.md (RF05, RF07)
    ========================================================================== */
 .avatar-section {
   display: flex;
@@ -40,9 +41,14 @@ main.tutor-layout {
 }
 
 #avatar-module {
+  /* Cor da luz do tubo: persona por padrão, misturada com a cor do estado */
+  --holo-cor: var(--persona-cor, var(--primary));
+  --holo-velocidade-linhas: 7s;
+  --holo-velocidade-feixe: 3.4s;
+  --holo-intensidade: 0.55;
   position: relative;
   width: 300px;
-  height: 330px;
+  height: 340px;
   max-width: 100%;
   display: flex;
   align-items: center;
@@ -50,38 +56,163 @@ main.tutor-layout {
   transition: var(--transition-smooth);
 }
 
-/* Halos de Energia */
-.avatar-halo {
-  position: absolute;
-  width: 250px;
-  height: 250px;
-  border-radius: 50%;
-  border: 2px dashed var(--persona-cor, var(--primary));
-  box-shadow: 0 0 24px color-mix(in srgb, var(--persona-cor, var(--primary)) 28%, transparent);
-  opacity: 0.45;
-  pointer-events: none;
-  animation: rotateHalo 25s linear infinite;
-  transition: var(--transition-smooth);
-  top: 30px;
+#avatar-module.state-listening {
+  --holo-cor: color-mix(in srgb, var(--accent-listening) 55%, var(--persona-cor, var(--primary)));
+  --holo-velocidade-feixe: 1.8s;
+  --holo-intensidade: 0.7;
+}
+#avatar-module.state-thinking {
+  --holo-cor: color-mix(in srgb, var(--accent-thinking) 55%, var(--persona-cor, var(--primary)));
+  --holo-velocidade-linhas: 2.4s;
+  --holo-velocidade-feixe: 2.2s;
+  --holo-intensidade: 0.75;
+}
+#avatar-module.state-speaking {
+  --holo-cor: color-mix(in srgb, var(--accent-speaking) 30%, var(--persona-cor, var(--primary)));
+  --holo-velocidade-feixe: 1.3s;
+  --holo-intensidade: 0.9;
 }
 
-.avatar-halo-secondary {
+/* --- Tubo (atrás da cabeça) --- */
+.holo-tubo {
   position: absolute;
-  width: 280px;
-  height: 280px;
-  border-radius: 50%;
-  border: 1.5px solid color-mix(in srgb, var(--persona-cor, var(--primary)) 22%, transparent);
-  opacity: 0.25;
+  inset: 0;
   pointer-events: none;
-  transition: var(--transition-smooth);
-  top: 15px;
+  z-index: 0;
 }
 
+.holo-tubo-coluna,
+.holo-tubo-vidro {
+  position: absolute;
+  left: 13%;
+  right: 13%;
+  top: 20px;
+  bottom: 26px;
+  border-radius: 50% / 7%;
+}
+
+.holo-tubo-coluna {
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 62% 42% at 50% 40%, color-mix(in srgb, var(--holo-cor) 26%, transparent), transparent 72%),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--holo-cor) 34%, transparent) 0%,
+      color-mix(in srgb, var(--holo-cor) 7%, transparent) 16%,
+      transparent 50%,
+      color-mix(in srgb, var(--holo-cor) 7%, transparent) 84%,
+      color-mix(in srgb, var(--holo-cor) 34%, transparent) 100%
+    );
+  border-left: 1px solid color-mix(in srgb, var(--holo-cor) 55%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--holo-cor) 55%, transparent);
+  box-shadow:
+    0 0 38px color-mix(in srgb, var(--holo-cor) 22%, transparent),
+    inset 0 0 28px color-mix(in srgb, var(--holo-cor) 18%, transparent);
+  transition: background 0.5s ease, box-shadow 0.5s ease, border-color 0.5s ease;
+}
+
+/* Linhas de varredura subindo */
+.holo-tubo-coluna::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    color-mix(in srgb, var(--holo-cor) 16%, transparent) 0 1px,
+    transparent 1px 5px
+  );
+  background-size: 100% 50px;
+  animation: holoLinhas var(--holo-velocidade-linhas) linear infinite;
+  opacity: 0.8;
+}
+
+/* Feixe de luz que sobe da base e sustenta a cabeça */
+.holo-tubo-coluna::after {
+  content: '';
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  bottom: -10px;
+  height: 72%;
+  background: linear-gradient(to top, color-mix(in srgb, var(--holo-cor) 70%, transparent), transparent);
+  filter: blur(14px);
+  opacity: var(--holo-intensidade);
+  animation: holoFeixe var(--holo-velocidade-feixe) ease-in-out infinite;
+  transition: opacity 0.4s ease;
+}
+
+/* Tampas metálicas com anel emissor */
+.holo-tubo-tampa {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #3b4a61 0%, #111827 55%, #1f2937 100%);
+  border: 1px solid color-mix(in srgb, var(--holo-cor) 45%, #334155);
+  box-shadow:
+    0 0 16px color-mix(in srgb, var(--holo-cor) 30%, transparent),
+    inset 0 2px 5px rgba(255, 255, 255, 0.14);
+  transition: border-color 0.5s ease, box-shadow 0.5s ease;
+}
+.holo-tubo-topo {
+  top: 8px;
+}
+.holo-tubo-base {
+  bottom: 12px;
+  box-shadow:
+    0 -8px 28px color-mix(in srgb, var(--holo-cor) 50%, transparent),
+    inset 0 2px 5px rgba(255, 255, 255, 0.14);
+}
+.holo-tubo-base::after {
+  content: '';
+  position: absolute;
+  inset: 5px 16%;
+  border-radius: 50%;
+  border: 2px solid var(--holo-cor);
+  box-shadow: 0 0 14px var(--holo-cor), inset 0 0 8px var(--holo-cor);
+  opacity: var(--holo-intensidade);
+  animation: holoAnel var(--holo-velocidade-feixe) ease-in-out infinite;
+}
+
+/* --- Vidro (na frente da cabeça): reflexos verticais --- */
+.holo-tubo-vidro {
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 6%,
+    rgba(255, 255, 255, 0.11) 10%,
+    rgba(255, 255, 255, 0.03) 17%,
+    transparent 26%,
+    transparent 80%,
+    rgba(255, 255, 255, 0.06) 87%,
+    transparent 92%
+  );
+  mix-blend-mode: screen;
+}
+
+@keyframes holoLinhas {
+  from { background-position: 0 0; }
+  to { background-position: 0 -50px; }
+}
+@keyframes holoFeixe {
+  0%, 100% { transform: scaleY(0.92); filter: blur(14px) brightness(0.9); }
+  50% { transform: scaleY(1.04); filter: blur(12px) brightness(1.15); }
+}
+@keyframes holoAnel {
+  0%, 100% { transform: scale(0.96); }
+  50% { transform: scale(1.04); }
+}
+
+/* --- Camadas do avatar --- */
 .avatar-svg {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   overflow: visible;
-  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.6));
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--holo-cor) 45%, transparent));
   transition: opacity 0.4s ease;
 }
 
@@ -91,75 +222,40 @@ main.tutor-layout {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 0 16px color-mix(in srgb, var(--holo-cor) 35%, transparent));
 }
 
 /* ==========================================================================
-   ANIMAÇÕES DE RESPIRAÇÃO E BALANÇO NATURAL (RF02)
+   CABEÇA DO PLANO B (SVG): FLUTUAÇÃO, PISCADA, BOCA (RF07)
    ========================================================================== */
-@keyframes avatarBreathe {
-  0%, 100% {
-    transform: translateY(0px) scaleY(1);
-  }
-  50% {
-    transform: translateY(-4px) scaleY(1.02);
-  }
+@keyframes cabecaFlutuar {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(-4px) rotate(0.8deg); }
+  65% { transform: translateY(-1.5px) rotate(-0.8deg); }
 }
 
-.avatar-torso {
-  animation: avatarBreathe 4s ease-in-out infinite;
-  transform-origin: 120px 240px;
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes headSway {
-  0%, 100% {
-    transform: rotate(0deg) translateY(0px);
-  }
-  33% {
-    transform: rotate(1.2deg) translateY(-1px);
-  }
-  66% {
-    transform: rotate(-1deg) translateY(-0.5px);
-  }
+.avatar-flutuacao {
+  animation: cabecaFlutuar 5.5s ease-in-out infinite;
+  transform-origin: 120px 80px;
 }
 
 .avatar-head-group {
-  animation: headSway 6s ease-in-out infinite;
-  transform-origin: 120px 135px;
+  transform-origin: 120px 118px;
   transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.avatar-arm {
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+.avatar-projecao {
+  opacity: 0.85;
+}
+.avatar-projecao line {
+  stroke: var(--holo-cor);
+  stroke-linecap: round;
 }
 
-.arm-left {
-  transform-origin: 75px 155px;
-}
-
-.arm-right {
-  transform-origin: 165px 155px;
-}
-
-.avatar-forearm {
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.forearm-left {
-  transform-origin: 60px 195px;
-}
-
-.forearm-right {
-  transform-origin: 180px 195px;
-}
-
-/* ==========================================================================
-   PISCADA NATURAL (RF03)
-   ========================================================================== */
 .avatar-eye {
-  fill: #38bdf8;
+  fill: var(--holo-cor);
   transform-origin: center;
+  transform-box: fill-box;
   transition: transform 0.08s ease, fill 0.3s ease;
 }
 
@@ -167,98 +263,47 @@ main.tutor-layout {
   transform: scaleY(0.08);
 }
 
+.avatar-eyes,
 .avatar-eyebrows {
   transition: transform 0.3s ease;
 }
 
 .eyebrow {
-  stroke: #38bdf8;
+  stroke: var(--holo-cor);
+  transform-box: fill-box;
+  transform-origin: center;
   transition: transform 0.3s ease, stroke 0.3s ease;
 }
 
-/* ==========================================================================
-   BOCA ARTICULADA E SINCRONIZADA (RF04)
-   ========================================================================== */
 .avatar-mouth {
   transform-origin: 120px 99px;
   transition: transform 0.08s ease-out;
 }
 
 .mouth-shape {
-  fill: #38bdf8;
+  fill: var(--holo-cor);
   transition: fill 0.3s ease;
 }
 
-/* ==========================================================================
-   ESTADOS VISUAIS DO AVATAR (RF05)
-   ========================================================================== */
-@keyframes rotateHalo {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.avatar-head,
+.avatar-orelha {
+  stroke: var(--holo-cor);
+  transition: stroke 0.3s ease;
+}
+.avatar-orelha,
+.avatar-antena-ponta {
+  fill: var(--holo-cor);
+}
+.avatar-antena {
+  stroke: var(--holo-cor);
 }
 
-@keyframes listeningGlow {
-  0%, 100% {
-    box-shadow: 0 0 25px var(--accent-listening-glow);
-  }
-  50% {
-    box-shadow: 0 0 50px var(--accent-listening-glow);
-  }
-}
-
-@keyframes speakingPulse {
-  0%, 100% {
-    box-shadow: 0 0 25px var(--accent-speaking-glow);
-  }
-  50% {
-    box-shadow: 0 0 55px var(--accent-speaking-glow);
-  }
-}
-
-@keyframes alexaHaloPulse {
-  0% {
-    box-shadow: 0 0 15px rgba(56, 189, 248, 0.35), inset 0 0 10px rgba(56, 189, 248, 0.2);
-    border-color: rgba(56, 189, 248, 0.45);
-  }
-  50% {
-    box-shadow: 0 0 35px rgba(56, 189, 248, 0.75), inset 0 0 20px rgba(56, 189, 248, 0.45);
-    border-color: rgba(56, 189, 248, 0.95);
-  }
-  100% {
-    box-shadow: 0 0 15px rgba(56, 189, 248, 0.35), inset 0 0 10px rgba(56, 189, 248, 0.2);
-    border-color: rgba(56, 189, 248, 0.45);
-  }
-}
-
-/* Estado: LISTENING (Ouvindo) */
-#avatar-module.state-listening .avatar-halo {
-  border-color: var(--accent-listening);
-  opacity: 0.8;
-  animation: rotateHalo 8s linear infinite;
-}
+/* Estados: só a cabeça e o rosto reagem */
 #avatar-module.state-listening .avatar-head-group {
   transform: rotate(-3.5deg) translateY(-2px);
 }
 #avatar-module.state-listening .eyebrow {
   transform: translateY(-2.5px);
-  stroke: var(--accent-listening);
-}
-#avatar-module.state-listening .avatar-eye,
-#avatar-module.state-listening #avatar-chest-core,
-#avatar-module.state-listening .mouth-shape {
-  fill: var(--accent-listening);
-}
-
-/* Estado: THINKING (Pensando - mão no queixo e halo pulsante estilo Alexa) */
-#avatar-module.state-thinking .avatar-halo {
-  border-color: var(--accent-thinking);
-  opacity: 0.9;
-  animation: rotateHalo 4s linear infinite reverse, alexaHaloPulse 2s ease-in-out infinite;
-}
-#avatar-module.state-thinking .avatar-halo-secondary {
-  border-color: rgba(56, 189, 248, 0.4);
-  opacity: 0.6;
-  animation: rotateHalo 6s linear infinite;
 }
 #avatar-module.state-thinking .avatar-head-group {
   transform: rotate(3.5deg) translateY(-1px);
@@ -268,158 +313,57 @@ main.tutor-layout {
 }
 #avatar-module.state-thinking .eyebrow-left {
   transform: rotate(-6deg) translateY(-1px);
-  stroke: var(--accent-thinking);
 }
 #avatar-module.state-thinking .eyebrow-right {
   transform: rotate(8deg) translateY(-3px);
-  stroke: var(--accent-thinking);
-}
-#avatar-module.state-thinking .arm-right {
-  transform: rotate(-55deg) translate(-10px, 8px);
-}
-#avatar-module.state-thinking .forearm-right {
-  transform: rotate(-75deg);
-}
-#avatar-module.state-thinking .avatar-eye,
-#avatar-module.state-thinking #avatar-chest-core,
-#avatar-module.state-thinking .mouth-shape {
-  fill: var(--accent-thinking);
 }
 
-/* Estado: SPEAKING (Falando) */
-#avatar-module.state-speaking .avatar-halo {
-  border-color: var(--accent-speaking);
-  opacity: 0.85;
-  animation: rotateHalo 12s linear infinite;
-}
-#avatar-module.state-speaking .avatar-eye,
-#avatar-module.state-speaking #avatar-chest-core,
-#avatar-module.state-speaking .mouth-shape {
-  fill: var(--accent-speaking);
-}
-#avatar-module.state-speaking .eyebrow {
-  stroke: var(--accent-speaking);
-}
-
-/* ==========================================================================
-   REPERTÓRIO DE GESTOS (RF06)
-   ========================================================================== */
-/* Gesto 1: Palmas Abertas */
-#avatar-module.gesto-palmas-abertas .arm-left {
-  transform: rotate(26deg);
-}
-#avatar-module.gesto-palmas-abertas .forearm-left {
-  transform: rotate(-30deg);
-}
-#avatar-module.gesto-palmas-abertas .arm-right {
-  transform: rotate(-26deg);
-}
-#avatar-module.gesto-palmas-abertas .forearm-right {
-  transform: rotate(30deg);
-}
-
-/* Gesto 2: Enfatizar */
-#avatar-module.gesto-enfatizar .arm-right {
-  transform: rotate(-45deg);
-}
-#avatar-module.gesto-enfatizar .forearm-right {
-  transform: rotate(-35deg);
-}
-#avatar-module.gesto-enfatizar .arm-left {
-  transform: rotate(10deg);
-}
-
-/* Gesto 3: Contar Dedos */
-#avatar-module.gesto-contar-dedos .arm-left {
-  transform: rotate(35deg);
-}
-#avatar-module.gesto-contar-dedos .forearm-left {
-  transform: rotate(-50deg);
-}
-#avatar-module.gesto-contar-dedos .arm-right {
-  transform: rotate(-12deg);
-}
-
-/* Gesto 4: Mão no Peito */
-#avatar-module.gesto-mao-no-peito .arm-right {
-  transform: rotate(-48deg);
-}
-#avatar-module.gesto-mao-no-peito .forearm-right {
-  transform: rotate(-85deg);
-}
-#avatar-module.gesto-mao-no-peito .arm-left {
-  transform: rotate(6deg);
-}
-
-/* ==========================================================================
-   GESTOS DE ESPERA ATIVA (RF05, CA06)
-   ========================================================================== */
+/* Gestos de espera viram movimentos de cabeça e olhar */
 #avatar-module.gesto-olhar-cima .avatar-head-group {
   transform: translateY(-4px) rotate(-2deg);
 }
 #avatar-module.gesto-olhar-cima .avatar-eyes {
   transform: translateY(-3px);
 }
-#avatar-module.gesto-olhar-cima .arm-right {
-  transform: rotate(-10deg);
-}
-#avatar-module.gesto-olhar-cima .arm-left {
-  transform: rotate(10deg);
-}
-
 #avatar-module.gesto-pensativo .avatar-head-group {
   transform: rotate(4deg) translateY(-1px);
 }
-#avatar-module.gesto-pensativo .arm-right {
-  transform: rotate(-40deg);
-}
-#avatar-module.gesto-pensativo .forearm-right {
-  transform: rotate(-70deg);
-}
-#avatar-module.gesto-pensativo .arm-left {
-  transform: rotate(12deg);
-}
-
-#avatar-module.gesto-postura-atenta .avatar-torso {
-  transform: scaleY(1.03) translateY(-2px);
+#avatar-module.gesto-pensativo .avatar-eyes {
+  transform: translate(-3px, -2px);
 }
 #avatar-module.gesto-postura-atenta .avatar-head-group {
-  transform: translateY(-2px);
-}
-#avatar-module.gesto-postura-atenta .arm-right {
-  transform: rotate(-16deg);
-}
-#avatar-module.gesto-postura-atenta .arm-left {
-  transform: rotate(16deg);
+  transform: translateY(-3px) scale(1.02);
 }
 
-/* ==========================================================================
-   APONTAR PARA A LOUSA / APOIO VISUAL (RF07)
-   ========================================================================== */
+/* Gestos de fala: acenos leves de cabeça */
+#avatar-module.gesto-enfatizar .avatar-head-group {
+  transform: rotate(-2deg) translateY(1px);
+}
+#avatar-module.gesto-mao-no-peito .avatar-head-group {
+  transform: rotate(1.5deg);
+}
+
+/* "Apontar" para a lousa = virar cabeça e olhos para ela (RF06 da spec da cabeça) */
 #avatar-module.pose-apontando .avatar-head-group {
   transform: rotate(7deg) translateX(4px);
 }
 #avatar-module.pose-apontando .avatar-eyes {
   transform: translate(4px, 1px);
 }
-#avatar-module.pose-apontando .arm-right {
-  transform: rotate(-76deg) translate(5px, -10px);
-}
-#avatar-module.pose-apontando .forearm-right {
-  transform: rotate(10deg);
-}
 
 /* ==========================================================================
-   ACESSIBILIDADE: PREFERS-REDUCED-MOTION (RNF03, CA11)
+   ACESSIBILIDADE: PREFERS-REDUCED-MOTION (RNF03, CA05)
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
-  .avatar-torso,
+  .avatar-flutuacao,
   .avatar-head-group,
-  .avatar-arm,
-  .avatar-forearm,
-  .avatar-halo {
+  .holo-tubo-coluna::before,
+  .holo-tubo-coluna::after,
+  .holo-tubo-base::after {
     animation: none !important;
     transition: none !important;
+  }
+  .avatar-head-group {
     transform: none !important;
   }
 }

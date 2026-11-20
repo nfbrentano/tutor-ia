@@ -1,6 +1,6 @@
 /**
  * TUTORIA - Tipos do Gravador de Gestos
- * Spec: SDD/2026-10-23_gravador-de-gestos.md
+ * Spec: SDD/DONE/2026-10-23_gravador-de-gestos.md
  */
 
 import type { CategoriaClipe } from '../avatar3d/animacoes';

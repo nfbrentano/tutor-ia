@@ -1,7 +1,7 @@
 /**
  * TUTORIA - Implementação do Avatar 3D com Three.js e VRM
  * Spec base: SDD/DONE/2026-10-16_avatar-3d.md (RF01 - RF10, CA01 - CA17)
- * Movimento humano e personas: SDD/2026-10-23_avatar-personas-por-materia.md
+ * Movimento humano e personas: SDD/DONE/2026-10-23_avatar-personas-por-materia.md
  */
 
 import * as THREE from 'three';
@@ -12,6 +12,18 @@ import { sortearProximoGesto, sortearProximoGestoEspera } from '../avatar/gestos
 import { AvatarEstado, ControladorAvatar, GestoEsperaTipo, GestoTipo } from '../avatar/tipos';
 import { descreverPersona, MODELO_PROVISORIO, obterModeloPersona, Persona } from '../personas';
 import { GerenciadorClipes } from './animacoes';
+import {
+  aplicarMaterialHolografico,
+  calcularEnquadramentoCabeca,
+  calcularFlutuacao,
+  calcularVarredura,
+  criarUniformsHolograma,
+  MedidasPescoco,
+  medirCaixaCabeca,
+  medirPescoco,
+  recolherBracos,
+  UniformsHolograma
+} from './holograma';
 import { gerarSequenciaBoca, SegmentoBoca } from './lipSync';
 import {
   calcularCamadasProcedurais,
@@ -80,6 +92,8 @@ const EXPRESSOES_ESTADO: Record<AvatarEstado, { happy: number; relaxed: number; 
 
 const PASTA_ANIMACOES = './avatar/animacoes';
 const MAX_MODELOS_EM_CACHE = 2;
+/** Campo de visão vertical da câmera no modo cabeça: estreito para evitar distorção do rosto. */
+const FOV_CABECA_GRAUS = 24;
 
 export class Avatar3D implements ControladorAvatar {
   private elementos: Avatar3DElementos;
@@ -154,9 +168,16 @@ export class Avatar3D implements ControladorAvatar {
   private ultimoTempoFrame = 0;
   private tempoAcumulado = 0;
 
+  // Cabeça holográfica (SDD/2026-11-20_avatar-cabeca-holografica.md)
+  private uniformsHolo: UniformsHolograma = criarUniformsHolograma('#38bdf8');
+  private medidasPescoco: MedidasPescoco | null = null;
+  private caixaCabeca: THREE.Box3 | null = null;
+  private cintilacaoAteSeg = 0;
+
   // Listeners
   private onVisibilityChangeHandler: (() => void) | null = null;
   private onResizeHandler: (() => void) | null = null;
+  private observadorTamanho: ResizeObserver | null = null;
 
   estaAtivo(): boolean {
     return this.estaInicializado && !this.estaDestruido;
@@ -297,13 +318,17 @@ export class Avatar3D implements ControladorAvatar {
       if (modelo !== this.vrm) VRMUtils.deepDispose(modelo.scene);
     }
 
-    // Pose inicial aplicada antes de medir a cabeça
+    // Pose inicial aplicada antes de medir a cabeça (modelo do cache pode estar deslocado pela flutuação)
     this.poseAtual = JSON.parse(JSON.stringify(this.poseAlvo));
+    vrm.scene.position.set(0, 0, 0);
+    vrm.scene.rotation.set(0, 0, 0);
     vrm.humanoid?.resetNormalizedPose();
     vrm.update(0);
 
     const cabeca = vrm.humanoid?.getNormalizedBoneNode('head');
-    if (cabeca) {
+    if (this.config.apenasCabeca) {
+      this.prepararCabecaHolografica(vrm);
+    } else if (cabeca) {
       const pos = new THREE.Vector3();
       cabeca.getWorldPosition(pos);
       // Enquadra da cabeça até a cintura: as mãos dos gestos precisam aparecer
@@ -323,6 +348,77 @@ export class Avatar3D implements ControladorAvatar {
     this.clipes = null;
     this.pesoClipe = 0;
   }
+
+  /**
+   * Modo cabeça (RF01-RF03): recolhe os braços, mede pescoço e cabeça, aplica o material
+   * holográfico e enquadra a câmera só na cabeça.
+   */
+  private prepararCabecaHolografica(vrm: VRM): void {
+    recolherBracos(vrm);
+    vrm.scene.updateMatrixWorld(true);
+    this.medidasPescoco = medirPescoco(vrm);
+    const corteY = this.medidasPescoco?.baseY ?? 1.3;
+    this.caixaCabeca = medirCaixaCabeca(vrm.scene, corteY);
+    this.atualizarUniformsCorte();
+    this.uniformsHolo.uCorHolo.value.set(this.persona?.corTema ?? '#38bdf8');
+    aplicarMaterialHolografico(vrm.scene, this.uniformsHolo);
+    this.enquadrarCabeca();
+  }
+
+  private enquadrarCabeca(): void {
+    const camera = this.camera;
+    const caixa = this.caixaCabeca;
+    if (!camera || !caixa) return;
+    camera.fov = FOV_CABECA_GRAUS;
+    camera.updateProjectionMatrix();
+    const { posicao, alvo } = calcularEnquadramentoCabeca(caixa.min, caixa.max, camera.fov, camera.aspect);
+    camera.position.set(posicao.x, posicao.y, posicao.z);
+    camera.lookAt(alvo.x, alvo.y, alvo.z);
+  }
+
+  /** O corte acompanha a base do pescoço, que se move com a flutuação e com os clipes do tronco. */
+  private atualizarUniformsCorte(): void {
+    const vrm = this.vrm;
+    const medidas = this.medidasPescoco;
+    if (!medidas) return;
+    let baseY = medidas.baseY;
+    const pescoco = vrm?.humanoid?.getRawBoneNode('neck');
+    if (pescoco) baseY = pescoco.getWorldPosition(this._vetorAux).y;
+    // Começa um pouco acima da base para a gola da roupa não aparecer como pontos
+    this.uniformsHolo.uCorteY.value = baseY + medidas.comprimento * 0.2;
+    this.uniformsHolo.uFaixaCorte.value = medidas.comprimento * 0.55;
+  }
+
+  /** Flutuação, cintilação e varredura de luz (RF04); paradas com movimento reduzido (CA05). */
+  private atualizarHolograma(vrm: VRM, delta: number, reducedMotion: boolean): void {
+    const t = this.tempoAcumulado;
+    const u = this.uniformsHolo;
+    if (reducedMotion) {
+      vrm.scene.position.y = 0;
+      vrm.scene.rotation.z = 0;
+      u.uBrilhoHolo.value = 1;
+      u.uVarreduraY.value = -100;
+    } else {
+      const { y, rolagem } = calcularFlutuacao(t);
+      vrm.scene.position.y = y;
+      vrm.scene.rotation.z = rolagem;
+      u.uTempoHolo.value = t;
+
+      // Cintilação rara e curta, como interferência na projeção
+      if (t >= this.cintilacaoAteSeg && Math.random() < delta * 0.12) {
+        this.cintilacaoAteSeg = t + 0.06 + Math.random() * 0.08;
+      }
+      const falando = this.estadoAtual === 'speaking' ? 1.06 : 1;
+      u.uBrilhoHolo.value = (t < this.cintilacaoAteSeg ? 0.78 : 1) * falando;
+
+      if (this.caixaCabeca) {
+        u.uVarreduraY.value = calcularVarredura(t, this.caixaCabeca.max.y + y, this.caixaCabeca.min.y + y);
+      }
+    }
+    this.atualizarUniformsCorte();
+  }
+
+  private readonly _vetorAux = new THREE.Vector3();
 
   private async carregarClipes(): Promise<void> {
     if (!this.vrm || this.prefereMovimentoReduzido()) return;
@@ -374,8 +470,17 @@ export class Avatar3D implements ControladorAvatar {
       this.camera.aspect = w / h;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(w, h, false);
+      // A largura do palco muda no celular: reenquadra para a cabeça continuar inteira no tubo
+      if (this.config.apenasCabeca) this.enquadrarCabeca();
     };
     window.addEventListener('resize', this.onResizeHandler);
+
+    // O palco também muda de tamanho sem `window.resize` (lousa abrindo, teclado virtual, layout
+    // compacto): observa o próprio canvas para o quadro não ficar esticado
+    if (typeof ResizeObserver !== 'undefined' && this.elementos.canvasElemento) {
+      this.observadorTamanho = new ResizeObserver(() => this.onResizeHandler?.());
+      this.observadorTamanho.observe(this.elementos.canvasElemento);
+    }
   }
 
   private prefereMovimentoReduzido(): boolean {
@@ -442,7 +547,8 @@ export class Avatar3D implements ControladorAvatar {
     // 2. Camadas somadas (respiração, troca de peso, batidas, aceno, olhar)
     if (!reducedMotion) {
       this.aplicarCamadas(vrm, delta);
-      this.aplicarDedos(vrm, delta);
+      // No modo cabeça os braços estão recolhidos: animar dedos seria custo sem efeito
+      if (!this.config.apenasCabeca) this.aplicarDedos(vrm, delta);
     }
 
     // 3. Olhar
@@ -450,6 +556,9 @@ export class Avatar3D implements ControladorAvatar {
 
     // 4. VRM: copia ossos normalizados para o modelo, expressões, lookAt e física
     vrm.update(delta);
+
+    // 5. Cabeça holográfica: flutuação, cintilação e corte acompanhando o pescoço
+    if (this.config.apenasCabeca) this.atualizarHolograma(vrm, delta, reducedMotion);
   }
 
   private interpolarPose(fator: number): void {
@@ -1132,6 +1241,8 @@ export class Avatar3D implements ControladorAvatar {
     if (this.rimLight && this.persona.corTema) {
       this.rimLight.color.set(this.persona.corTema);
     }
+    // Brilho de borda e varredura da cabeça na cor da persona (CA04)
+    if (this.persona.corTema) this.uniformsHolo.uCorHolo.value.set(this.persona.corTema);
     const mod = this.elementos.moduloElemento;
     if (mod) {
       mod.setAttribute('data-persona', this.persona.id);
@@ -1187,6 +1298,8 @@ export class Avatar3D implements ControladorAvatar {
     if (this.onResizeHandler) {
       window.removeEventListener('resize', this.onResizeHandler);
     }
+    this.observadorTamanho?.disconnect();
+    this.observadorTamanho = null;
 
     this.clipes?.destruir();
     this.clipes = null;

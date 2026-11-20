@@ -1,6 +1,6 @@
 /**
  * TUTORIA - Testes das Personas por Matéria
- * Spec: SDD/2026-10-23_avatar-personas-por-materia.md (CT09, CT13, CT15, CT16 e RF06, RF07, RF10 - RF13)
+ * Spec: SDD/DONE/2026-10-23_avatar-personas-por-materia.md (CT09, CT13, CT15, CT16 e RF06, RF07, RF10 - RF13)
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';

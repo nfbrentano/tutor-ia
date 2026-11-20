@@ -360,3 +360,24 @@ select:focus {
   justify-content: flex-end;
   gap: 0.75rem;
 }
+
+/* Celular: o cabeçalho quebra em linhas em vez de criar rolagem horizontal na página */
+@media (max-width: 520px) {
+  header {
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding: 0.85rem 1rem;
+  }
+
+  .header-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-left: auto;
+    max-width: 100%;
+  }
+
+  .api-status-tag {
+    white-space: nowrap;
+  }
+}

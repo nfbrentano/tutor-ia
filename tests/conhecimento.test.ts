@@ -26,7 +26,8 @@ import {
   STORAGE_KEYS
 } from '../src/armazenamento';
 import { executarIndexacao } from '../scripts/indexar-livros';
-import { gerarCachePerguntas, PERGUNTAS_FREQUENTES_CURRICULO } from '../scripts/gerar-cache';
+// montarItensCache não grava em disco: rodar os testes não pode alterar public/conhecimento/cache.json
+import { montarItensCache as gerarCachePerguntas, PERGUNTAS_FREQUENTES_CURRICULO } from '../scripts/gerar-cache';
 import { gerarFixturesEmDisco } from './fixtures/gerador-pdf-teste';
 
 describe('Base de Conhecimento - Normalização de Texto (CT03 / CA04)', () => {

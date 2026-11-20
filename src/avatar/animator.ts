@@ -31,6 +31,8 @@ export class AvatarAnimator implements ControladorAvatar {
   private ultimoGestoEspera: GestoEsperaTipo | null = null;
   private estaPiscando = false;
   private ultimoBoundaryTimestamp = 0;
+  private destruido = false;
+  private onVisibilidade: (() => void) | null = null;
 
   // Elementos internos do SVG
   private mouthElement: SVGElement | null = null;
@@ -53,13 +55,15 @@ export class AvatarAnimator implements ControladorAvatar {
   private configurarVisibilidade(): void {
     if (typeof document === 'undefined') return;
 
-    document.addEventListener('visibilitychange', () => {
+    // Guardado para ser removido em destruir(): o 2D é descartado quando o 3D carrega
+    this.onVisibilidade = () => {
       if (document.hidden) {
         this.pausarAnimacoes();
       } else {
         this.retomarAnimacoes();
       }
-    });
+    };
+    document.addEventListener('visibilitychange', this.onVisibilidade);
   }
 
   private pausarAnimacoes(): void {
@@ -86,6 +90,7 @@ export class AvatarAnimator implements ControladorAvatar {
      ========================================================================== */
   private iniciarLoopPiscadas(): void {
     if (this.timerPiscada) clearTimeout(this.timerPiscada);
+    if (this.destruido) return;
 
     const { piscadaIntervaloMinMs, piscadaIntervaloMaxMs } = this.config;
     const proximoIntervalo =
@@ -97,7 +102,7 @@ export class AvatarAnimator implements ControladorAvatar {
   }
 
   private executarPiscada(): void {
-    if (this.estaPiscando) return;
+    if (this.estaPiscando || this.destruido) return;
     this.estaPiscando = true;
 
     const mod = this.elementos.moduloElemento;
@@ -390,6 +395,11 @@ export class AvatarAnimator implements ControladorAvatar {
   }
 
   destruir(): void {
+    this.destruido = true;
+    if (this.onVisibilidade) {
+      document.removeEventListener('visibilitychange', this.onVisibilidade);
+      this.onVisibilidade = null;
+    }
     this.pausarAnimacoes();
     this.pararCicloGestosEspera();
     if (this.timerApontar) clearTimeout(this.timerApontar);

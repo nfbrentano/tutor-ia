@@ -34,6 +34,24 @@ export function calcularSimilaridadeTokens(tokensA: string[], tokensB: string[])
   return (jaccard * 0.4) + (cobertura * 0.6);
 }
 
+/** Máximo de termos da pergunta do aluno que podem ficar fora da pergunta em cache. */
+export const MAX_TERMOS_EXTRAS_CACHE = 1;
+
+/**
+ * A similaridade sozinha superestima perguntas que só compartilham o tema ("Por que a fotossíntese
+ * não acontece à noite?" × "o que é fotossíntese?"). Exige que quase todos os termos da pergunta do
+ * aluno estejam na pergunta em cache: no máximo `maxExtras` termos novos.
+ */
+export function perguntaCobertaPeloCache(
+  tokensConsulta: string[],
+  tokensItem: string[],
+  maxExtras = MAX_TERMOS_EXTRAS_CACHE
+): boolean {
+  const item = new Set(tokensItem);
+  const extras = new Set(tokensConsulta.filter(t => !item.has(t)));
+  return extras.size <= maxExtras;
+}
+
 export interface OpcoesBuscaCache {
   livrosDesativados?: string[];
 }
@@ -130,6 +148,7 @@ export class GerenciadorCacheConhecimento {
           for (const item of this.itensPreConstruidos) {
             if (this.usaLivroDesativado(item.resposta, desativados)) continue;
             const tokensItem = normalizarTexto(item.pergunta);
+            if (!perguntaCobertaPeloCache(tokensConsulta, tokensItem)) continue;
             const score = calcularSimilaridadeTokens(tokensConsulta, tokensItem);
             if (score > melhorScore) {
               melhorScore = score;

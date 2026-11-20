@@ -1,6 +1,6 @@
 /**
  * TUTORIA - Plugin do Vite (só em `npm run dev`) para o gravador de gestos salvar clipes (RF09)
- * Spec: SDD/2026-10-23_gravador-de-gestos.md
+ * Spec: SDD/DONE/2026-10-23_gravador-de-gestos.md
  *
  * POST /__gravador/salvar { nome, clipe } grava public/avatar/animacoes/<nome>.json e acrescenta
  * a entrada no manifesto.json. Nada é escrito fora dessa pasta.

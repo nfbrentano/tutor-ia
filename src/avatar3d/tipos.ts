@@ -15,6 +15,11 @@ export interface Avatar3DConfig extends AvatarConfig {
   fpsLimiteFala: number;
   /** Persona inicial; o modelo dela tem prioridade sobre `caminhoModelo` (RF06). */
   persona?: Persona;
+  /**
+   * Mostra só a cabeça holográfica flutuante, sem tronco nem braços
+   * (SDD/2026-11-20_avatar-cabeca-holografica.md). `false` volta ao enquadramento de meio corpo.
+   */
+  apenasCabeca: boolean;
 }
 
 export const CONFIG_AVATAR_3D_PADRAO: Avatar3DConfig = {
@@ -23,7 +28,8 @@ export const CONFIG_AVATAR_3D_PADRAO: Avatar3DConfig = {
   tempoLimiteCarregamentoMs: 10000,
   duracaoTransicaoMs: 350,
   fpsLimiteRepouso: 30,
-  fpsLimiteFala: 60
+  fpsLimiteFala: 60,
+  apenasCabeca: true
 };
 
 export interface RotacaoOsso {

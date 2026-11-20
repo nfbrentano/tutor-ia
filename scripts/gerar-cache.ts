@@ -358,11 +358,8 @@ export const PERGUNTAS_FREQUENTES_CURRICULO: Array<Omit<ItemCacheResposta, 'id' 
   }
 ];
 
-export function gerarCachePerguntas(): ItemCacheResposta[] {
-  console.log('\n======================================================');
-  console.log('   TutorIA - Gerador de Cache de Respostas Prontas');
-  console.log('======================================================\n');
-
+/** Monta os itens do cache pré-construído sem gravar nada em disco (usado pelos testes). */
+export function montarItensCache(): ItemCacheResposta[] {
   const itensCache: ItemCacheResposta[] = [];
 
   for (let i = 0; i < PERGUNTAS_FREQUENTES_CURRICULO.length; i++) {
@@ -380,11 +377,22 @@ export function gerarCachePerguntas(): ItemCacheResposta[] {
     });
   }
 
-  fs.mkdirSync(path.dirname(CAMINHO_CACHE), { recursive: true });
-  fs.writeFileSync(CAMINHO_CACHE, JSON.stringify(itensCache, null, 2), 'utf-8');
+  return itensCache;
+}
+
+/** Gera e grava `public/conhecimento/cache.json` (uso via `npm run gerar-cache`). */
+export function gerarCachePerguntas(caminho = CAMINHO_CACHE): ItemCacheResposta[] {
+  console.log('\n======================================================');
+  console.log('   TutorIA - Gerador de Cache de Respostas Prontas');
+  console.log('======================================================\n');
+
+  const itensCache = montarItensCache();
+
+  fs.mkdirSync(path.dirname(caminho), { recursive: true });
+  fs.writeFileSync(caminho, JSON.stringify(itensCache, null, 2), 'utf-8');
 
   console.log(`✅ Geradas ${itensCache.length} respostas prontas em cache.`);
-  console.log(`📁 Cache salvo em: ${CAMINHO_CACHE}\n`);
+  console.log(`📁 Cache salvo em: ${caminho}\n`);
 
   return itensCache;
 }

@@ -24,6 +24,8 @@ export class LousaControlador {
   private elementos: LousaElementos;
   private aberta = false;
   private itensAtuais: ItemLousa[] = [];
+  /** Incrementa a cada limpar(); itens assíncronos de uma geração antiga são descartados. */
+  private geracao = 0;
   private onVerImagem?: (url: string, legenda?: string) => void;
   private onResponderQuiz?: OnResponderQuizCallback;
 
@@ -80,6 +82,8 @@ export class LousaControlador {
   }
 
   limpar(): void {
+    // Invalida itens ainda resolvendo (ex.: imagem da Wikimedia) para não caírem na lousa nova
+    this.geracao++;
     this.itensAtuais = [];
     if (this.elementos.corpoElemento) {
       this.elementos.corpoElemento.innerHTML = '';
@@ -87,7 +91,8 @@ export class LousaControlador {
   }
 
   async adicionarItem(item: ItemLousa): Promise<HTMLElement | null> {
-    if (!item) return null;
+    if (!item || typeof item !== 'object') return null;
+    const geracaoInicial = this.geracao;
 
     // Se for imagem, resolve a busca na Wikimedia se ainda não tiver URL real
     let itemResolvido = item;
@@ -95,9 +100,14 @@ export class LousaControlador {
       const imgData = typeof item.conteudo === 'string'
         ? { termo: item.conteudo, legenda: item.legenda }
         : (item.conteudo as any);
+      if (!imgData || typeof imgData !== 'object') return null;
 
       if (!imgData.urlReal) {
-        const busca = await buscarImagemWikimedia(imgData.termo || imgData.url || '', imgData.legenda);
+        const termo = imgData.termo || imgData.url || '';
+        if (!termo) return null;
+        const busca = await buscarImagemWikimedia(termo, imgData.legenda);
+        // A lousa foi limpa enquanto a busca rodava (nova pergunta): descarta o resultado atrasado
+        if (geracaoInicial !== this.geracao) return null;
         if (!busca) {
           // Se falhar a busca ou estourar timeout, omite sem deixar quebrado (CA07)
           return null;
@@ -109,7 +119,14 @@ export class LousaControlador {
       }
     }
 
-    const elemento = renderizarItemLousa(itemResolvido, this.onVerImagem, this.onResponderQuiz);
+    // Um item malformado vindo do modelo não pode derrubar o resto da explicação
+    let elemento: HTMLElement | null = null;
+    try {
+      elemento = renderizarItemLousa(itemResolvido, this.onVerImagem, this.onResponderQuiz);
+    } catch (err) {
+      console.warn('Lousa: item ignorado por formato inválido.', err);
+      return null;
+    }
     if (!elemento) return null;
 
     this.itensAtuais.push(itemResolvido);

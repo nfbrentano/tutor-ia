@@ -2,7 +2,7 @@
  * TUTORIA - Clipes de Animação do Mixamo no Avatar VRM (RF02, RF03 da spec de personas)
  *
  * Os FBX do Mixamo ("Without Skin", 30 fps) e os clipes JSON do gravador de gestos
- * (SDD/2026-10-23_gravador-de-gestos.md) ficam em public/avatar/animacoes/ e são listados em
+ * (SDD/DONE/2026-10-23_gravador-de-gestos.md) ficam em public/avatar/animacoes/ e são listados em
  * manifesto.json. A conversão de ossos Mixamo → VRM segue o exemplo oficial do three-vrm
  * (humanoidAnimation/loadMixamoAnimation.js). Sem manifesto, o avatar usa só o movimento procedural.
  */

@@ -1,6 +1,6 @@
 /**
  * TUTORIA - Testes do Gravador de Gestos
- * Spec: SDD/2026-10-23_gravador-de-gestos.md (CT05 - CT08, CT10 - CT13, CT15)
+ * Spec: SDD/DONE/2026-10-23_gravador-de-gestos.md (CT05 - CT08, CT10 - CT13, CT15)
  */
 
 import { describe, it, expect, afterEach } from 'vitest';

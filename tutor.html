@@ -73,121 +73,76 @@
     <section class="avatar-section" aria-label="Área do Avatar Interativo">
       <div class="avatar-stage">
         <div id="avatar-module" class="state-idle">
-          <div class="avatar-halo"></div>
-          <div class="avatar-halo-secondary"></div>
+          <!-- Tubo de energia da cabeça holográfica (SDD/2026-11-20_avatar-cabeca-holografica.md, RF05) -->
+          <div class="holo-tubo" aria-hidden="true">
+            <div class="holo-tubo-tampa holo-tubo-topo"></div>
+            <div class="holo-tubo-coluna"></div>
+            <div class="holo-tubo-tampa holo-tubo-base"></div>
+          </div>
 
           <!-- Canvas para Renderização WebGL do Avatar 3D (RF01, RF02, RNF07) -->
-          <canvas id="avatar-3d-canvas" class="avatar-3d-canvas" width="300" height="330" role="img" aria-label="Avatar 3D do Tutor" style="position: absolute; inset: 0; width: 100%; height: 100%; display: none; opacity: 0; transition: opacity 0.4s ease; pointer-events: none; z-index: 2;"></canvas>
+          <canvas id="avatar-3d-canvas" class="avatar-3d-canvas" width="300" height="340" role="img" aria-label="Avatar 3D do Tutor" style="position: absolute; inset: 0; width: 100%; height: 100%; display: none; opacity: 0; transition: opacity 0.4s ease; pointer-events: none; z-index: 2;"></canvas>
 
-          <svg class="avatar-svg" viewBox="0 0 240 280" role="img" aria-label="Avatar Articulado do Tutor">
+          <!-- Plano B: só a cabeça, flutuando no tubo (RF07 da spec da cabeça holográfica) -->
+          <svg class="avatar-svg" viewBox="46 -6 148 172" role="img" aria-label="Avatar do Tutor: cabeça holográfica">
             <defs>
               <linearGradient id="headGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stop-color="#1e293b"/>
                 <stop offset="100%" stop-color="#0f172a"/>
               </linearGradient>
-              <linearGradient id="torsoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#1e293b"/>
-                <stop offset="100%" stop-color="#090d16"/>
-              </linearGradient>
               <filter id="eyeGlow" x="-20%" y="-20%" width="140%" height="140%">
                 <feGaussianBlur stdDeviation="2" result="blur" />
                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
               </filter>
-              <filter id="coreGlow" x="-30%" y="-30%" width="160%" height="160%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
             </defs>
 
-            <!-- ================= TRONCO E PEITORAL (RESPIRAÇÃO) ================= -->
-            <g id="avatar-torso" class="avatar-torso">
-              <!-- Base dos Ombros / Clavícula -->
-              <rect x="75" y="145" width="90" height="22" rx="10" fill="url(#torsoGrad)" stroke="#38bdf8" stroke-width="1.8" />
-              
-              <!-- Placa Peitoral -->
-              <path d="M 80 155 L 160 155 L 152 230 L 88 230 Z" fill="url(#torsoGrad)" stroke="#334155" stroke-width="2" />
-              
-              <!-- Frisos Neon do Peitoral -->
-              <path d="M 94 165 L 110 185 L 130 185 L 146 165" fill="none" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1.5" />
-              
-              <!-- Núcleo de Energia (Core) -->
-              <circle id="avatar-chest-core" cx="120" cy="188" r="8" fill="#38bdf8" filter="url(#coreGlow)" />
-              <circle cx="120" cy="188" r="4" fill="#ffffff" />
-            </g>
-
-            <!-- ================= PESCOÇO ================= -->
-            <g id="avatar-neck" class="avatar-neck">
-              <rect x="110" y="125" width="20" height="25" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
-              <line x1="112" y1="133" x2="128" y2="133" stroke="#38bdf8" stroke-width="1" />
-              <line x1="112" y1="139" x2="128" y2="139" stroke="#38bdf8" stroke-width="1" />
-            </g>
-
-            <!-- ================= CABEÇA E EXPRESSÃO (BALANÇO) ================= -->
-            <g id="avatar-head-group" class="avatar-head-group">
-              <!-- Antena Superior -->
-              <line x1="120" y1="36" x2="120" y2="48" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" />
-              <circle cx="120" cy="32" r="4" fill="#38bdf8" />
-
-              <!-- Fones Laterais -->
-              <rect x="76" y="65" width="8" height="24" rx="4" fill="#38bdf8" />
-              <rect x="156" y="65" width="8" height="24" rx="4" fill="#38bdf8" />
-
-              <!-- Casca da Cabeça -->
-              <rect class="avatar-head" x="84" y="48" width="72" height="70" rx="20" fill="url(#headGrad)" stroke="#38bdf8" stroke-width="2.5" />
-
-              <!-- Visor Escuro -->
-              <rect class="avatar-visor" x="92" y="58" width="56" height="50" rx="12" fill="#080d1a" stroke="#1e293b" stroke-width="1.5" />
-
-              <!-- Sobrancelhas Articuladas -->
-              <g id="avatar-eyebrows" class="avatar-eyebrows">
-                <line class="eyebrow eyebrow-left" x1="99" y1="68" x2="111" y2="68" stroke-width="2" stroke-linecap="round" />
-                <line class="eyebrow eyebrow-right" x1="129" y1="68" x2="141" y2="68" stroke-width="2" stroke-linecap="round" />
+            <g class="avatar-flutuacao">
+              <!-- Projeção do pescoço: linhas que se dissolvem abaixo do queixo -->
+              <g class="avatar-projecao">
+                <line x1="108" y1="124" x2="132" y2="124" stroke-width="3" opacity="0.7" />
+                <line x1="110" y1="131" x2="130" y2="131" stroke-width="2.5" opacity="0.45" stroke-dasharray="6 3" />
+                <line x1="112" y1="138" x2="128" y2="138" stroke-width="2" opacity="0.28" stroke-dasharray="4 4" />
+                <line x1="115" y1="145" x2="125" y2="145" stroke-width="1.5" opacity="0.15" stroke-dasharray="2 4" />
               </g>
 
-              <!-- Olhos Expressivos (com Piscada e Movimento de Olhar) -->
-              <g id="avatar-eyes" class="avatar-eyes">
-                <ellipse class="avatar-eye eye-left" cx="105" cy="76" rx="5.5" ry="5.5" filter="url(#eyeGlow)" />
-                <ellipse class="avatar-eye eye-right" cx="135" cy="76" rx="5.5" ry="5.5" filter="url(#eyeGlow)" />
-              </g>
+              <!-- ================= CABEÇA E EXPRESSÃO ================= -->
+              <g id="avatar-head-group" class="avatar-head-group">
+                <!-- Antena Superior -->
+                <line class="avatar-antena" x1="120" y1="36" x2="120" y2="48" stroke-width="2.5" stroke-linecap="round" />
+                <circle class="avatar-antena-ponta" cx="120" cy="32" r="4" />
 
-              <!-- Boca Articulada e Sincronizada -->
-              <g id="avatar-mouth" class="avatar-mouth">
-                <rect class="mouth-shape" x="108" y="96" width="24" height="6" rx="3" />
-              </g>
-            </g>
+                <!-- Fones Laterais -->
+                <rect class="avatar-orelha" x="76" y="65" width="8" height="24" rx="4" />
+                <rect class="avatar-orelha" x="156" y="65" width="8" height="24" rx="4" />
 
-            <!-- ================= BRAÇO ESQUERDO (ARTICULADO) ================= -->
-            <g id="arm-left-group" class="avatar-arm arm-left">
-              <!-- Ombro Esquerdo -->
-              <circle cx="75" cy="155" r="9" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
-              <!-- Braço Superior -->
-              <path d="M 75 155 L 60 195" stroke="#334155" stroke-width="8" stroke-linecap="round" />
-              
-              <!-- Antebraço e Mão Esquerda -->
-              <g id="forearm-left-group" class="avatar-forearm forearm-left">
-                <circle cx="60" cy="195" r="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2" />
-                <path d="M 60 195 L 54 235" stroke="#334155" stroke-width="7" stroke-linecap="round" />
-                <!-- Mão Esquerda -->
-                <ellipse cx="53" cy="242" rx="7" ry="9" fill="#38bdf8" />
-              </g>
-            </g>
+                <!-- Casca da Cabeça -->
+                <rect class="avatar-head" x="84" y="48" width="72" height="70" rx="20" fill="url(#headGrad)" stroke-width="2.5" />
 
-            <!-- ================= BRAÇO DIREITO (ARTICULADO & GESTOS) ================= -->
-            <g id="arm-right-group" class="avatar-arm arm-right">
-              <!-- Ombro Direito -->
-              <circle cx="165" cy="155" r="9" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
-              <!-- Braço Superior -->
-              <path d="M 165 155 L 180 195" stroke="#334155" stroke-width="8" stroke-linecap="round" />
-              
-              <!-- Antebraço e Mão Direita -->
-              <g id="forearm-right-group" class="avatar-forearm forearm-right">
-                <circle cx="180" cy="195" r="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2" />
-                <path d="M 180 195 L 186 235" stroke="#334155" stroke-width="7" stroke-linecap="round" />
-                <!-- Mão Direita (Aponta e Gesticula) -->
-                <ellipse cx="187" cy="242" rx="7" ry="9" fill="#38bdf8" />
+                <!-- Visor Escuro -->
+                <rect class="avatar-visor" x="92" y="58" width="56" height="50" rx="12" fill="#080d1a" stroke="#1e293b" stroke-width="1.5" />
+
+                <!-- Sobrancelhas Articuladas -->
+                <g id="avatar-eyebrows" class="avatar-eyebrows">
+                  <line class="eyebrow eyebrow-left" x1="99" y1="68" x2="111" y2="68" stroke-width="2" stroke-linecap="round" />
+                  <line class="eyebrow eyebrow-right" x1="129" y1="68" x2="141" y2="68" stroke-width="2" stroke-linecap="round" />
+                </g>
+
+                <!-- Olhos Expressivos (com Piscada e Movimento de Olhar) -->
+                <g id="avatar-eyes" class="avatar-eyes">
+                  <ellipse class="avatar-eye eye-left" cx="105" cy="76" rx="5.5" ry="5.5" filter="url(#eyeGlow)" />
+                  <ellipse class="avatar-eye eye-right" cx="135" cy="76" rx="5.5" ry="5.5" filter="url(#eyeGlow)" />
+                </g>
+
+                <!-- Boca Articulada e Sincronizada -->
+                <g id="avatar-mouth" class="avatar-mouth">
+                  <rect class="mouth-shape" x="108" y="96" width="24" height="6" rx="3" />
+                </g>
               </g>
             </g>
           </svg>
+
+          <!-- Vidro do tubo, na frente da cabeça -->
+          <div class="holo-tubo-vidro" aria-hidden="true"></div>
         </div>
 
         <!-- Painel da Lousa Escolar Didática (RF01, RNF04) -->

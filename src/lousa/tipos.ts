@@ -89,5 +89,10 @@ export interface RespostaDidatica {
   materia?: string;
   /** Desafio de fixação opcional para modo prática na lousa (RF01). */
   desafio?: DesafioQuiz | null;
+  /**
+   * `false` quando a resposta é um fallback (resposta vazia/bloqueada) ou o streaming caiu no meio.
+   * Respostas incompletas não podem ir para o cache, senão a falha se repete offline.
+   */
+  completa?: boolean;
 }
 
